@@ -1,10 +1,4 @@
-import Navigation from './Navigation';
-import Hero from './Hero';
-import Sessions from './Sessions';
-import Features from './Features';
-import Pricing from './Pricing';
-import Docs from './Docs';
-import Footer from './Footer';
+import { Navigation, Hero, Sessions, Features, Pricing, Docs, Footer } from './components';
 
 export default function App() {
   return (

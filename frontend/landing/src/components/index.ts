@@ -1,3 +1,5 @@
+import Navigation from './Navigation';
+export { Navigation };
 export { Hero } from './Hero';
 export { TrustLogos } from './TrustLogos';
 export { ValueProps } from './ValueProps';

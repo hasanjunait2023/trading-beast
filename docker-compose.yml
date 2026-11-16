@@ -7,12 +7,12 @@ services:
     environment:
       POSTGRES_DB: session_focus_radar
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: 
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backup:/backup
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [CMD-SHELL, pg_isready -U postgres]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -46,22 +46,22 @@ services:
       dockerfile: Dockerfile.prod
     container_name: sfr-backend
     environment:
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/session_focus_radar?schema=public
-      - JWT_SECRET=${JWT_SECRET}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
-      - FRONTEND_URL=${FRONTEND_URL}
-      - ADMIN_FRONTEND_URL=${ADMIN_FRONTEND_URL}
+      - DATABASE_URL=postgresql://postgres:@postgres:5432/session_focus_radar?schema=public
+      - JWT_SECRET=
+      - TELEGRAM_BOT_TOKEN=
+      - TELEGRAM_BOT_USERNAME=
+      - FRONTEND_URL=
+      - ADMIN_FRONTEND_URL=
       - PORT=3000
       - NODE_ENV=production
       - QUICKCHART_URL=http://quickchart:3400
-      - FINNHUB_API_KEY=${FINNHUB_API_KEY}
-      - TWELVE_DATA_API_KEY=${TWELVE_DATA_API_KEY}
-      - ENABLE_CRYPTO=${ENABLE_CRYPTO:-false}
-      - ENABLE_REFERRALS=${ENABLE_REFERRALS:-true}
-      - ENABLE_DAILY_PUBLISHING=${ENABLE_DAILY_PUBLISHING:-true}
+      - FINNHUB_API_KEY=
+      - TWELVE_DATA_API_KEY=
+      - ENABLE_CRYPTO=false
+      - ENABLE_REFERRALS=true
+      - ENABLE_DAILY_PUBLISHING=true
     ports:
-      - "3000:3000"
+      - 3000:3000
     depends_on:
       postgres:
         condition: service_healthy
@@ -76,7 +76,7 @@ services:
           memory: 1G
           cpus: '0.5'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: [CMD, curl, -f, http://localhost:3000/health]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -88,10 +88,10 @@ services:
       dockerfile: Dockerfile.prod
     container_name: sfr-user-frontend
     environment:
-      - VITE_API_URL=${FRONTEND_URL}/api
-      - VITE_TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
+      - VITE_API_URL=/api
+      - VITE_TELEGRAM_BOT_USERNAME=
     ports:
-      - "5173:80"
+      - 5173:80
     depends_on:
       - backend
     restart: unless-stopped
@@ -109,11 +109,27 @@ services:
       dockerfile: Dockerfile.prod
     container_name: sfr-admin-frontend
     environment:
-      - VITE_API_URL=${ADMIN_FRONTEND_URL}/api
+      - VITE_API_URL=/api
     ports:
-      - "5174:80"
+      - 5174:80
     depends_on:
       - backend
+    restart: unless-stopped
+    networks:
+      - sfr-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+
+  landing:
+    build:
+      context: ./frontend/landing
+      dockerfile: Dockerfile.prod
+    container_name: sfr-landing
+    ports:
+      - 5175:80
     restart: unless-stopped
     networks:
       - sfr-network

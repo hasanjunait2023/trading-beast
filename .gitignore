@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+**/node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Docker
+.docker/
+
+# Test
+coverage/
+.nyc_output/
+
+# Misc
+*.tar.gz
+*.tgz
+*.zip
+
+# Prisma
+prisma/migrations/.migration_lock.toml
+
+# Caddy
+/data/caddy/
+/config/caddy/
