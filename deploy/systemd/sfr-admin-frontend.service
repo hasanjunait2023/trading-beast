@@ -1,0 +1,26 @@
+[Unit]
+Description=Session Focus Radar Admin Portal
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=sfr
+WorkingDirectory=/opt/session-focus-radar
+ExecStart=/usr/bin/docker compose up admin-frontend
+ExecStop=/usr/bin/docker compose stop admin-frontend
+Restart=always
+RestartSec=10
+Environment=COMPOSE_PROJECT_NAME=sfr
+
+# Resource limits
+MemoryLimit=512M
+CPUQuota=25%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sfr-admin-frontend
+
+[Install]
+WantedBy=multi-user.target

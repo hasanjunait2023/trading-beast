@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sfr-postgres
+    environment:
+      POSTGRES_DB: session_focus_radar
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  quickchart:
+    image: ianw/quickchart:latest
+    container_name: sfr-quickchart
+    ports:
+      - "3400:3400"
+    environment:
+      - QC_WIDTH=1200
+      - QC_HEIGHT=850
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sfr-backend
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/session_focus_radar?schema=public
+      - JWT_SECRET=${JWT_SECRET}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
+      - FRONTEND_URL=http://localhost:5173
+      - ADMIN_FRONTEND_URL=http://localhost:5174
+      - PORT=3000
+      - NODE_ENV=development
+      - QUICKCHART_URL=http://quickchart:3400
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      quickchart:
+        condition: service_started
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  user-frontend:
+    build:
+      context: ./frontend/user-portal
+      dockerfile: Dockerfile
+    container_name: sfr-user-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3000/api
+      - VITE_TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
+    volumes:
+      - ./frontend/user-portal:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+  admin-frontend:
+    build:
+      context: ./frontend/admin-portal
+      dockerfile: Dockerfile
+    container_name: sfr-admin-frontend
+    ports:
+      - "5174:5174"
+    environment:
+      - VITE_API_URL=http://localhost:3000/api
+    volumes:
+      - ./frontend/admin-portal:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

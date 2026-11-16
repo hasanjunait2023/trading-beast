@@ -1,0 +1,320 @@
+{
+  "C:\\Users\\Junait\\.claude\\skills\\ceo\\references\\lifecycle.md": {
+    "hash": "beeae981d5246590",
+    "summary": "We are given a file that describes a \"CEO Lifecycle\" detailed playbook for a project. The user asks: \"In 1-2 sentences, what does this file do?\"\n\nWe need to summarize the purpose of the file in one or two sentences.\n\nThe file outlines a phased approach (CHARTER, RESEARCH, PLAN, GATE 1, BUILD, etc.) for a CEO (main thread) to manage a project by dispatching agents (like researcher, architect, engineers, etc.) for each phase, with defined goals, methods, exit criteria, and state updates. It also",
+    "ts": 1794765869,
+    "size": 6012
+  },
+  "c:\\Users\\Junait\\Trading Beast\\.claude\\team\\MISSION.md": {
+    "hash": "b23addbf7ea0a688",
+    "summary": "The user wants a 1-2 sentence description of what the file does. The file is a mission charter for a project called \"Session Focus Radar\", a Telegram bot for Bangladeshi forex traders. I need to summarize its purpose in one or two sentences.\n\nKey elements: It's a mission charter that defines the goal of building a Telegram bot providing session-aware forex trading focus lists, with details on success criteria, constraints, and stakeholder decisions.\n\nI can say: This file is a mission charter that outlines the goals, success criteria, and constraints for building a Telegram bot that provides session",
+    "ts": 1794765934,
+    "size": 2913
+  },
+  "c:\\Users\\Junait\\Trading Beast\\Seating time analysis chapter 2 important.json": {
+    "hash": "ce1efaee4ee10a00",
+    "summary": "We are given a partial JSON file that appears to be an n8n workflow. The task is to explain in 1-2 sentences what this file does.\n\nLooking at the provided JSON, we see three nodes:\n1. A code node named \"Build Pairs1\" that generates a list of currency pairs (like EUR/GBP, etc.) and other assets (Gold, Silver, Oil, Bitcoin) with their Yahoo Finance symbols.\n2. An HTTP request node named \"Get Yahoo 15m1\" that fetches 15-minute interval data for the last 30",
+    "ts": 1794765951,
+    "size": 50632
+  },
+  "c:\\Users\\Junait\\Trading Beast\\session-focus-marketing-plan.md": {
+    "hash": "8ffcb894ce4a1ab7",
+    "summary": "Hmm, the user is asking for a concise summary of the file's purpose in 1-2 sentences. The file is a marketing plan written in Bengali, so I need to extract the core objective without getting bogged down by details. \n\nThe key elements are: it's a Telegram bot for forex traders, focuses on session-based market analysis, and the goal is to convert free users to paid subscribers. The summary should capture these three points succinctly. \n\nI can structure it as: [What it is] + [How it works] + [Goal]. The response should avoid mentioning",
+    "ts": 1794765974,
+    "size": 10173
+  },
+  "c:\\Users\\Junait\\Trading Beast\\.claude\\team\\STATE.json": {
+    "hash": "d4c9a92141c49f1b",
+    "summary": "The user asks: \"In 1-2 sentences, what does this file do?\" They provide a JSON snippet. The file appears to be a project status file, maybe a state file for a project. They want a concise description, 1-2 sentences.\n\nWe need to respond with 1-2 sentences describing what the file does.\n\nWe must follow guidelines: Provide answer. Should be concise. Possibly \"It records the current phase and milestone of the Session Focus Radar project, indicating it's in the PLAN phase with active milestone M1, and no gate is pending.\" That's one",
+    "ts": 1794766269,
+    "size": 294
+  },
+  "c:\\Users\\Junait\\brain\\notes\\capabilities.md": {
+    "hash": "7c9a8c7a63f5be67",
+    "summary": "This file serves as a capabilities manifest, documenting the specific CLI tools, skill libraries, and MCP servers that Claude has access to on the founder's machine. It instructs the assistant to read this file before non-trivial tasks to ensure it utilizes the correct available tools rather than defaulting to generic approaches.",
+    "ts": 1794766513,
+    "size": 8732
+  },
+  "c:\\Users\\Junait\\Trading Beast\\shared\\analysis-engine.ts": {
+    "hash": "cf9f663becb68314",
+    "summary": "* Session Focus Radar - Core Analysis Engine",
+    "ts": 1794772887,
+    "size": 20490
+  },
+  "c:\\Users\\Junait\\Trading Beast\\backend\\src\\services\\analysis.ts": {
+    "hash": "9f1d87dcdf5ebaaa",
+    "summary": "We are given a code snippet that exports two functions: `runAnalysisForUser` and `getCachedAnalysis`.\n The question asks: \"In 1-2 sentences, what does this file do?\"\n\n Let's analyze the code:\n\n 1. The file imports necessary modules and defines an interface `AnalysisRequest`.\n 2. The main function `runAnalysisForUser` takes a user ID and an optional request object.\n    - It checks if the user exists.\n    - It determines the current session (Asian, London, New York) or uses the one provided in the request.\n    -",
+    "ts": 1794771035,
+    "size": 5879
+  },
+  "c:\\Users\\Junait\\Trading Beast\\backend\\tsconfig.json": {
+    "hash": "de9793b394ede7cb",
+    "summary": "Hmm, the user is asking for a concise explanation of what this TypeScript configuration file does. The query specifies 1-2 sentences, so the response needs to be brief yet comprehensive. \n\nThe file is clearly a tsconfig.json, so the core function is configuring TypeScript compilation. The key points to highlight are the compilation target (ES2022), module system (NodeNext), and the path aliases for cleaner imports. The output directory and strict type-checking are also worth mentioning since they're fundamental to the build process.\n\nI can structure it by first stating the primary purpose, then summar",
+    "ts": 1794770264,
+    "size": 581
+  },
+  "c:\\Users\\Junait\\Trading Beast\\backend\\src\\routes\\user.ts": {
+    "hash": "7a5f7a5ee80d3e29",
+    "summary": "We are given a code snippet that is an Express router. The task is to describe in 1-2 sentences what this file does.\n\n Let's break down the code:\n\n 1. Imports: Express Router, Zod for validation, PrismaClient for database operations, and a custom AuthRequest type.\n\n 2. Initializes Prisma and a router.\n\n 3. Defines two Zod schemas: \n    - `watchlistSchema`: expects an array of strings with length between 1 and 50.\n    - `paymentSchema`: expects an amount (positive integer), currency (default",
+    "ts": 1794770314,
+    "size": 4018
+  },
+  "c:\\Users\\Junait\\Trading Beast\\backend\\prisma\\schema.prisma": {
+    "hash": "09e8698d51ab5a9c",
+    "summary": "We are given a Prisma schema file. The question asks: In 1-2 sentences, what does this file do?\n\n The file defines a database schema using Prisma. It includes models for User, Subscription, Payment, Referral, AnalysisCache, and FocusResult. It also specifies the database provider (PostgreSQL) and the client generator (prisma-client-js). The models define the structure of the database tables, including fields, relationships, and indexes.\n\n However, note that the file is incomplete (the FocusResult model is cut off). But we can still summarize the purpose.\n\n The",
+    "ts": 1794770338,
+    "size": 3526
+  },
+  "c:\\Users\\Junait\\Trading Beast\\backend\\package.json": {
+    "hash": "c7516f713e0fe5c3",
+    "summary": "The user wants to know in 1-2 sentences what the file does based on the provided content. The file is a package.json for a Node.js backend project named \"session-focus-radar-backend\", described as a market analysis platform backend with session-aware trading focus lists. It lists scripts, dependencies, and devDependencies.\n\nWe need to describe what this file does in 1-2 sentences. It's a package.json that defines the project's metadata, scripts, dependencies, and dev dependencies for a backend application.\n\nPotential answer: This file is the package.json for a Node.js backend application called",
+    "ts": 1794770585,
+    "size": 1162
+  },
+  "c:\\Users\\Junait\\Trading Beast\\backend\\src\\routes\\analysis.ts": {
+    "hash": "7828b02a22fc5893",
+    "summary": "We are given a code snippet for an Express router that handles analysis-related routes.\n The task is to summarize in 1-2 sentences what the file does.\n\n Let's break down the code:\n\n 1. The file imports necessary modules and services.\n 2. It defines a router and a schema for validating analysis requests.\n 3. It has several routes:\n    - POST '/focus': Runs analysis for a user with optional session and watchlist.\n    - GET '/focus/:session': Gets cached analysis for a session, falling back to live analysis.\n    - GET '/pairs': Returns a",
+    "ts": 1794770697,
+    "size": 2891
+  },
+  "c:\\Users\\Junait\\Trading Beast\\backend\\src\\routes\\telegram.ts": {
+    "hash": "34828a9c69b16721",
+    "summary": "We are given a code snippet that sets up an Express router for handling Telegram bot webhooks and related endpoints.\n The code includes:\n   - A POST endpoint for '/webhook' to handle incoming updates from Telegram (callback queries and messages).\n   - A POST endpoint for '/set-webhook' to set the webhook URL for the Telegram bot.\n   - A GET endpoint for '/webhook-info' to get the current webhook information.\n\n The code also includes helper functions (handleMessage and handleCallbackQuery) that are used to process the updates.\n\n The handleMessage function:\n   - Extracts chatId,",
+    "ts": 1794773224,
+    "size": 13031
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\user-portal\\src\\pages\\Dashboard.tsx": {
+    "hash": "5c85ce41fe5cc5c9",
+    "summary": "import { useState, useEffect } from 'react';",
+    "ts": 1794772810,
+    "size": 12066
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\user-portal\\src\\components\\Layout.tsx": {
+    "hash": "169cf861295f05dc",
+    "summary": "import { Outlet, NavLink, useLocation } from 'react-router-dom';",
+    "ts": 1794789490,
+    "size": 4837
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\user-portal\\src\\pages\\Focus.tsx": {
+    "hash": "374774081e0026d4",
+    "summary": "import { useState, useEffect } from 'react';",
+    "ts": 1794812586,
+    "size": 12717
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\user-portal\\src\\pages\\Payments.tsx": {
+    "hash": "551faa40e44c4714",
+    "summary": "We are given a React component file for a Payments component. The task is to explain in 1-2 sentences what the file does.\n\nLet's break down the code:\n\n1. The file imports React hooks (useState, useEffect) and a custom hook (useAuth) along with an API service (userApi) and some icons from lucide-react.\n\n2. It defines a constant PAYMENT_METHODS with three methods: BKASH, NAGAD, and USDT, each with an icon, color, and instructions.\n\n3. The component `Payments` is defined. It uses the",
+    "ts": 1794789517,
+    "size": 12253
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\user-portal\\src\\pages\\Referral.tsx": {
+    "hash": "c69d947b47f5523f",
+    "summary": "Thinking Process:\n\n1.  **Analyze the Request:** The user asks what the file does in 1-2 sentences.\n2.  **Analyze the Code:**\n    *   It's a React component named `Referral`.\n    *   It uses `useAuth` to get the user, and `userApi.getReferrals()` to fetch referral data (total, credited, pending, free days earned).\n    *   It displays a dashboard with stats (Total Referrals, Successful, Pending, Free Days Earned/Gifts).\n    *   It provides a referral link",
+    "ts": 1794771595,
+    "size": 9000
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\user-portal\\src\\pages\\Settings.tsx": {
+    "hash": "e0f00f937ad2920f",
+    "summary": "We are given a React component for a settings page. The question asks: \"In 1-2 sentences, what does this file do?\"\n\nWe need to summarize the functionality of the component.\n\nLooking at the code:\n- It uses React hooks (useState, useEffect) and a custom hook (useAuth) to get user data and a logout function.\n- It has state for profile information (firstName, username, languageCode) and notifications (sessionAlerts, focusUpdates, etc.).\n- It has functions to handle saving the profile and deleting the account (which currently just logs out).\n-",
+    "ts": 1794771775,
+    "size": 11163
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\user-portal\\src\\pages\\Subscription.tsx": {
+    "hash": "0abe85475a8a15ca",
+    "summary": "We are given a code snippet that is a React component for a subscription page.\n The code defines a constant `TIERS` which is an array of objects representing the different subscription tiers (FREE, PRO, ELITE).\n Each tier object has properties like id, name, price, period, color, bg, border, features, and cta.\n\n The component `Subscription` uses the `useAuth` hook to get the current user and determine the current tier.\n It also checks if the user has an active trial and calculates the remaining trial days.\n\n The component returns a JSX structure that displays the current",
+    "ts": 1794773706,
+    "size": 9912
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\user-portal\\src\\App.tsx": {
+    "hash": "89f4cafc7df6d493",
+    "summary": "import { Routes, Route, Navigate } from 'react-router-dom';",
+    "ts": 1794772747,
+    "size": 1525
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\user-portal\\src\\styles.css": {
+    "hash": "b157c3fbc483899b",
+    "summary": ":root {",
+    "ts": 1794772764,
+    "size": 6782
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\landing\\package.json": {
+    "hash": "da6eee942f7e5ad5",
+    "summary": "{",
+    "ts": 1794772777,
+    "size": 510
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\admin-portal\\src\\pages\\Dashboard.tsx": {
+    "hash": "87a56c83e122f92b",
+    "summary": "import { useState, useEffect } from 'react';",
+    "ts": 1794772791,
+    "size": 9428
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\shared\\global.css": {
+    "hash": "c22c8fe8e5381fe6",
+    "summary": "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500&display=swap');",
+    "ts": 1794772856,
+    "size": 2338
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\user-portal\\src\\pages\\Login.tsx": {
+    "hash": "b1fd28948af46988",
+    "summary": "import { useState } from 'react';",
+    "ts": 1794772902,
+    "size": 5192
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\admin-portal\\package.json": {
+    "hash": "4f890d3c38fc0761",
+    "summary": "{",
+    "ts": 1794811088,
+    "size": 750
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\shared\\components\\index.tsx": {
+    "hash": "3cdfdb620f2c9e80",
+    "summary": "Thinking Process:\n\n1.  **Analyze the Request:** The user wants to know what the provided file does in 1-2 sentences.\n2.  **Analyze the Code:**\n    *   The file defines four React components:\n        *   `NeonRing`: A rotating neon ring background element with customizable size, blur, speed, and className.\n        *   `GlassCard`: A glassmorphism-style card with a hover lift effect.\n        *   `GradientButton`: A button with a blue-to-violet gradient and a glowing shadow.\n        *   `StatCard",
+    "ts": 1794772990,
+    "size": 2738
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\shared\\design-tokens\\index.ts": {
+    "hash": "880edd09e8caed86",
+    "summary": "Thinking Process:\n\n1.  **Analyze the Request:**\n    *   Input: A code snippet containing design tokens (palette, fonts, radius, shadow, motion, gridBg, vignette, gradientBlue, gradientBlueButton, ringGlow, tierColors).\n    *   Question: \"In 1-2 sentences, what does this file do?\"\n    *   Constraint: Use 1-2 sentences.\n\n2.  **Analyze the Code:**\n    *   The code defines shared design tokens (colors, fonts, border radii, shadows, animations, gradients,",
+    "ts": 1794773005,
+    "size": 2595
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\landing\\src\\App.tsx": {
+    "hash": "d516a243241b7fd9",
+    "summary": "Hmm, the user is asking for a concise explanation of what this React component file does, limited to 1-2 sentences. The code clearly shows it's the main App component that imports and arranges several other components in a specific order.\n\nI can see it's structured as a landing page layout with navigation, main content sections, and footer. The key is to capture both the structural role (as the root component) and the functional purpose (assembling the page sections).\n\nThe response should avoid technical details about React specifics since the user just wants the overall function. Mentioning the dark theme class",
+    "ts": 1794773185,
+    "size": 585
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\admin-portal\\src\\pages\\Metrics.tsx": {
+    "hash": "b701d195a7f6b1ae",
+    "summary": "First, the user asked: \"In 1-2 sentences, what does this file do?\" I need to summarize the purpose of the file in one or two sentences.\n\nThe file is a React component named `Metrics`. Looking at the code:\n\n- It imports hooks and APIs related to metrics.\n\n- It uses state for metrics data, loading state, time range, and last updated.\n\n- It fetches metrics from an API and generates mock historical data for charts.\n\n- It renders a dashboard with charts and data visualization, showing metrics like users, revenue, etc.\n\nKey points:\n\n- It's",
+    "ts": 1794773326,
+    "size": 19365
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\landing\\src\\components\\Hero.tsx": {
+    "hash": "3bec4252b09321e8",
+    "summary": "We are given a code snippet for a Hero component of a website, and we need to explain in 1-2 sentences what the file does.\n\nThe file is a React component named `Hero` that is part of a website for a trading platform called \"Trading Beast\". It defines the main landing page section, which includes a navigation bar, a background with a glowing ring and floating particles, and several sections of text and icons that highlight the platform's features, such as real-time data, AI logic, multi-timeframe confluence, and global sessions. It also includes statistics about the platform (",
+    "ts": 1794773833,
+    "size": 16378
+  },
+  "c:\\Users\\Junait\\Trading Beast\\.env": {
+    "hash": "d30d17d6be9d3762",
+    "summary": "# Database",
+    "ts": 1794773515,
+    "size": 793
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\landing\\src\\components\\index.ts": {
+    "hash": "d5595a6956f5b904",
+    "summary": "export { default as Hero } from './Hero';",
+    "ts": 1794773750,
+    "size": 385
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\landing\\src\\components\\TrustLogos.tsx": {
+    "hash": "24dd7dc7c446c186",
+    "summary": "'use client';",
+    "ts": 1794773821,
+    "size": 2356
+  },
+  "C:\\Users\\Junait\\AppData\\Local\\Temp\\claude\\3ce7cdfe11e78de5\\a19ed728-cfe6-4266-a1e3-7cc3d2e08753\\tasks\\bf8w4o15q.output": {
+    "hash": "38af3257011f96c8",
+    "summary": "processed file: C:\\Users\\Junait\\Trading Beast\\vps_new_key",
+    "ts": 1794775098,
+    "size": 428
+  },
+  "C:\\Users\\Junait\\AppData\\Local\\Temp\\claude\\3ce7cdfe11e78de5\\a19ed728-cfe6-4266-a1e3-7cc3d2e08753\\tasks\\bus2bqs2r.output": {
+    "hash": "e3b0c44298fc1c14",
+    "summary": "",
+    "ts": 1794775982,
+    "size": 0
+  },
+  "C:\\Users\\Junait\\AppData\\Local\\Temp\\claude\\3ce7cdfe11e78de5\\a19ed728-cfe6-4266-a1e3-7cc3d2e08753\\tasks\\bp1s0nzd1.output": {
+    "hash": "e3b0c44298fc1c14",
+    "summary": "",
+    "ts": 1794776391,
+    "size": 0
+  },
+  "c:\\Users\\Junait\\Trading Beast\\deploy\\scripts\\setup-app.sh": {
+    "hash": "7991de95bbf19ca2",
+    "summary": "set -euo pipefail",
+    "ts": 1794776930,
+    "size": 4225
+  },
+  "c:\\Users\\Junait\\Trading Beast\\docker-compose.prod.yml": {
+    "hash": "f10abd92609c6694",
+    "summary": "This file defines a Docker Compose configuration for a multi-service application called \"Session Focus Radar.\" It sets up a PostgreSQL database, a QuickChart service for chart generation, a backend API server, and two frontend services (user and admin portals), all interconnected through a shared network with defined resource limits and dependencies",
+    "ts": 1794776975,
+    "size": 3130
+  },
+  "C:\\Users\\Junait\\AppData\\Local\\Temp\\claude\\3ce7cdfe11e78de5\\a19ed728-cfe6-4266-a1e3-7cc3d2e08753\\tasks\\b7y58keux.output": {
+    "hash": "e3b0c44298fc1c14",
+    "summary": "We are given a code snippet that appears to be a function definition in Python.\n The function is named `main` and it takes no arguments.\n It contains a try-except block and an if __name__ == \"__main__\": block.\n\n However, the code snippet is incomplete because the body of the `main` function is not provided.\n The snippet only shows the structure: a try-except block that catches `Exception` and prints the exception, and then the standard `if __name__ == \"__main__\":` block that calls `main()`.\n\n Since the actual code inside the try",
+    "ts": 1794777367,
+    "size": 0
+  },
+  "c:\\Users\\Junait\\Trading Beast\\backend\\Dockerfile.prod": {
+    "hash": "966f106d95907392",
+    "summary": "Hmm, the user is asking for a concise explanation of a Dockerfile's functionality in 1-2 sentences. The Dockerfile has two stages: building and running. \n\nThe key points to cover are the multi-stage build process, the separation of build and runtime environments, and the final output. The first stage handles dependencies, code generation, and compilation, while the second stage sets up a secure, minimal runtime. \n\nI can structure the response to first describe the overall purpose (multi-stage Docker build), then briefly explain what each stage does without going into excessive detail. The focus should be on",
+    "ts": 1794777828,
+    "size": 748
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\admin-portal\\Dockerfile.prod": {
+    "hash": "382026cbe25fa6f6",
+    "summary": "This Dockerfile uses",
+    "ts": 1794779197,
+    "size": 308
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\user-portal\\tailwind.config.ts": {
+    "hash": "0bd870836116b2e9",
+    "summary": "The user wants to know what the file does in 1-2 sentences.\nThe file is a Tailwind CSS configuration file (`tailwind.config.ts`).\nIt defines a custom theme with a \"Neon Dark Tech\" palette (navy, electric, neon colors), custom fonts (Space Grotesk, Inter, JetBrains Mono), neon/glow box shadows, custom animations (spin-slow, float, pulse-glow, fade-in, slide-up, scale-in), and gradient backgrounds.\n\nLet's write a concise 1-2 sentence summary.\n\"This file is a Tailwind CSS configuration",
+    "ts": 1794788639,
+    "size": 2966
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\user-portal\\src\\services\\api.ts": {
+    "hash": "e0222644010e41af",
+    "summary": "We are given a code snippet that sets up an Axios instance with interceptors for request and response.\n The request interceptor adds a Bearer token from localStorage to the Authorization header if available.\n The response interceptor handles 401 errors by removing the token and user from localStorage and redirecting to the login page.\n\n Additionally, the file defines TypeScript interfaces for User, Payment, FocusResult, and AnalyzedPair.\n It also exports two API objects: authApi and userApi, which contain methods for authentication and user-related endpoints.\n\n The question asks: In 1-2 sentences, what does this file",
+    "ts": 1794801519,
+    "size": 3327
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\admin-portal\\src\\styles.css": {
+    "hash": "1c7796e7bac15114",
+    "summary": ":root {",
+    "ts": 1794801552,
+    "size": 6782
+  },
+  "C:\\Users\\Junait\\AppData\\Local\\Temp\\claude\\3ce7cdfe11e78de5\\a19ed728-cfe6-4266-a1e3-7cc3d2e08753\\tasks\\bx43p08cm.output": {
+    "hash": "e3b0c44298fc1c14",
+    "summary": "",
+    "ts": 1794808463,
+    "size": 0
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\user-portal\\package.json": {
+    "hash": "f62acfc21b3be71c",
+    "summary": "{",
+    "ts": 1794810021,
+    "size": 843
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\user-portal\\vite.config.ts": {
+    "hash": "6e22f6b0e1e235ef",
+    "summary": "This file configures a Vite development server and build process for a React application, including integration with Tailwind CSS and a path alias for shared modules. It also sets up API proxying to `localhost:3000` for development and specifies the build output directory with source maps enabled.",
+    "ts": 1794810084,
+    "size": 514
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\admin-portal\\vite.config.ts": {
+    "hash": "a2f5bfd0424059f5",
+    "summary": "This file configures a Vite development server and build process for a React application, utilizing the `@vitejs/plugin-react` plugin to handle React-specific features. It establishes an alias for a shared directory (`@shared`), proxies API requests to a backend server at `http://localhost:3000`, and sets up the build output to the `dist` folder with source maps enabled.",
+    "ts": 1794811770,
+    "size": 452
+  },
+  "c:\\Users\\Junait\\Trading Beast\\frontend\\admin-portal\\src\\main.tsx": {
+    "hash": "5f3f5a0cdb6ec849",
+    "summary": "This file serves as the main entry point for a React application, initializing the root DOM element and rendering the primary `App` component. It wraps the application with essential providers for routing and authentication, all within React's strict mode.",
+    "ts": 1794812549,
+    "size": 428
+  },
+  "c:\\Users\\Junait\\Trading Beast\\backend\\src\\index.ts": {
+    "hash": "5de289fdaa976049",
+    "summary": "import express from 'express';",
+    "ts": 1794816190,
+    "size": 1379
+  }
+}
