@@ -1,0 +1,8 @@
+export { Hero } from './Hero';
+export { TrustLogos } from './TrustLogos';
+export { ValueProps } from './ValueProps';
+export { default as Sessions } from './Sessions';
+export { default as Features } from './Features';
+export { default as Pricing } from './Pricing';
+export { default as Docs } from './Docs';
+export { default as Footer } from './Footer';

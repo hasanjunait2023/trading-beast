@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  telegramId      String    @unique
+  username        String?
+  firstName       String?
+  lastName        String?
+  languageCode    String?   @default("en")
+  tier            Tier      @default(FREE)
+  trialEndsAt     DateTime?
+  watchlist       String[]  @default([])
+  referralCode    String    @unique
+  referredBy      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastActiveAt    DateTime?
+  subscriptions   Subscription[]
+  payments        Payment[]
+  referrals       Referral[] @relation("Referrer")
+  referredByRel   Referral?  @relation("Referred")
+
+  @@index([tier])
+  @@index([referralCode])
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tier      Tier
+  status    SubscriptionStatus @default(ACTIVE)
+  startsAt  DateTime @default(now())
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Payment {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount       Int          // in smallest currency unit (e.g., cents, poisha)
+  currency     String       @default("USD")
+  method       PaymentMethod
+  transactionId String?     @unique // bKash/Nagad transaction ID
+  screenshotUrl String?     // uploaded payment screenshot
+  status       PaymentStatus @default(PENDING)
+  verifiedAt   DateTime?
+  verifiedBy   String?      // admin user id
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([transactionId])
+}
+
+model Referral {
+  id           String         @id @default(cuid())
+  referrerId   String
+  referrer     User           @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredId   String         @unique
+  referred     User           @relation("Referred", fields: [referredId], references: [id], onDelete: Cascade)
+  status       ReferralStatus @default(PENDING)
+  creditedAt   DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([referrerId])
+  @@index([status])
+}
+
+model AnalysisCache {
+  id         String   @id @default(cuid())
+  pair       String   // e.g., "EUR/USD", "Gold"
+  session    String   // "Asian", "London", "New York"
+  date       DateTime @db.Date
+  resultJson Json     // full analysis result
+  createdAt  DateTime @default(now())
+
+  @@unique([pair, session, date])
+  @@index([date])
+  @@index([session])
+}
+
+model FocusResult {
+  id          String   @id @default(cuid())
+  session     String
+  date        DateTime @db.Date
+  focusPairs  Json     // top 3 focus pairs with scores
+  watchPairs  Json?    // watch list
+  avoidPairs  Json?    // avoid list
+  createdAt   DateTime @default(now())
+
+  @@unique([session, date])
+  @@index([date])
+}
+
+enum Tier {
+  FREE
+  PRO
+  ELITE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  TRIAL
+}
+
+enum PaymentMethod {
+  BKASH
+  NAGAD
+  USDT
+  STRIPE
+  MANUAL
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum ReferralStatus {
+  PENDING
+  CREDITED
+  EXPIRED
+  REJECTED
+}

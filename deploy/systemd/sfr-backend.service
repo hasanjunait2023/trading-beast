@@ -1,0 +1,26 @@
+[Unit]
+Description=Session Focus Radar Backend API
+After=network.target docker.service postgresql.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=sfr
+WorkingDirectory=/opt/session-focus-radar
+ExecStart=/usr/bin/docker compose up backend
+ExecStop=/usr/bin/docker compose stop backend
+Restart=always
+RestartSec=10
+Environment=COMPOSE_PROJECT_NAME=sfr
+
+# Resource limits
+MemoryLimit=1G
+CPUQuota=50%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sfr-backend
+
+[Install]
+WantedBy=multi-user.target
