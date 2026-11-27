@@ -1,3 +1,4 @@
+import { asyncRouter } from '../middleware/async-router.js';
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
@@ -7,7 +8,7 @@ import { getEffectiveTier } from '../services/entitlements.js';
 import { verifyTelegramInitData } from '../services/telegram-auth.js';
 
 const prisma = new PrismaClient();
-const router: Router = Router();
+const router: Router = asyncRouter();
 
 const telegramAuthSchema = z.object({
   initData: z.string().min(1).max(16384),
