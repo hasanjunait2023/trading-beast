@@ -1,5 +1,5 @@
-import { PrismaClient, Prisma } from '@prisma/client';
-const prisma = new PrismaClient();
+import { Prisma } from '@prisma/client';
+import { prisma } from './db.js';
 export const DAILY_CREDITS = 10;
 export const RADAR_COST = 10;
 export const CREDIT_EPOCH_DAY = Math.floor(Date.UTC(2026,10,28)/86400000);
