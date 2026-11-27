@@ -44,6 +44,7 @@ app.use(
 app.use(express.json({limit:'64kb'}));
 app.use(
   rateLimit({
+    skip: req=>['/health','/ready','/api/telegram/webhook'].includes(req.path),
     windowMs: 15 * 60 * 1000,
     max: 100,
     message: { success: false, error: 'Too many requests' },
@@ -58,6 +59,7 @@ app.get('/ready', async (_req,res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
     await prisma.radarRun.findFirst({select:{id:true}});
+    await prisma.authSession.findFirst({select:{id:true}});
     res.json({success:true,data:{status:'ready'}});
   } catch {
     res.status(503).json({success:false,error:'Database not ready'});
@@ -65,7 +67,7 @@ app.get('/ready', async (_req,res) => {
 });
 
 app.use('/api/analysis', authMiddleware, analysisRoutes);
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', rateLimit({windowMs:15*60*1000,max:30,standardHeaders:true,legacyHeaders:false}), authRoutes);
 app.use('/api/user', authMiddleware, userRoutes);
 app.use('/api/admin', authMiddleware, adminRoutes);
 app.use('/api/telegram', telegramRoutes);
@@ -76,7 +78,7 @@ let recovering = false;
 async function recover() {
   if (recovering) return;
   recovering = true;
-  try { await recoverExpiredRadarRuns(); } catch (e) { console.error('Radar recovery failed', e); } finally { recovering = false; }
+  try { await recoverExpiredRadarRuns(); await prisma.loginCode.deleteMany({where:{expiresAt:{lt:new Date(Date.now()-86400000)}}}); await prisma.authSession.deleteMany({where:{expiresAt:{lt:new Date(Date.now()-86400000)}}}); } catch (e) { console.error('Radar recovery failed', e); } finally { recovering = false; }
 }
 const server=app.listen(PORT, () => {
   void recover();
