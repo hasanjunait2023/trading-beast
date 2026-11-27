@@ -1,5 +1,6 @@
-import { deliverTelegramBatch } from './services/telegram-delivery.js';
 import 'dotenv/config';
+import { deliverTelegramBatch } from './services/telegram-delivery.js';
+import {randomUUID} from 'node:crypto';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -29,6 +30,13 @@ if (process.env.TRUST_PROXY_HOPS) {
 }
 
 app.use(helmet());
+app.use((req,res,next)=>{
+  const id=randomUUID();
+  const start=Date.now();
+  res.setHeader('X-Request-Id',id);
+  res.on('finish',()=>console.log(JSON.stringify({event:'http',requestId:id,method:req.method,status:res.statusCode,durationMs:Date.now()-start})));
+  next();
+});
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -68,9 +76,10 @@ app.get('/ready', async (_req,res) => {
   }
 });
 
-app.use('/api/analysis', authMiddleware, analysisRoutes);
+const userLimit=rateLimit({windowMs:60_000,max:90,keyGenerator:req=>(req as import('./middleware/auth.js').AuthRequest).user!.id,standardHeaders:true,legacyHeaders:false,message:{success:false,error:'Too many requests'}});
+app.use('/api/analysis', authMiddleware, userLimit, analysisRoutes);
 app.use('/api/auth', rateLimit({windowMs:15*60*1000,max:30,standardHeaders:true,legacyHeaders:false}), authRoutes);
-app.use('/api/user', authMiddleware, userRoutes);
+app.use('/api/user', authMiddleware, userLimit, userRoutes);
 app.use('/api/admin', authMiddleware, adminRoutes);
 app.use('/api/telegram', telegramRoutes);
 
