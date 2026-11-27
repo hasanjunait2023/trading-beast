@@ -1,3 +1,4 @@
+import { enqueueRadarDelivery } from '../services/telegram-delivery.js';
 import { normalizeWatchlist } from '../services/watchlist.js';
 import { registerUser } from '../services/users.js';
 import { asyncRouter } from '../middleware/async-router.js';
@@ -198,7 +199,7 @@ async function sendFocusList(chatId: number, user: any, key: string) {
   try {
     const result = await withRadarCredits(user.id,key,()=>runAnalysisForUser(user.id));
     const text = formatFocusResult(result, user.tier) + '\n\nCredits remaining: ' + await creditBalance(user.id);
-    await sendMessage(chatId, text);
+    await enqueueRadarDelivery(user.id+':'+key,chatId,text);
   } catch (error) {
     if (error instanceof InsufficientCredits) { await sendMessage(chatId,'You need 10 credits to run Radar. Daily credits accumulate automatically.'); return; }
     if (error instanceof DuplicateTrigger) return;
