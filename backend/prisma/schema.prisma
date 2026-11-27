@@ -22,6 +22,8 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   lastActiveAt    DateTime?
+  creditWallet    CreditWallet?
+  creditEntries   CreditEntry[]
   subscriptions   Subscription[]
   payments        Payment[]
   referrals       Referral[] @relation("Referrer")
@@ -140,4 +142,22 @@ enum ReferralStatus {
   CREDITED
   EXPIRED
   REJECTED
+}
+model CreditWallet {
+  userId String @id
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance BigInt @default(0)
+  lastGrantDay Int
+  updatedAt DateTime @updatedAt
+}
+model CreditEntry {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  delta BigInt
+  kind String
+  reference String
+  createdAt DateTime @default(now())
+  @@unique([userId, reference])
+  @@index([userId, createdAt])
 }
