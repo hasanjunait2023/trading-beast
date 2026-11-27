@@ -1,12 +1,18 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
+import { authMiddleware, requireAdmin } from '../middleware/auth.js';
 
 const prisma = new PrismaClient();
 const router: Router = Router();
 
 // Telegram webhook endpoint
 router.post('/webhook', async (req, res) => {
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  const supplied = req.get('X-Telegram-Bot-Api-Secret-Token');
+  if (!secret || !supplied || Buffer.byteLength(secret) !== Buffer.byteLength(supplied) || !crypto.timingSafeEqual(Buffer.from(secret), Buffer.from(supplied))) {
+    return res.status(403).json({ ok: false });
+  }
   try {
     const update = req.body;
 
@@ -29,7 +35,7 @@ router.post('/webhook', async (req, res) => {
 });
 
 // Set webhook
-router.post('/set-webhook', async (req, res) => {
+router.post('/set-webhook', authMiddleware, requireAdmin, async (req, res) => {
   const { url } = req.body;
   if (!url) {
     return res.status(400).json({ success: false, error: 'URL required' });
@@ -37,10 +43,12 @@ router.post('/set-webhook', async (req, res) => {
 
   try {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+    if (!secret || !/^[A-Za-z0-9_-]{1,256}$/.test(secret)) return res.status(503).json({ success: false, error: 'Webhook secret not configured' });
     const response = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, allowed_updates: ['message', 'callback_query'] })
+      body: JSON.stringify({ url, secret_token: secret, allowed_updates: ['message', 'callback_query'] })
     });
     const data = await response.json() as { ok: boolean; result?: any; description?: string };
     res.json({ success: data.ok, data });
@@ -50,7 +58,7 @@ router.post('/set-webhook', async (req, res) => {
 });
 
 // Get webhook info
-router.get('/webhook-info', async (_req, res) => {
+router.get('/webhook-info', authMiddleware, requireAdmin, async (_req, res) => {
   try {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const response = await fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`);
