@@ -1,13 +1,13 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
-import { AuthRequest, requireTier } from '../middleware/auth.js';
+import { AuthRequest, requireAdmin } from '../middleware/auth.js';
 
 const prisma = new PrismaClient();
 const router: Router = Router();
 
-// Admin middleware - only ELITE tier (or dedicated ADMIN role)
-router.use(requireTier('ELITE'));
+// Admin access is independent of subscription tier.
+router.use(requireAdmin);
 
 const paymentVerifySchema = z.object({
   paymentId: z.string(),
