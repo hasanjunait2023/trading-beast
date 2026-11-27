@@ -1,3 +1,4 @@
+import { getSessionWindow } from './session-clock.js';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { runAnalysis, buildPairs, detectSession, type SessionConfig, type FocusResult, type PairConfig } from './analysis-engine.js';
 import { marketSnapshots, toEngineInput, MarketDataUnavailable } from './market-data.js';
@@ -15,19 +16,7 @@ export async function runAnalysisForUser(userId: string, request: AnalysisReques
 
   const snapshot = await marketSnapshots.get();
   const nowSec = snapshot.asOf;
-  const cfg = detectSession(nowSec);
-
-  // Override session if explicitly requested (for testing/admin)
-  if (request.session) {
-    const dNow = nowSec + 21600;
-    const hourMap: Record<string, number> = { Asian: 7, London: 12, 'New York': 18 };
-    const startHour = hourMap[request.session];
-    let startD = dNow - (dNow % 86400) + startHour * 3600;
-    if (startD > dNow) startD -= 86400;
-    cfg.session = request.session;
-    cfg.sessionStartTs = startD - 21600;
-    cfg.orDone = nowSec >= cfg.sessionStartTs + 3600;
-  }
+  const cfg: SessionConfig = request.session ? getSessionWindow(request.session, nowSec) : detectSession(nowSec);
 
   cfg.watchlist = request.watchlist ?? (user.watchlist.length ? user.watchlist : null);
 
@@ -80,18 +69,7 @@ export async function runDailyPublishing(): Promise<FocusResult[]> {
   const results: FocusResult[] = [];
 
   for (const session of sessions) {
-    const dNow = nowSec + 21600;
-    const hourMap = { Asian: 7, London: 12, 'New York': 18 };
-    const startHour = hourMap[session];
-    let startD = dNow - (dNow % 86400) + startHour * 3600;
-    if (startD > dNow) startD -= 86400;
-    const cfg = {
-      session,
-      startHour,
-      sessionStartTs: startD - 21600,
-      orDone: nowSec >= startD - 21600 + 3600,
-      watchlist: null as string[] | null
-    } as SessionConfig;
+    const cfg: SessionConfig = { ...getSessionWindow(session, nowSec), watchlist: null };
 
     const result = await runAnalysis(toEngineInput(snapshot), cfg, snapshot.asOf);
     validateResult(result, snapshot.fxCoverage);
