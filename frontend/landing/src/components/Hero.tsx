@@ -10,6 +10,7 @@ import {
   Check,
   ArrowUpRight,
 } from 'lucide-react';
+import { useTelegramLinks, telegramLinkProps } from '../services/telegram';
 
 const navLinks = [
   { href: '#features', label: 'Features' },
@@ -33,6 +34,8 @@ const stats = [
 ];
 
 export function Hero() {
+  const telegram = useTelegramLinks();
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden" aria-labelledby="hero-heading">
       {/* Background glow ring */}
@@ -86,8 +89,12 @@ export function Hero() {
               ))}
             </div>
             <div className="flex items-center gap-4">
-              <a href="#pricing" className="hidden sm:block btn-primary text-sm">
-                Get Started
+              <a
+                href={telegram.primaryHref}
+                {...telegramLinkProps(telegram)}
+                className="hidden sm:block btn-primary text-sm"
+              >
+                {telegram.isTelegram ? 'Open in Telegram' : 'Get Started'}
                 <ArrowRight className="w-4 h-4 ml-2 inline-block" />
               </a>
             </div>
@@ -159,14 +166,15 @@ export function Hero() {
                 transition={{ duration: 0.6, delay: 0.6 }}
               >
                 <a
-                  href="#pricing"
+                  href={telegram.primaryHref}
+                  {...telegramLinkProps(telegram)}
                   className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2"
                 >
-                  Start Free Analysis
+                  {telegram.isTelegram ? 'Open in Telegram' : 'Start Free Analysis'}
                   <ArrowRight className="w-5 h-5" />
                 </a>
                 <a
-                  href="#samples"
+                  href="#docs"
                   className="glass-card w-full sm:w-auto px-8 py-4 text-center font-medium text-text-white hover:text-white hover:border-accent-blue/50 transition-all"
                 >
                   View Live Samples

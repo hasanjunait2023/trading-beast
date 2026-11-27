@@ -1,6 +1,8 @@
 import { Zap, ArrowRight } from 'lucide-react';
+import { useTelegramLinks, telegramLinkProps } from '../services/telegram';
 
 export default function Footer() {
+  const telegram = useTelegramLinks();
   return (
     <footer className="bg-[#03050d] border-t border-white/10 py-16">
       <div className="max-w-7xl mx-auto px-6">
@@ -23,7 +25,15 @@ export default function Footer() {
               <li><a href="#sessions" className="hover:text-white transition-colors">Sessions</a></li>
               <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
               <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
-              <li><a href="/dashboard" className="hover:text-white transition-colors">Dashboard</a></li>
+              <li>
+                <a
+                  href={telegram.primaryHref}
+                  {...telegramLinkProps(telegram)}
+                  className="hover:text-white transition-colors"
+                >
+                  {telegram.isTelegram ? 'Open in Telegram' : 'Get Started'}
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -31,7 +41,15 @@ export default function Footer() {
             <h4 className="font-space font-semibold text-white mb-4">Resources</h4>
             <ul className="space-y-2 text-sm text-gray-400">
               <li><a href="#docs" className="hover:text-white transition-colors">How It Works</a></li>
-              <li><a href="/login" className="hover:text-white transition-colors">Sign In</a></li>
+              <li>
+                <a
+                  href={telegram.botUrl ?? '#docs'}
+                  {...(telegram.botUrl ? telegramLinkProps(telegram) : {})}
+                  className="hover:text-white transition-colors"
+                >
+                  Telegram Bot
+                </a>
+              </li>
               <li><a href="#pricing" className="hover:text-white transition-colors">Upgrade</a></li>
             </ul>
           </div>
@@ -42,10 +60,11 @@ export default function Footer() {
               Join 12,000+ analysts using session-aware market intelligence.
             </p>
             <a
-              href="/dashboard"
+              href={telegram.primaryHref}
+              {...telegramLinkProps(telegram)}
               className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white text-sm font-semibold px-5 py-2.5 rounded-full shadow-[0_0_20px_rgba(79,109,255,0.4)] transition-all"
             >
-              Open Dashboard
+              {telegram.isTelegram ? 'Open in Telegram' : 'Get Started Free'}
               <ArrowRight className="w-4 h-4" />
             </a>
           </div>

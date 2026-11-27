@@ -7,6 +7,11 @@ import Users from './pages/Users';
 import Payments from './pages/Payments';
 import Metrics from './pages/Metrics';
 import Analysis from './pages/Analysis';
+import Telegram from './pages/Telegram';
+import Finance from './pages/Finance';
+import Subscriptions from './pages/Subscriptions';
+import Credits from './pages/Credits';
+import Settings from './pages/Settings';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -25,6 +30,11 @@ function App() {
         <Route path="/payments" element={<Payments />} />
         <Route path="/metrics" element={<Metrics />} />
         <Route path="/analysis" element={<Analysis />} />
+        <Route path="/telegram" element={<Telegram />} />
+        <Route path="/finance" element={<Finance />} />
+        <Route path="/subscriptions" element={<Subscriptions />} />
+        <Route path="/credits" element={<Credits />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

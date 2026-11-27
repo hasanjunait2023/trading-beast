@@ -1,0 +1,551 @@
+{
+  "name": "Seating time analysis chapter 2 important",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const order = ['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'];\nconst out = [];\nfor (let i = 0; i < order.length; i++) for (let j = i + 1; j < order.length; j++) {\n  const base = order[i], quote = order[j];\n  out.push({ json: { kind: 'fx', pair: `${base}/${quote}`, base, quote, yahoo: `${base}${quote}=X` } });\n}\n\n// Assets — Yahoo symbols (Gold spot চাইলে 'XAUUSD=X' বসাতে পারো)\nconst assets = [\n  { pair: 'Gold',    name: 'Gold',    icon: '🥇', yahoo: 'GC=F',    dec: 2, group: 'METALS', sessions: ['London', 'New York'] },\n  { pair: 'Silver',  name: 'Silver',  icon: '🥈', yahoo: 'SI=F',    dec: 3, group: 'METALS', sessions: ['London', 'New York'] },\n  { pair: 'Oil',     name: 'WTI Oil', icon: '🛢️', yahoo: 'CL=F',    dec: 2, group: 'OIL',    sessions: ['New York'] },\n  { pair: 'Bitcoin', name: 'Bitcoin', icon: '₿',  yahoo: 'BTC-USD', dec: 1, group: 'BTC',    sessions: null }\n];\nfor (const a of assets) out.push({ json: { kind: 'asset', ...a } });\nreturn out;"
+      },
+      "id": "cde87039-294f-4b20-841d-3a3c26c2a160",
+      "name": "Build Pairs1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -752,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://query1.finance.yahoo.com/v8/finance/chart/{{ $json.yahoo }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "interval",
+              "value": "15m"
+            },
+            {
+              "name": "range",
+              "value": "30d"
+            },
+            {
+              "name": "includePrePost",
+              "value": "false"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 7
+            }
+          }
+        }
+      },
+      "id": "4e06cd6c-50da-4c1c-adc5-ce6524db28f1",
+      "name": "Get Yahoo 15m1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -528,
+        112
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Parse Request').first().json;\nconst pairs = $('Build Pairs1').all();\nconst r15 = $('Get Yahoo 15m1').all();\nconst r1h = $('Get Yahoo 1H').all();\nconst OFF = 21600;\nconst nowSec = Math.floor(Date.now() / 1000);\nconst majors = ['USD','EUR','GBP','JPY','AUD','NZD','CAD','CHF'];\nconst flags = { USD:'🇺🇸', EUR:'🇪🇺', GBP:'🇬🇧', JPY:'🇯🇵', AUD:'🇦🇺', NZD:'🇳🇿', CAD:'🇨🇦', CHF:'🇨🇭' };\nconst SESS = { 'Asian': ['JPY','AUD','NZD'], 'London': ['EUR','GBP','CHF'], 'New York': ['USD','CAD','EUR','GBP'] };\nconst sg = v => (v > 0 ? '+' : '') + v;\nconst sgn = Math.sign;\nconst avg = a => a.reduce((s, x) => s + x, 0) / a.length;\nconst r1 = x => Math.round(x * 10) / 10;\n\nfunction ema(c, p) { if (c.length < p) return null; const k = 2 / (p + 1); let e = c.slice(0, p).reduce((a, b) => a + b, 0) / p; for (let i = p; i < c.length; i++) e = c[i] * k + e * (1 - k); return e; }\nfunction rsiSeries(c, p) { const r = []; let g = 0, l = 0; for (let i = 1; i <= p; i++) { const d = c[i] - c[i - 1]; if (d >= 0) g += d; else l -= d; } g /= p; l /= p; r[p] = l === 0 ? 100 : 100 - 100 / (1 + g / l); for (let i = p + 1; i < c.length; i++) { const d = c[i] - c[i - 1]; g = (g * (p - 1) + (d > 0 ? d : 0)) / p; l = (l * (p - 1) + (d < 0 ? -d : 0)) / p; r[i] = l === 0 ? 100 : 100 - 100 / (1 + g / l); } return r; }\nfunction swings(arr, lb) { const s = Math.max(1, arr.length - lb); const hi = [], lo = []; for (let i = s; i < arr.length - 1; i++) { if (arr[i] > arr[i - 1] && arr[i] > arr[i + 1]) hi.push(i); if (arr[i] < arr[i - 1] && arr[i] < arr[i + 1]) lo.push(i); } return { hi, lo }; }\nfunction parse(j) { const res = j && j.chart && j.chart.result && j.chart.result[0]; const q = res && res.indicators && res.indicators.quote && res.indicators.quote[0]; if (!res || !res.timestamp || !q) return null; const out = []; for (let i = 0; i < res.timestamp.length; i++) { const o = q.open[i], h = q.high[i], l = q.low[i], c = q.close[i]; if (o == null || h == null || l == null || c == null) continue; out.push({ ts: res.timestamp[i], o, h, l, c }); } return out; }\nfunction bucket(c, sec) { const m = new Map(); for (const x of c) { const k = Math.floor((x.ts + OFF) / sec); const b = m.get(k); if (!b) m.set(k, { ts: k * sec - OFF, o: x.o, h: x.h, l: x.l, c: x.c }); else { b.h = Math.max(b.h, x.h); b.l = Math.min(b.l, x.l); b.c = x.c; } } return Array.from(m.values()).sort((a, b) => a.ts - b.ts); }\nfunction closedOnly(c, sec) { const x = c[c.length - 1]; return (x && nowSec < x.ts + sec) ? c.slice(0, -1) : c; }\nconst trOf = (c, i) => Math.max(c[i].h - c[i].l, Math.abs(c[i].h - c[i - 1].c), Math.abs(c[i].l - c[i - 1].c));\nconst atrS = c => { const t = []; for (let i = c.length - 14; i < c.length; i++) t.push(trOf(c, i)); return avg(t); };\nconst nz = (x, a) => (a > 0 ? x / a : 0);\n\nconst per = [], skipped = []; let lastTs = 0;\npairs.forEach((pp, idx) => {\n  const m = pp.json;\n  const { pair, base, quote } = m;\n  const a15 = parse(r15[idx] && r15[idx].json);\n  const a1 = parse(r1h[idx] && r1h[idx].json);\n  if (!a15 || !a1 || !a15.length || !a1.length) { skipped.push(pair); return; }\n  const live = a15[a15.length - 1].c;\n  const lastCandle = a15[a15.length - 1].ts;\n  if (m.kind !== 'asset') lastTs = Math.max(lastTs, lastCandle);\n  const c15 = closedOnly(a15, 900);\n  const c1 = closedOnly(a1, 3600);\n  const c4 = closedOnly(bucket(a1, 14400), 14400);\n  if (c15.length < 220 || c1.length < 210 || c4.length < 205) { skipped.push(pair); return; }\n  const cl15 = c15.map(x => x.c), cl1 = c1.map(x => x.c), cl4 = c4.map(x => x.c);\n  const e4 = ema(cl4, 200), e1 = ema(cl1, 200), e50 = ema(cl15, 50), e20 = ema(cl15, 20);\n  const p15 = cl15[cl15.length - 1];\n  const n = cl15.length;\n  const net = cl15[n - 1] - cl15[n - 25];\n  let path = 0; for (let i = n - 24; i < n; i++) path += Math.abs(cl15[i] - cl15[i - 1]);\n  const er = path > 0 ? Math.abs(net) / path : 0;\n  const trs = []; for (let i = c15.length - 208; i < c15.length; i++) trs.push(trOf(c15, i));\n  const act = avg(trs.slice(0, -8)) > 0 ? avg(trs.slice(-8)) / avg(trs.slice(0, -8)) : 1;\n  const atr15 = avg(trs.slice(-14));\n  const ts4 = nz(cl4[cl4.length - 1] - e4, atrS(c4));\n  const ts1 = nz(cl1[cl1.length - 1] - e1, atrS(c1));\n  const ts15 = nz(p15 - e50, atr15);\n  const cs = cl15.slice(-300);\n  const rs = rsiSeries(cs, 14); const rsi = rs[rs.length - 1];\n  const { hi, lo } = swings(cs, 60);\n  let div = null;\n  if (lo.length >= 2) { const i1 = lo[lo.length - 2], i2 = lo[lo.length - 1]; if (cs[i2] < cs[i1] && rs[i2] > rs[i1]) div = 'BULLISH'; }\n  if (!div && hi.length >= 2) { const i1 = hi[hi.length - 2], i2 = hi[hi.length - 1]; if (cs[i2] > cs[i1] && rs[i2] < rs[i1]) div = 'BEARISH'; }\n  const day = {};\n  for (const x of a15) { const d = Math.floor((x.ts + OFF) / 86400); const b = day[d] || (day[d] = { h: -Infinity, l: Infinity, n: 0 }); b.h = Math.max(b.h, x.h); b.l = Math.min(b.l, x.l); b.n++; }\n  const todayKey = Math.floor((nowSec + OFF) / 86400);\n  const full = Object.keys(day).map(Number).filter(k => k < todayKey && day[k].n >= 60).sort((a, b) => a - b);\n  const pdk = full.length ? full[full.length - 1] : null;\n  const pdh = pdk !== null ? day[pdk].h : null;\n  const pdl = pdk !== null ? day[pdk].l : null;\n  const adrDays = full.slice(-14);\n  const adr = adrDays.length ? avg(adrDays.map(k => day[k].h - day[k].l)) : null;\n  const t = day[todayKey];\n  const adrPct = (adr && t) ? Math.round((t.h - t.l) / adr * 100) : null;\n  const orC = a15.filter(x => x.ts >= cfg.sessionStartTs && x.ts < cfg.sessionStartTs + 3600);\n  const orHave = orC.length >= 4;\n  const orHigh = orHave ? Math.max(...orC.map(x => x.h)) : null;\n  const orLow = orHave ? Math.min(...orC.map(x => x.l)) : null;\n  per.push({ kind: m.kind, name: m.name, icon: m.icon, dec: m.dec, group: m.group, sessions: m.sessions, stale: nowSec - lastCandle > 10800, pair, base, quote, win4: sgn(cl4[cl4.length - 1] - e4), win1: sgn(cl1[cl1.length - 1] - e1), win15: sgn(p15 - e50), ts4, ts1, ts15, live, p15, e20, e50, rsi, er, net, act, atr15, adrPct, pdh, pdl, div, orHave, orHigh, orLow });\n});\n\nconst s1 = {}, s4 = {}, s15 = {};\nmajors.forEach(c => { s1[c] = 0; s4[c] = 0; s15[c] = 0; });\nfor (const p of per) { if (p.kind === 'asset') continue; s1[p.base] += p.win1; s1[p.quote] -= p.win1; s4[p.base] += p.win4; s4[p.quote] -= p.win4; s15[p.base] += p.win15; s15[p.quote] -= p.win15; }\n\nconst orReady = cfg.orDone && per.some(p => p.orHave);\nconst active = SESS[cfg.session] || [];\nconst closedAssets = [];\n\nconst evald = per.filter(p => !cfg.watchlist || cfg.watchlist.includes(p.pair)).filter(p => { if (p.kind === 'asset' && p.stale) { closedAssets.push(p.name); return false; } return true; }).map(p => {\n  const isA = p.kind === 'asset';\n  const d4 = isA ? r1(p.ts4) : s4[p.base] - s4[p.quote];\n  const d1 = isA ? r1(p.ts1) : s1[p.base] - s1[p.quote];\n  const d15 = isA ? r1(p.ts15) : s15[p.base] - s15[p.quote];\n  const scale = isA ? 3 : 7;\n  const v = d1 + d15;\n  const bias = v > 0 ? 'BUY' : v < 0 ? 'SELL' : null;\n  const dir = bias === 'BUY' ? 1 : bias === 'SELL' ? -1 : 0;\n  const cnt = dir === 0 ? 0 : [d4, d1, d15].filter(d => sgn(d) === dir).length;\n  const A = cnt === 3 ? 20 : cnt === 2 ? 8 : 0;\n  const B = dir === 0 ? 0 : Math.min(Math.abs(d1) / scale, 1) * 8 + Math.min(Math.abs(d15) / scale, 1) * 7;\n  const erOk = dir !== 0 && sgn(p.net) === dir;\n  const emaOk = dir !== 0 && dir * (p.p15 - p.e50) > 0 && dir * (p.e20 - p.e50) > 0;\n  const C = (erOk ? Math.min(p.er / 0.5, 1) * 15 : 0) + (emaOk ? 5 : 0);\n  const D = (p.act >= 0.9 && p.act <= 1.8) ? 10 : (p.act >= 0.7 && p.act < 0.9) ? 5 : p.act > 1.8 ? 6 : 0;\n  let E;\n  if (isA) E = p.sessions === null ? 3 : p.sessions.includes(cfg.session) ? 5 : 2;\n  else { const nAct = [p.base, p.quote].filter(c => active.includes(c)).length; E = nAct === 2 ? 5 : nAct === 1 ? 3 : 1; }\n  let F = 7, orConfirmed = false, orLive = false;\n  if (orReady && dir !== 0 && p.orHave) {\n    orConfirmed = bias === 'BUY' ? p.p15 > p.orHigh : p.p15 < p.orLow;\n    orLive = bias === 'BUY' ? p.live > p.orHigh : p.live < p.orLow;\n    F = orConfirmed ? 15 : orLive ? 7 : 0;\n  } else if (orReady) { F = 0; }\n  const adrPts = p.adrPct === null ? 2 : p.adrPct < 60 ? 5 : p.adrPct < 90 ? 3 : p.adrPct < 110 ? 1 : 0;\n  let obstacle = null, roomATR = null;\n  if (bias === 'BUY' && p.pdh !== null && p.pdh > p.live) { obstacle = p.pdh; roomATR = (p.pdh - p.live) / p.atr15; }\n  if (bias === 'SELL' && p.pdl !== null && p.pdl < p.live) { obstacle = p.pdl; roomATR = (p.live - p.pdl) / p.atr15; }\n  const roomPts = roomATR === null ? 10 : roomATR >= 3 ? 10 : roomATR >= 2 ? 6 : roomATR >= 1.5 ? 3 : 0;\n  const cramped = roomATR !== null && roomATR < 1.5;\n  const G = adrPts + roomPts;\n  const stretched = (bias === 'BUY' && p.rsi >= 75) || (bias === 'SELL' && p.rsi <= 25);\n  const divAgainst = !!(p.div && ((bias === 'BUY' && p.div === 'BEARISH') || (bias === 'SELL' && p.div === 'BULLISH')));\n  const extended = dir !== 0 && dir * (p.live - p.e50) / p.atr15 > 3.5;\n  const pen = (stretched ? 8 : 0) + (divAgainst ? 7 : 0) + (extended ? 6 : 0);\n  const score = Math.max(0, Math.min(100, Math.round(A + B + C + D + E + F + G - pen)));\n  return { ...p, d4, d1, d15, bias, cnt, A: Math.round(A + B), C: Math.round(C), D, E, F, G, pen, score, orConfirmed, orLive, obstacle, roomATR, cramped, stretched, divAgainst, extended };\n});\n\nconst isFocus = r => r.bias && r.cnt === 3 && r.score >= 65 && !r.cramped && (orReady ? r.orConfirmed : true);\nconst keysOf = r => (r.kind === 'asset' ? [r.group] : [r.base, r.quote]);\nfunction pickDiverse(list, n) { const chosen = []; const used = new Set(); for (const c of list) { if (chosen.length >= n) break; const k = keysOf(c); if (!k.some(x => used.has(x))) { chosen.push(c); k.forEach(x => used.add(x)); } } for (const c of list) { if (chosen.length >= n) break; if (!chosen.includes(c)) chosen.push(c); } return chosen; }\nconst focus = pickDiverse(evald.filter(isFocus).sort((a, b) => b.score - a.score), 3).sort((a, b) => b.score - a.score);\n\nfunction whyWait(r) {\n  if (r.cnt < 3) return '4H/1H/15m এর একটা এখনও align হয়নি';\n  if (orReady && !r.orConfirmed) return r.orLive ? '15m candle close এর অপেক্ষা (OR break হচ্ছে)' : 'Opening range break এর অপেক্ষা';\n  if (r.cramped) return 'সামনে PDH/PDL কাছে — RR কম';\n  return 'Score 65 এর নিচে';\n}\nconst watch = evald.filter(r => !focus.includes(r) && r.bias && r.cnt >= 2 && r.score >= 55).sort((a, b) => b.score - a.score).slice(0, 2);\n\nfunction avoidReasons(r) {\n  const o = [];\n  if (r.cnt < 3) o.push('4H/1H/15m এক দিকে না — trend confirm নয়');\n  if (r.er < 0.25) o.push(`Choppy (ER ${r.er.toFixed(2)}) — scalp এর জন্য খারাপ`);\n  if (r.act < 0.7) o.push('Move কম — এখন volatility নেই');\n  if (r.cramped) o.push('সামনে PDH/PDL খুব কাছে — RR কম');\n  if (r.adrPct !== null && r.adrPct >= 110) o.push(`ADR ${r.adrPct}% — আজকের move প্রায় শেষ`);\n  if (r.stretched) o.push(`RSI ${r.rsi.toFixed(0)} — ${r.bias === 'BUY' ? 'overbought' : 'oversold'}, উল্টো move ঝুঁকি`);\n  if (r.extended) o.push('EMA50 থেকে অনেক দূরে — late entry ঝুঁকি');\n  if (orReady && r.bias && !r.orConfirmed) o.push('Opening range break হয়নি');\n  if (!o.length) o.push('Criteria পূরণ হয়নি');\n  return o.slice(0, 2);\n}\nconst avoid = evald.filter(r => !focus.includes(r) && !watch.includes(r)).sort((a, b) => a.score - b.score).slice(0, 3);\n\nconst medals = ['🥇', '🥈', '🥉'];\nconst bar = s => { const f = Math.max(0, Math.min(10, Math.round(s / 10))); return '▓'.repeat(f) + '░'.repeat(10 - f); };\nconst conf = s => s >= 80 ? '🔥 HIGH' : s >= 65 ? '✅ GOOD' : s >= 50 ? '🟡 MEDIUM' : '⚪ LOW';\nconst fmt = (r, v) => v.toFixed(r.kind === 'asset' ? r.dec : (r.pair.includes('JPY') ? 3 : 5));\nconst fl = r => (r.kind === 'asset' ? `${r.icon} ${r.name}` : `${flags[r.base]}${flags[r.quote]} ${r.pair}`);\nconst arrow = r => r.bias === 'BUY' ? '📈 BUY' : r.bias === 'SELL' ? '📉 SELL' : '➖';\nconst time = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit' });\nconst scope = cfg.watchlist ? `${cfg.watchlist.length} item watchlist` : 'সব 28 pair + 4 asset';\nconst hasAsset = evald.some(r => r.kind === 'asset');\n\nfunction render(compact) {\n  const L = [];\n  L.push(`🎯 ${cfg.session.toUpperCase()} · SCALP FOCUS`);\n  L.push(`⏰ ${time} BDT · ${scope}`);\n  if (nowSec - lastTs > 10800) L.push('🕒 Forex market বন্ধ — শেষ available data');\n  if (closedAssets.length) L.push(`🕒 বন্ধ: ${closedAssets.join(', ')} (market closed)`);\n  if (!orReady) L.push(cfg.orDone ? '⚠️ Opening range data নেই — শুধু trend ভিত্তিক' : `⏳ Opening range চলছে (${(cfg.startHour + 1) % 24}:00 এ শেষ) — breakout confirm হয়নি, trend ভিত্তিক focus`);\n  if (skipped.length) L.push(`⚠️ ${skipped.length} টার data আসেনি — strength সামান্য অসম্পূর্ণ`);\n  L.push('');\n  L.push('━━━━━━━━━━━━━━━━━━━');\n  L.push('✅ FOCUS');\n  L.push('━━━━━━━━━━━━━━━━━━━');\n  L.push('');\n  if (!evald.length) L.push('Watchlist এর কোনো item এর data পাওয়া যায়নি — নাম চেক করো।');\n  else if (!focus.length) L.push('এই মুহূর্তে কিছু পুরো criteria পূরণ করেনি — অপেক্ষা করা ভালো।');\n  focus.forEach((r, i) => {\n    L.push(`${medals[i]} ${fl(r)}  ${arrow(r)}`);\n    L.push(`⭐ ${r.score}/100 ${bar(r.score)} · ${conf(r.score)}`);\n    if (r.kind === 'asset') L.push(`📊 EMA থেকে দূরত্ব (ATR): 4H ${sg(r.d4)} · 1H ${sg(r.d1)} · 15m ${sg(r.d15)}`);\n    else L.push(`📊 4H ${sg(r.d4)} · 1H ${sg(r.d1)} · 15m ${sg(r.d15)} (${r.base} vs ${r.quote})`);\n    L.push(`🧹 ER ${r.er.toFixed(2)} — ${r.er >= 0.4 ? 'clean trend' : 'মোটামুটি trend'}`);\n    if (orReady) L.push(`🚀 OR (${cfg.startHour}:00) ${r.bias === 'BUY' ? 'high ' + fmt(r, r.orHigh) + ' এর উপরে' : 'low ' + fmt(r, r.orLow) + ' এর নিচে'} 15m close ✅`);\n    else L.push('⏳ OR চলছে — breakout confirm হয়নি');\n    L.push(r.obstacle !== null ? `📍 সামনে ${r.bias === 'BUY' ? 'PDH' : 'PDL'} ${fmt(r, r.obstacle)} — ${r.roomATR.toFixed(1)} ATR room` : '📍 সামনে PDH/PDL এর বাধা নেই');\n    L.push(`📏 ADR ${r.adrPct === null ? '—' : r.adrPct + '%'} · ⚡ Activity ${r.act.toFixed(1)}x`);\n    if (r.stretched) L.push(`⚠️ RSI ${r.rsi.toFixed(0)} — ${r.bias === 'BUY' ? 'overbought, pullback' : 'oversold, bounce'} ঝুঁকি`);\n    if (r.divAgainst) L.push('⚠️ RSI divergence উল্টো দিকে — reversal সতর্কতা');\n    if (r.extended) L.push('⚠️ EMA50 থেকে অনেক দূরে — late entry ঝুঁকি');\n    if (!compact) {\n      L.push(`🧮 Trend ${r.A}/35 · Clean ${r.C}/20 · Activity ${r.D}/10 · Session ${r.E}/5 · OR ${r.F}/15 · Room ${r.G}/15${r.pen ? ' · Penalty -' + r.pen : ''}`);\n      L.push(`🎯 3m/1m এ pullback/retest এ ${r.bias} খোঁজো · bias বাতিল: 15m close ${fmt(r, r.e50)} এর ${r.bias === 'BUY' ? 'নিচে' : 'উপরে'}`);\n    }\n    L.push('');\n    L.push('──────────────────');\n    L.push('');\n  });\n  if (watch.length) {\n    L.push('👀 WATCH (setup তৈরি হচ্ছে)');\n    for (const r of watch) L.push(`🟡 ${fl(r)} ${arrow(r)} · ${r.score} — ${whyWait(r)}`);\n    L.push('');\n  }\n  if (avoid.length) {\n    L.push('🚫 AVOID');\n    for (const r of avoid) {\n      L.push(`🔴 ${fl(r)} · ${r.score}`);\n      for (const x of avoidReasons(r)) L.push(`➖ ${x}`);\n    }\n    L.push('');\n  }\n  L.push('🔥 80+ · ✅ 65-79 · 🟡 50-64 · ⚪ <50');\n  if (hasAsset) L.push('ℹ️ Gold/Silver/Oil = futures data (GC=F, SI=F, CL=F) — MT5 spot এর সাথে price এ fark থাকবে, level chart এ মিলিয়ে নিও · Bitcoin ২৪/৭ চলে, OR কম নির্ভরযোগ্য');\n  L.push('⚠️ Automated analysis (heuristic score, backtest করা না) — entry এর আগে chart এ নিজের confirmation নিও।');\n  return L.join('\\n').trim();\n}\n\nlet text = render(false);\nif (text.length > 3900) text = render(true);\nreturn [{ json: { text } }];"
+      },
+      "id": "5a0e3de7-a8fe-4394-960f-5c12dfe26434",
+      "name": "Analyze & Score2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "c950b21a-07c7-400d-8b7f-0d899ec0b335",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1200,
+        112
+      ],
+      "webhookId": "33333333-cccc-4ccc-8ccc-0000000000a1",
+      "credentials": {
+        "telegramApi": {
+          "id": "QpOcKDtzi2JHnf5a",
+          "name": "Trade Master"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const m = $input.first().json.message || {};\nconst text = (m.text || '').trim().toLowerCase();\nif (!m.chat || String(m.chat.id) !== '5884335011') return [];\nconst words = text.split(' ');\nif (!['hi','hello','/start','focus'].includes(words[0])) return [];\n\n// ===== তোমার watchlist — এখানে edit করো =====\n// Forex: 'EUR/USD' format (EUR > GBP > AUD > NZD > USD > CAD > CHF > JPY order)\n// Asset: 'Gold', 'Silver', 'Oil', 'Bitcoin'\nconst WATCHLIST = ['EUR/USD','GBP/USD','USD/JPY','GBP/JPY','AUD/USD','USD/CAD','EUR/JPY','NZD/USD','Gold','Silver','Oil','Bitcoin'];\n// ================================================\nconst useAll = words.includes('all');\nconst OFF = 21600; // Dhaka UTC+6\nconst nowSec = Math.floor(Date.now() / 1000);\nconst dNow = nowSec + OFF;\nconst hour = Math.floor((dNow % 86400) / 3600);\nlet session, startHour;\nif (hour >= 18) { session = 'New York'; startHour = 18; }\nelse if (hour >= 12) { session = 'London'; startHour = 12; }\nelse if (hour >= 7) { session = 'Asian'; startHour = 7; }\nelse { session = 'New York'; startHour = 18; }\nlet startD = dNow - (dNow % 86400) + startHour * 3600;\nif (startD > dNow) startD -= 86400;\nconst sessionStartTs = startD - OFF;\nreturn [{ json: { session, startHour, sessionStartTs, orDone: nowSec >= sessionStartTs + 3600, watchlist: useAll ? null : WATCHLIST } }];"
+      },
+      "id": "3a9931dc-6957-491e-bb26-414b15bf9179",
+      "name": "Parse Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -976,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://query1.finance.yahoo.com/v8/finance/chart/{{ $('Build Pairs1').itemMatching($itemIndex).json.yahoo }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "interval",
+              "value": "60m"
+            },
+            {
+              "name": "range",
+              "value": "120d"
+            },
+            {
+              "name": "includePrePost",
+              "value": "false"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 7
+            }
+          }
+        }
+      },
+      "id": "edf37c5d-35f4-445c-a732-5f6811b954eb",
+      "name": "Get Yahoo 1H",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -304,
+        112
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "5884335011",
+        "text": "={{$json.text}}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "7025e9b0-3d14-4605-a794-3e1edb0a9110",
+      "name": "Telegram Send3",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        144,
+        16
+      ],
+      "webhookId": "33333333-cccc-4ccc-8ccc-0000000000a2",
+      "credentials": {
+        "telegramApi": {
+          "id": "QpOcKDtzi2JHnf5a",
+          "name": "Trade Master"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Parse Request').first().json;\nconst pairs = $('Build Pairs1').all();\nconst r15 = $('Get Yahoo 15m1').all();\nconst r1h = $('Get Yahoo 1H').all();\nconst OFF = 21600;\nconst nowSec = Math.floor(Date.now() / 1000);\nconst majors = ['USD','EUR','GBP','JPY','AUD','NZD','CAD','CHF'];\nconst SESS = { 'Asian': ['JPY','AUD','NZD'], 'London': ['EUR','GBP','CHF'], 'New York': ['USD','CAD','EUR','GBP'] };\nconst sgn = Math.sign;\nconst avg = a => a.reduce((s, x) => s + x, 0) / a.length;\nconst r1 = x => Math.round(x * 10) / 10;\n\nfunction ema(c, p) { if (c.length < p) return null; const k = 2 / (p + 1); let e = c.slice(0, p).reduce((a, b) => a + b, 0) / p; for (let i = p; i < c.length; i++) e = c[i] * k + e * (1 - k); return e; }\nfunction rsiSeries(c, p) { const r = []; let g = 0, l = 0; for (let i = 1; i <= p; i++) { const d = c[i] - c[i - 1]; if (d >= 0) g += d; else l -= d; } g /= p; l /= p; r[p] = l === 0 ? 100 : 100 - 100 / (1 + g / l); for (let i = p + 1; i < c.length; i++) { const d = c[i] - c[i - 1]; g = (g * (p - 1) + (d > 0 ? d : 0)) / p; l = (l * (p - 1) + (d < 0 ? -d : 0)) / p; r[i] = l === 0 ? 100 : 100 - 100 / (1 + g / l); } return r; }\nfunction swings(arr, lb) { const s = Math.max(1, arr.length - lb); const hi = [], lo = []; for (let i = s; i < arr.length - 1; i++) { if (arr[i] > arr[i - 1] && arr[i] > arr[i + 1]) hi.push(i); if (arr[i] < arr[i - 1] && arr[i] < arr[i + 1]) lo.push(i); } return { hi, lo }; }\nfunction parse(j) { const res = j && j.chart && j.chart.result && j.chart.result[0]; const q = res && res.indicators && res.indicators.quote && res.indicators.quote[0]; if (!res || !res.timestamp || !q) return null; const out = []; for (let i = 0; i < res.timestamp.length; i++) { const o = q.open[i], h = q.high[i], l = q.low[i], c = q.close[i]; if (o == null || h == null || l == null || c == null) continue; out.push({ ts: res.timestamp[i], o, h, l, c }); } return out; }\nfunction bucket(c, sec) { const m = new Map(); for (const x of c) { const k = Math.floor((x.ts + OFF) / sec); const b = m.get(k); if (!b) m.set(k, { ts: k * sec - OFF, o: x.o, h: x.h, l: x.l, c: x.c }); else { b.h = Math.max(b.h, x.h); b.l = Math.min(b.l, x.l); b.c = x.c; } } return Array.from(m.values()).sort((a, b) => a.ts - b.ts); }\nfunction closedOnly(c, sec) { const x = c[c.length - 1]; return (x && nowSec < x.ts + sec) ? c.slice(0, -1) : c; }\nconst trOf = (c, i) => Math.max(c[i].h - c[i].l, Math.abs(c[i].h - c[i - 1].c), Math.abs(c[i].l - c[i - 1].c));\nconst atrS = c => { const t = []; for (let i = c.length - 14; i < c.length; i++) t.push(trOf(c, i)); return avg(t); };\nconst nz = (x, a) => (a > 0 ? x / a : 0);\n\nconst per = [], skipped = []; let lastTs = 0;\npairs.forEach((pp, idx) => {\n  const m = pp.json;\n  const { pair, base, quote } = m;\n  const a15 = parse(r15[idx] && r15[idx].json);\n  const a1 = parse(r1h[idx] && r1h[idx].json);\n  if (!a15 || !a1 || !a15.length || !a1.length) { skipped.push(pair); return; }\n  const live = a15[a15.length - 1].c;\n  const lastCandle = a15[a15.length - 1].ts;\n  if (m.kind !== 'asset') lastTs = Math.max(lastTs, lastCandle);\n  const c15 = closedOnly(a15, 900);\n  const c1 = closedOnly(a1, 3600);\n  const c4 = closedOnly(bucket(a1, 14400), 14400);\n  if (c15.length < 220 || c1.length < 210 || c4.length < 205) { skipped.push(pair); return; }\n  const cl15 = c15.map(x => x.c), cl1 = c1.map(x => x.c), cl4 = c4.map(x => x.c);\n  const e4 = ema(cl4, 200), e1 = ema(cl1, 200), e50 = ema(cl15, 50), e20 = ema(cl15, 20);\n  const p15 = cl15[cl15.length - 1];\n  const n = cl15.length;\n  const net = cl15[n - 1] - cl15[n - 25];\n  let path = 0; for (let i = n - 24; i < n; i++) path += Math.abs(cl15[i] - cl15[i - 1]);\n  const er = path > 0 ? Math.abs(net) / path : 0;\n  const trs = []; for (let i = c15.length - 208; i < c15.length; i++) trs.push(trOf(c15, i));\n  const act = avg(trs.slice(0, -8)) > 0 ? avg(trs.slice(-8)) / avg(trs.slice(0, -8)) : 1;\n  const atr15 = avg(trs.slice(-14));\n  const ts4 = nz(cl4[cl4.length - 1] - e4, atrS(c4));\n  const ts1 = nz(cl1[cl1.length - 1] - e1, atrS(c1));\n  const ts15 = nz(p15 - e50, atr15);\n  const cs = cl15.slice(-300);\n  const rs = rsiSeries(cs, 14); const rsi = rs[rs.length - 1];\n  const { hi, lo } = swings(cs, 60);\n  let div = null;\n  if (lo.length >= 2) { const i1 = lo[lo.length - 2], i2 = lo[lo.length - 1]; if (cs[i2] < cs[i1] && rs[i2] > rs[i1]) div = 'BULLISH'; }\n  if (!div && hi.length >= 2) { const i1 = hi[hi.length - 2], i2 = hi[hi.length - 1]; if (cs[i2] > cs[i1] && rs[i2] < rs[i1]) div = 'BEARISH'; }\n  const day = {};\n  for (const x of a15) { const d = Math.floor((x.ts + OFF) / 86400); const b = day[d] || (day[d] = { h: -Infinity, l: Infinity, n: 0 }); b.h = Math.max(b.h, x.h); b.l = Math.min(b.l, x.l); b.n++; }\n  const todayKey = Math.floor((nowSec + OFF) / 86400);\n  const full = Object.keys(day).map(Number).filter(k => k < todayKey && day[k].n >= 60).sort((a, b) => a - b);\n  const pdk = full.length ? full[full.length - 1] : null;\n  const pdh = pdk !== null ? day[pdk].h : null;\n  const pdl = pdk !== null ? day[pdk].l : null;\n  const adrDays = full.slice(-14);\n  const adr = adrDays.length ? avg(adrDays.map(k => day[k].h - day[k].l)) : null;\n  const t = day[todayKey];\n  const adrPct = (adr && t) ? Math.round((t.h - t.l) / adr * 100) : null;\n  const orC = a15.filter(x => x.ts >= cfg.sessionStartTs && x.ts < cfg.sessionStartTs + 3600);\n  const orHave = orC.length >= 4;\n  const orHigh = orHave ? Math.max(...orC.map(x => x.h)) : null;\n  const orLow = orHave ? Math.min(...orC.map(x => x.l)) : null;\n  per.push({ kind: m.kind, name: m.name, icon: m.icon, dec: m.dec, group: m.group, sessions: m.sessions, stale: nowSec - lastCandle > 10800, pair, base, quote, win4: sgn(cl4[cl4.length - 1] - e4), win1: sgn(cl1[cl1.length - 1] - e1), win15: sgn(p15 - e50), ts4, ts1, ts15, live, p15, e20, e50, rsi, er, net, act, atr15, adrPct, pdh, pdl, div, orHave, orHigh, orLow });\n});\n\nconst s1 = {}, s4 = {}, s15 = {};\nmajors.forEach(c => { s1[c] = 0; s4[c] = 0; s15[c] = 0; });\nfor (const p of per) { if (p.kind === 'asset') continue; s1[p.base] += p.win1; s1[p.quote] -= p.win1; s4[p.base] += p.win4; s4[p.quote] -= p.win4; s15[p.base] += p.win15; s15[p.quote] -= p.win15; }\n\nconst orReady = cfg.orDone && per.some(p => p.orHave);\nconst active = SESS[cfg.session] || [];\nconst closedAssets = [];\n\nconst evald = per.filter(p => !cfg.watchlist || cfg.watchlist.includes(p.pair)).filter(p => { if (p.kind === 'asset' && p.stale) { closedAssets.push(p.name); return false; } return true; }).map(p => {\n  const isA = p.kind === 'asset';\n  const d4 = isA ? r1(p.ts4) : s4[p.base] - s4[p.quote];\n  const d1 = isA ? r1(p.ts1) : s1[p.base] - s1[p.quote];\n  const d15 = isA ? r1(p.ts15) : s15[p.base] - s15[p.quote];\n  const scale = isA ? 3 : 7;\n  const v = d1 + d15;\n  const bias = v > 0 ? 'BUY' : v < 0 ? 'SELL' : null;\n  const dir = bias === 'BUY' ? 1 : bias === 'SELL' ? -1 : 0;\n  const cnt = dir === 0 ? 0 : [d4, d1, d15].filter(d => sgn(d) === dir).length;\n  const A = cnt === 3 ? 20 : cnt === 2 ? 8 : 0;\n  const B = dir === 0 ? 0 : Math.min(Math.abs(d1) / scale, 1) * 8 + Math.min(Math.abs(d15) / scale, 1) * 7;\n  const erOk = dir !== 0 && sgn(p.net) === dir;\n  const emaOk = dir !== 0 && dir * (p.p15 - p.e50) > 0 && dir * (p.e20 - p.e50) > 0;\n  const C = (erOk ? Math.min(p.er / 0.5, 1) * 15 : 0) + (emaOk ? 5 : 0);\n  const D = (p.act >= 0.9 && p.act <= 1.8) ? 10 : (p.act >= 0.7 && p.act < 0.9) ? 5 : p.act > 1.8 ? 6 : 0;\n  let E;\n  if (isA) E = p.sessions === null ? 3 : p.sessions.includes(cfg.session) ? 5 : 2;\n  else { const nAct = [p.base, p.quote].filter(c => active.includes(c)).length; E = nAct === 2 ? 5 : nAct === 1 ? 3 : 1; }\n  let F = 7, orConfirmed = false, orLive = false;\n  if (orReady && dir !== 0 && p.orHave) {\n    orConfirmed = bias === 'BUY' ? p.p15 > p.orHigh : p.p15 < p.orLow;\n    orLive = bias === 'BUY' ? p.live > p.orHigh : p.live < p.orLow;\n    F = orConfirmed ? 15 : orLive ? 7 : 0;\n  } else if (orReady) { F = 0; }\n  const adrPts = p.adrPct === null ? 2 : p.adrPct < 60 ? 5 : p.adrPct < 90 ? 3 : p.adrPct < 110 ? 1 : 0;\n  let obstacle = null, roomATR = null;\n  if (bias === 'BUY' && p.pdh !== null && p.pdh > p.live) { obstacle = p.pdh; roomATR = (p.pdh - p.live) / p.atr15; }\n  if (bias === 'SELL' && p.pdl !== null && p.pdl < p.live) { obstacle = p.pdl; roomATR = (p.live - p.pdl) / p.atr15; }\n  const roomPts = roomATR === null ? 10 : roomATR >= 3 ? 10 : roomATR >= 2 ? 6 : roomATR >= 1.5 ? 3 : 0;\n  const cramped = roomATR !== null && roomATR < 1.5;\n  const G = adrPts + roomPts;\n  const stretched = (bias === 'BUY' && p.rsi >= 75) || (bias === 'SELL' && p.rsi <= 25);\n  const divAgainst = !!(p.div && ((bias === 'BUY' && p.div === 'BEARISH') || (bias === 'SELL' && p.div === 'BULLISH')));\n  const extended = dir !== 0 && dir * (p.live - p.e50) / p.atr15 > 3.5;\n  const pen = (stretched ? 8 : 0) + (divAgainst ? 7 : 0) + (extended ? 6 : 0);\n  const score = Math.max(0, Math.min(100, Math.round(A + B + C + D + E + F + G - pen)));\n  return { ...p, d4, d1, d15, bias, cnt, A: Math.round(A + B), C: Math.round(C), D, E, F, G, pen, score, orConfirmed, orLive, obstacle, roomATR, cramped, stretched, divAgainst, extended };\n});\n\nconst isFocus = r => r.bias && r.cnt === 3 && r.score >= 65 && !r.cramped && (orReady ? r.orConfirmed : true);\nconst keysOf = r => (r.kind === 'asset' ? [r.group] : [r.base, r.quote]);\nfunction pickDiverse(list, n) { const chosen = []; const used = new Set(); for (const c of list) { if (chosen.length >= n) break; const k = keysOf(c); if (!k.some(x => used.has(x))) { chosen.push(c); k.forEach(x => used.add(x)); } } for (const c of list) { if (chosen.length >= n) break; if (!chosen.includes(c)) chosen.push(c); } return chosen; }\nconst focus = pickDiverse(evald.filter(isFocus).sort((a, b) => b.score - a.score), 3).sort((a, b) => b.score - a.score);\nconst watch = evald.filter(r => !focus.includes(r) && r.bias && r.cnt >= 2 && r.score >= 55).sort((a, b) => b.score - a.score).slice(0, 2);\nconst avoid = evald.filter(r => !focus.includes(r) && !watch.includes(r)).sort((a, b) => a.score - b.score).slice(0, 3);\n\n// ================= OUTPUT: Traffic Light Dashboard =================\nconst nm = r => (r.kind === 'asset' ? r.name : r.pair);\nconst arrow = r => (r.bias === 'BUY' ? '📈 BUY' : r.bias === 'SELL' ? '📉 SELL' : '➖');\n\nfunction waitReason(r) {\n  if (r.cnt < 3) return '4H/1H/15m align';\n  if (orReady && !r.orConfirmed) return r.orLive ? '15m close' : 'OR break';\n  if (r.cramped) return 'RR kom (PDH/PDL kache)';\n  return 'score 65+';\n}\n\nconst time = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit' });\nconst L = [];\nL.push(`🎯 ${cfg.session.toUpperCase()} SCALP · ${time}`);\nif (nowSec - lastTs > 10800) L.push('🕒 Forex market বন্ধ — শেষ available data');\nif (closedAssets.length) L.push(`🕒 বন্ধ: ${closedAssets.join(', ')}`);\nif (!orReady) L.push(cfg.orDone ? '⚠️ OR data নেই — শুধু trend ভিত্তিক' : `⏳ OR চলছে (${(cfg.startHour + 1) % 24}:00 এ শেষ) — trend ভিত্তিক`);\nif (skipped.length) L.push(`⚠️ ${skipped.length} টার data আসেনি`);\nL.push('');\n\nL.push('🟢 GO');\nif (focus.length) focus.forEach(r => L.push(` • ${nm(r)} ${arrow(r)} ${r.score}`));\nelse L.push(' • এখন কিছু নেই — অপেক্ষা করো');\n\nif (watch.length) {\n  L.push('');\n  L.push('🟡 WAIT');\n  watch.forEach(r => L.push(` • ${nm(r)} ${arrow(r)} ${r.score} → ${waitReason(r)}`));\n}\n\nif (avoid.length) {\n  L.push('');\n  L.push('🔴 SKIP');\n  L.push(' • ' + avoid.map(r => `${nm(r)} ${r.score}`).join(' · '));\n}\n\nreturn [{ json: { text: L.join('\\n').trim() } }];\n"
+      },
+      "id": "c82414ae-f643-4f70-be7b-0c698215fd96",
+      "name": "Analyze & Score3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "5884335011",
+        "text": "={{ $('Analyze & Score3').first().json.text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "fafd206c-1c66-4b60-9d18-db9930f8c998",
+      "name": "Telegram Send1",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1264,
+        208
+      ],
+      "executeOnce": true,
+      "webhookId": "33333333-cccc-4ccc-8ccc-0000000000a2",
+      "credentials": {
+        "telegramApi": {
+          "id": "QpOcKDtzi2JHnf5a",
+          "name": "Trade Master"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://quickchart.io/chart",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 3
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "beadcc29-f99a-452d-9e31-96d1ecb7373b",
+      "name": "QuickChart2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        816,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "5884335011",
+        "binaryData": true,
+        "additionalFields": {
+          "caption": "={{ $('Build Chart2').itemMatching($itemIndex).json.caption }}"
+        }
+      },
+      "id": "26014149-3a85-4ce4-97bb-146da68b27bc",
+      "name": "Telegram Send Photo2",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1040,
+        208
+      ],
+      "webhookId": "03e08d90-4853-4ebd-a293-a5ca9fef6eed",
+      "credentials": {
+        "telegramApi": {
+          "id": "QpOcKDtzi2JHnf5a",
+          "name": "Trade Master"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const txt = $('Analyze & Score3').first().json.text || '';\nconst pairs = $('Build Pairs1').all();\n\n// Analyze & Score1 er text theke GO / WAIT list parse\nconst out = [];\nlet sec = null;\nfor (const line of txt.split('\\n')) {\n  if (line.startsWith('🟢')) sec = 'GO';\n  else if (line.startsWith('🟡')) sec = 'WAIT';\n  else if (line.startsWith('🔴')) sec = null;\n  if (!sec) continue;\n  const m = line.match(/•\\s+(.+?)\\s+(📈 BUY|📉 SELL)\\s+(\\d+)/);\n  if (!m) continue;\n  const meta = pairs.map(p => p.json).find(p => p.pair === m[1] || p.name === m[1]);\n  if (!meta) continue;\n  const dec = meta.kind === 'asset' ? meta.dec : (meta.pair.includes('JPY') ? 3 : 5);\n  out.push({ json: { name: m[1], yahoo: meta.yahoo, dec, bias: m[2].includes('BUY') ? 'BUY' : 'SELL', score: m[3], tag: sec } });\n}\nreturn out;\n"
+      },
+      "id": "59128e19-7170-423f-81b0-6cd6ec43e33d",
+      "name": "Pick Pairs2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        144,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://query1.finance.yahoo.com/v8/finance/chart/{{ $json.yahoo }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "interval",
+              "value": "1m"
+            },
+            {
+              "name": "range",
+              "value": "2d"
+            },
+            {
+              "name": "includePrePost",
+              "value": "false"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5
+            }
+          }
+        }
+      },
+      "id": "f6c6b946-8b21-4b64-b421-2bcaf90a1951",
+      "name": "Get Yahoo 1m2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        368,
+        208
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Parse Request').first().json;\nconst picks = $('Pick Pairs2').all();\nconst res = $input.all();\nconst OFF = 21600;      // Dhaka UTC+6\nconst N = 240;          // last 240 x 1m candle = 4 ghonta\nconst RIGHT_SPACE = 0.15;   // dan dike fanka jayga (candle sonkhyar %) — 0.25 korle aro beshi fanka\n\nfunction emaSeries(c, p) {\n  const out = new Array(c.length).fill(null);\n  if (c.length < p) return out;\n  const k = 2 / (p + 1);\n  let e = c.slice(0, p).reduce((a, b) => a + b, 0) / p;\n  out[p - 1] = e;\n  for (let i = p; i < c.length; i++) { e = c[i] * k + e * (1 - k); out[i] = e; }\n  return out;\n}\nfunction rsiSeries(c, p) {\n  const out = new Array(c.length).fill(null);\n  if (c.length <= p) return out;\n  let g = 0, l = 0;\n  for (let i = 1; i <= p; i++) { const d = c[i] - c[i - 1]; if (d >= 0) g += d; else l -= d; }\n  g /= p; l /= p;\n  out[p] = l === 0 ? 100 : 100 - 100 / (1 + g / l);\n  for (let i = p + 1; i < c.length; i++) {\n    const d = c[i] - c[i - 1];\n    g = (g * (p - 1) + (d > 0 ? d : 0)) / p;\n    l = (l * (p - 1) + (d < 0 ? -d : 0)) / p;\n    out[i] = l === 0 ? 100 : 100 - 100 / (1 + g / l);\n  }\n  return out;\n}\nfunction parse(j) {\n  const r = j && j.chart && j.chart.result && j.chart.result[0];\n  const q = r && r.indicators && r.indicators.quote && r.indicators.quote[0];\n  if (!r || !r.timestamp || !q) return null;\n  const out = [];\n  for (let i = 0; i < r.timestamp.length; i++) {\n    const o = q.open[i], h = q.high[i], l = q.low[i], c = q.close[i];\n    if (o == null || h == null || l == null || c == null) continue;\n    out.push({ ts: r.timestamp[i], o, h, l, c });\n  }\n  return out;\n}\n\nconst out = [];\nres.forEach((r, idx) => {\n  const it = picks[idx] && picks[idx].json;\n  if (!it) return;\n  const a = parse(r.json);\n  if (!a || a.length < 220) return;\n\n  const rd = v => (v == null ? null : Number(v.toFixed(it.dec)));\n  const cl = a.map(x => x.c);\n  const e9 = emaSeries(cl, 9), e15 = emaSeries(cl, 15), e200 = emaSeries(cl, 200);\n  const rsi = rsiSeries(cl, 14);\n  const start = Math.max(0, a.length - N);\n  const X = i => (a[i].ts + OFF) * 1000;   // Dhaka time dekhanor jonno shift\n\n  const candles = [], l9 = [], l15 = [], l200 = [], lr = [];\n  for (let i = start; i < a.length; i++) {\n    candles.push({ x: X(i), o: rd(a[i].o), h: rd(a[i].h), l: rd(a[i].l), c: rd(a[i].c) });\n    if (e9[i] != null) l9.push({ x: X(i), y: rd(e9[i]) });\n    if (e15[i] != null) l15.push({ x: X(i), y: rd(e15[i]) });\n    if (e200[i] != null) l200.push({ x: X(i), y: rd(e200[i]) });\n    if (rsi[i] != null) lr.push({ x: X(i), y: Number(rsi[i].toFixed(2)) });\n  }\n\n  const x0 = candles[0].x, x1 = candles[candles.length - 1].x;\n  const xMax = x1 + Math.round(candles.length * RIGHT_SPACE) * 60000;   // dan dike fanka\n\n  const lo = Math.min(...candles.map(c => c.l)), hi = Math.max(...candles.map(c => c.h));\n  const pad = (hi - lo) * 0.08 || hi * 0.0003;\n  // price axis er upor-niche gol (nice) songkha, jeno label overlap na kore\n  const raw = (hi - lo + 2 * pad) / 8, pw = Math.pow(10, Math.floor(Math.log10(raw))), nm = raw / pw;\n  const step = (nm <= 1 ? 1 : nm <= 2 ? 2 : nm <= 5 ? 5 : 10) * pw;\n  const yMin = rd(Math.floor((lo - pad) / step) * step), yMax = rd(Math.ceil((hi + pad) / step) * step);\n  const lastE200 = e200[a.length - 1];\n  const e200Out = lastE200 != null && (lastE200 < yMin || lastE200 > yMax);\n\n  const line = (label, data, color, w, dash, axis) => ({ type: 'line', label, data, borderColor: color, borderWidth: w, borderDash: dash || [], pointRadius: 0, fill: false, tension: 0, yAxisID: axis || 'y' });\n  const ds = [\n    { label: it.name, data: candles, yAxisID: 'y', color: { up: '#26a69a', down: '#ef5350', unchanged: '#999999' }, borderColor: { up: '#26a69a', down: '#ef5350', unchanged: '#999999' } },\n    line('EMA 9', l9, '#43a047', 1.2),\n    line('EMA 15', l15, '#e53935', 1.2),\n    line('EMA 200', l200, '#1a1aff', 2.5)\n  ];\n\n  // Opening Range (jodi sesh hoye thake)\n  if (cfg.orDone) {\n    const orC = a.filter(x => x.ts >= cfg.sessionStartTs && x.ts < cfg.sessionStartTs + 3600);\n    if (orC.length >= 30) {\n      const orH = rd(Math.max(...orC.map(x => x.h))), orL = rd(Math.min(...orC.map(x => x.l)));\n      ds.push(line('OR High', [{ x: x0, y: orH }, { x: xMax, y: orH }], '#2e7d32', 1, [4, 4]));\n      ds.push(line('OR Low', [{ x: x0, y: orL }, { x: xMax, y: orL }], '#6a1b9a', 1, [4, 4]));\n    }\n  }\n\n  // RSI panel (nicher alada panel)\n  ds.push(line('RSI 14', lr, '#7e57c2', 1.4, [], 'yRsi'));\n  ds.push(line('RSI 70/30', [{ x: x0, y: 70 }, { x: xMax, y: 70 }, { x: xMax, y: null }, { x: x0, y: 30 }, { x: xMax, y: 30 }], '#b0b0b0', 1, [4, 4], 'yRsi'));\n\n  const grid = { color: '#e6e6e6' };\n  const body = {\n    version: '3',\n    backgroundColor: 'white',\n    width: 1200,\n    height: 850,\n    format: 'png',\n    chart: {\n      type: 'candlestick',\n      data: { datasets: ds },\n      options: {\n        plugins: {\n          title: { display: true, text: `${it.name} · 1m · ${it.bias} · ${it.score}/100 (BDT)`, font: { size: 20 } },\n          legend: { position: 'top' }\n        },\n        scales: {\n          x: { type: 'time', min: x0, max: xMax, time: { unit: 'minute', displayFormats: { minute: 'HH:mm', hour: 'HH:mm', day: 'HH:mm' } }, ticks: { source: 'auto', autoSkip: true, maxTicksLimit: 12, maxRotation: 0 }, grid },\n          y: { stack: 'main', stackWeight: 3, position: 'right', min: yMin, max: yMax, ticks: { stepSize: step, includeBounds: false }, grid },\n          yRsi: { stack: 'main', stackWeight: 1, position: 'right', min: 0, max: 110, ticks: { stepSize: 20, includeBounds: false }, grid, title: { display: true, text: 'RSI' } }\n        }\n      }\n    }\n  };\n\n  out.push({ json: {\n    body,\n    caption: `${it.tag === 'GO' ? '🟢 GO' : '🟡 WAIT'} ${it.name} ${it.bias === 'BUY' ? '📈 BUY' : '📉 SELL'} · ${it.score}/100 · 1m` + (e200Out ? '\\n⚠️ EMA 200 chart এর range এর বাইরে (দাম অনেক দূরে)' : '')\n  } });\n});\nreturn out;\n"
+      },
+      "id": "e3e90673-3127-4f40-960e-587ee82df1e5",
+      "name": "Build Chart2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        208
+      ]
+    }
+  ],
+  "pinData": {
+    "Telegram Trigger": [
+      {
+        "json": {
+          "update_id": 838565959,
+          "message": {
+            "message_id": 852,
+            "from": {
+              "id": 5884335011,
+              "is_bot": false,
+              "first_name": "Jafrul Hasan Junait",
+              "username": "junaitfx",
+              "language_code": "en"
+            },
+            "chat": {
+              "id": 5884335011,
+              "first_name": "Jafrul Hasan Junait",
+              "username": "junaitfx",
+              "type": "private"
+            },
+            "date": 1793348725,
+            "text": "hi"
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Build Pairs1": {
+      "main": [
+        [
+          {
+            "node": "Get Yahoo 15m1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Yahoo 15m1": {
+      "main": [
+        [
+          {
+            "node": "Get Yahoo 1H",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze & Score2": {
+      "main": [
+        [
+          {
+            "node": "Telegram Send3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Request": {
+      "main": [
+        [
+          {
+            "node": "Build Pairs1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Yahoo 1H": {
+      "main": [
+        [
+          {
+            "node": "Analyze & Score2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Analyze & Score3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze & Score3": {
+      "main": [
+        [
+          {
+            "node": "Pick Pairs2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "QuickChart2": {
+      "main": [
+        [
+          {
+            "node": "Telegram Send Photo2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Send Photo2": {
+      "main": [
+        [
+          {
+            "node": "Telegram Send1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Pairs2": {
+      "main": [
+        [
+          {
+            "node": "Get Yahoo 1m2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Yahoo 1m2": {
+      "main": [
+        [
+          {
+            "node": "Build Chart2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Chart2": {
+      "main": [
+        [
+          {
+            "node": "QuickChart2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Send1": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "eaaf5eba-763a-4dfb-a749-de5fd94d7c56",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "90d862fe557b9b8e93d365295d882eb445791e2a6c0acc579cf492dba559d171"
+  },
+  "nodeGroups": [],
+  "id": "pj7mMgp4S49MC1wX",
+  "tags": []
+}

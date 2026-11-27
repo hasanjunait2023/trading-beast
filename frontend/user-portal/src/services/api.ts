@@ -1,8 +1,10 @@
 import axios from 'axios';
 
+const API_BASE = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL || '/api';
+
 const api = axios.create({
-  baseURL: '/api',
-  headers: { 'Content-Type': 'application/json' }
+  baseURL: API_BASE,
+  headers: { 'Content-Type': 'application/json' },
 });
 
 api.interceptors.request.use((config) => {
@@ -44,11 +46,15 @@ export interface User {
 
 export interface Payment {
   id: string;
-  amount: number;
+  amount: number; // smallest currency unit (cents)
   currency: string;
   method: string;
-  status: string;
+  status: string; // PENDING | APPROVED | REJECTED | EXPIRED
+  transactionId?: string | null;
+  screenshotUrl?: string | null;
+  verifiedAt?: string | null;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface FocusResult {
@@ -115,13 +121,15 @@ export interface AnalyzedPair {
 }
 
 export const authApi = {
-  telegramLogin: (data: { telegramId: string; username?: string; firstName?: string; lastName?: string; languageCode?: string; referralCode?: string }) =>
+  telegramLogin: (data: { initData: string; referralCode?: string }) =>
     api.post('/auth/telegram', data),
+  codeLogin: (code:string) => api.post('/auth/code',{code}),
   refresh: () => api.post('/auth/refresh')
 };
 
 export const userApi = {
   me: () => api.get('/user/me'),
+  credits: () => api.get('/user/credits'),
   updateWatchlist: (watchlist: string[]) => api.patch('/user/watchlist', { watchlist }),
   submitPayment: (data: { amount: number; currency: string; method: string; transactionId: string; screenshotUrl?: string }) =>
     api.post('/user/payment', data),
@@ -131,7 +139,7 @@ export const userApi = {
 
 export const analysisApi = {
   getFocus: (session?: string, watchlist?: string[]) =>
-    api.post('/analysis/focus', { session, watchlist }),
+    api.post('/analysis/focus', { session, watchlist }, { headers: { 'Idempotency-Key': crypto.randomUUID() } }),
   getCachedFocus: (session: string) =>
     api.get(`/analysis/focus/${session}`),
   getPairs: () => api.get('/analysis/pairs')

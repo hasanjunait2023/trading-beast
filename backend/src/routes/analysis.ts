@@ -1,13 +1,23 @@
+import { asyncRouter } from '../middleware/async-router.js';
+import { randomUUID, createHash } from 'node:crypto';
+import { withRadarCredits, InsufficientCredits, DuplicateTrigger, RadarRequestConflict, RadarRunExpired } from '../services/credits.js';
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { runAnalysisForUser, getCachedAnalysis, runDailyPublishing } from '../services/analysis.js';
-import { AuthRequest } from '../middleware/auth.js';
+import { AuthRequest, requireAdmin } from '../middleware/auth.js';
 
-const router: Router = Router();
+import { sessionOverview } from '../services/session-clock.js';
+import { MarketDataUnavailable } from '../services/market-data.js';
+const router: Router = asyncRouter();
+
+// Read-only market clock: no credits charged.
+router.get('/sessions', (_req, res) => {
+  res.json({success:true,data:sessionOverview(Math.floor(Date.now()/1000))});
+});
 
 const analysisRequestSchema = z.object({
   session: z.enum(['Asian', 'London', 'New York']).optional(),
-  watchlist: z.array(z.string()).optional()
+  watchlist: z.array(z.string().min(1).max(32)).max(32).optional()
 });
 
 router.post('/focus', async (req: AuthRequest, res) => {
@@ -17,9 +27,17 @@ router.post('/focus', async (req: AuthRequest, res) => {
   }
 
   try {
-    const result = await runAnalysisForUser(req.user!.id, parsed.data);
+    const key = req.get('Idempotency-Key') || randomUUID();
+    if (!/^[A-Za-z0-9:_-]{1,128}$/.test(key)) return res.status(400).json({success:false,error:'Invalid idempotency key'});
+    const fingerprint = createHash('sha256').update(JSON.stringify(parsed.data)).digest('hex');
+    const result = await withRadarCredits(req.user!.id, key, () => runAnalysisForUser(req.user!.id, parsed.data), fingerprint);
     res.json({ success: true, data: result });
   } catch (error) {
+    if (error instanceof InsufficientCredits) return res.status(402).json({success:false,error:'10 credits required'});
+    if (error instanceof MarketDataUnavailable) return res.status(503).json({success:false,error:'Market data unavailable; try again later'});
+    if (error instanceof RadarRequestConflict) return res.status(409).json({success:false,error:'Request key already used for different input'});
+    if (error instanceof RadarRunExpired) return res.status(503).json({success:false,error:'Radar timed out; credits refunded'});
+    if (error instanceof DuplicateTrigger) return res.status(409).json({success:false,error:'Trigger already submitted'});
     console.error('Analysis error:', error);
     res.status(500).json({ success: false, error: 'Analysis failed' });
   }
@@ -32,14 +50,9 @@ router.get('/focus/:session', async (req: AuthRequest, res) => {
   }
 
   try {
-    const cached = await getCachedAnalysis(session);
-    if (cached) {
-      return res.json({ success: true, data: cached });
-    }
-    // Fall back to live analysis
-    const result = await runAnalysisForUser(req.user!.id, { session: session as any });
-    res.json({ success: true, data: result });
+    return res.status(405).set('Allow','POST').json({success:false,error:'Use POST /api/analysis/focus to explicitly trigger Radar'});
   } catch (error) {
+    if (error instanceof InsufficientCredits) return res.status(402).json({success:false,error:'10 credits required'});
     console.error('Cached analysis error:', error);
     res.status(500).json({ success: false, error: 'Failed to get analysis' });
   }
@@ -66,10 +79,7 @@ router.get('/pairs', (_req, res) => {
 });
 
 // Admin: trigger daily publishing
-router.post('/publish/daily', async (req: AuthRequest, res) => {
-  if (req.user!.tier !== 'ELITE' && req.user!.tier !== 'ADMIN') {
-    return res.status(403).json({ success: false, error: 'Admin only' });
-  }
+router.post('/publish/daily', requireAdmin, async (req: AuthRequest, res) => {
   try {
     const results = await runDailyPublishing();
     res.json({ success: true, data: results });

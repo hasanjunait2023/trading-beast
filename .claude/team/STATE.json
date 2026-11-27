@@ -1,0 +1,9 @@
+{
+  "project": "Session Focus Radar",
+  "chartered": "2026-11-16",
+  "phase": "BUILD",
+  "active_milestone": "M5",
+  "awaiting_gate": null,
+  "last_updated": "2026-11-16",
+  "notes": "phase ∈ CHARTER|RESEARCH|PLAN|GATE1|BUILD|HARDEN|GATE2|SHIP|RETRO|LOOP; awaiting_gate ∈ null|GATE1|GATE2"
+}

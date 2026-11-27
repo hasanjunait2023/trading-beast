@@ -51,9 +51,9 @@ export async function runAnalysisForUser(userId: string, request: AnalysisReques
 
   const result = await runAnalysis(yahooData, cfg, nowSec);
 
-  // Cache the result
-  await prisma.focusResult.upsert({
-    where: { session_date: { session: cfg.session, date: new Date() } },
+  // Personalized requests must never overwrite shared session snapshots.
+  if (!cfg.watchlist?.length) await prisma.focusResult.upsert({
+    where: { session_date: { session: cfg.session, date: sessionDate(cfg.sessionStartTs) } },
     update: {
       focusPairs: result.focus as unknown as Prisma.InputJsonValue,
       watchPairs: result.watch as unknown as Prisma.InputJsonValue,
@@ -61,7 +61,7 @@ export async function runAnalysisForUser(userId: string, request: AnalysisReques
     },
     create: {
       session: cfg.session,
-      date: new Date(),
+      date: sessionDate(cfg.sessionStartTs),
       focusPairs: result.focus as unknown as Prisma.InputJsonValue,
       watchPairs: result.watch as unknown as Prisma.InputJsonValue,
       avoidPairs: result.avoid as unknown as Prisma.InputJsonValue
@@ -73,7 +73,7 @@ export async function runAnalysisForUser(userId: string, request: AnalysisReques
 
 export async function getCachedAnalysis(session: string, date: Date = new Date()): Promise<FocusResult | null> {
   const cached = await prisma.focusResult.findUnique({
-    where: { session_date: { session, date } }
+    where: { session_date: { session, date: sessionDate(Math.floor(date.getTime() / 1000)) } }
   });
   return cached ? {
     session: cached.session,
@@ -130,7 +130,7 @@ export async function runDailyPublishing(): Promise<FocusResult[]> {
     const result = await runAnalysis(yahooData, cfg, nowSec);
 
     await prisma.focusResult.upsert({
-      where: { session_date: { session, date: new Date() } },
+      where: { session_date: { session, date: sessionDate(cfg.sessionStartTs) } },
       update: {
         focusPairs: result.focus as unknown as Prisma.InputJsonValue,
         watchPairs: result.watch as unknown as Prisma.InputJsonValue,
@@ -138,7 +138,7 @@ export async function runDailyPublishing(): Promise<FocusResult[]> {
       },
       create: {
         session,
-        date: new Date(),
+        date: sessionDate(cfg.sessionStartTs),
         focusPairs: result.focus as unknown as Prisma.InputJsonValue,
         watchPairs: result.watch as unknown as Prisma.InputJsonValue,
         avoidPairs: result.avoid as unknown as Prisma.InputJsonValue
@@ -150,3 +150,5 @@ export async function runDailyPublishing(): Promise<FocusResult[]> {
 
   return results;
 }
+// UTC calendar date representing the session's local start day.
+function sessionDate(ts: number): Date { const d = new Date((ts + 21600) * 1000); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); }

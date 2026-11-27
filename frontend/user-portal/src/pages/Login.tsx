@@ -1,28 +1,52 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { getInitData, getInitialReferralCode, isTelegram } from '../telegram';
 import { Target, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function Login() {
-  const { login, isLoading: authLoading } = useAuth();
+  const { user, login, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [telegramId, setTelegramId] = useState('');
-  const [referralCode, setReferralCode] = useState('');
+  const inTelegram = isTelegram();
+  const initData = getInitData();
+  const [code,setCode] = useState('');
+  // Prefilled from the Telegram start_param (ref_<CODE>) or a ?ref= link;
+  // the user can still edit or clear it before connecting.
+  const [referralCode, setReferralCode] = useState(() => getInitialReferralCode()?.toUpperCase() ?? '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const doLogin = useCallback(async () => {
     setError('');
     setIsLoading(true);
     try {
-      await login({ telegramId, referralCode: referralCode || undefined });
+      await login({ initData, code: initData ? undefined : code.trim(), referralCode: referralCode || undefined });
       navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setIsLoading(false);
     }
+  }, [login, navigate, initData, code, referralCode]);
+
+  // Inside Telegram, connect automatically once on mount — no button press
+  // needed. Wait for the stored-session check to finish first so it cannot
+  // race the token refresh; if a session already exists, go straight in.
+  // On failure the form stays put and the button below acts as retry.
+  const autoLoginTried = useRef(false);
+  useEffect(() => {
+    if (!inTelegram || !initData || autoLoginTried.current || authLoading) return;
+    if (user) {
+      navigate('/dashboard');
+      return;
+    }
+    autoLoginTried.current = true;
+    void doLogin();
+  }, [inTelegram, initData, authLoading, user, navigate, doLogin]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await doLogin();
   };
 
   return (
@@ -46,19 +70,14 @@ export default function Login() {
             )}
 
             <div>
-              <label className="label">Telegram User ID</label>
-              <input
-                type="text"
-                className="input"
-                placeholder="123456789"
-                value={telegramId}
-                onChange={(e) => setTelegramId(e.target.value)}
-                required
-                disabled={isLoading || authLoading}
-              />
-              <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                Find your ID by messaging @userinfobot on Telegram
-              </p>
+              {inTelegram ? (
+                <div className="flex items-center gap-2">
+                  {(isLoading || authLoading) && (
+                    <svg className="animate-spin h-5 w-5 flex-shrink-0" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                  )}
+                  <p>{isLoading || authLoading ? 'Connecting your verified Telegram account…' : 'Connect your verified Telegram account.'}</p>
+                </div>
+              ) : <><p>Send /login to the TradingBeast bot in private chat and paste the one-time code.</p><input className="input" type="password" autoComplete="one-time-code" value={code} onChange={e=>setCode(e.target.value)} placeholder="One-time login code" /></>}
             </div>
 
             <div>
@@ -72,12 +91,15 @@ export default function Login() {
                 maxLength={8}
                 disabled={isLoading || authLoading}
               />
+              {getInitialReferralCode() && referralCode === getInitialReferralCode()?.toUpperCase() && (
+                <p className="mt-1 text-xs text-[var(--color-text-muted)]">Applied from your referral link — you can change it before connecting.</p>
+              )}
             </div>
 
             <button
               type="submit"
               className="btn btn-primary w-full justify-center gap-2"
-              disabled={isLoading || authLoading || !telegramId.trim()}
+              disabled={isLoading || authLoading || (!initData && code.trim().length !== 64)}
             >
               {isLoading || authLoading ? (
                 <>
@@ -96,7 +118,7 @@ export default function Login() {
           <div className="mt-6 pt-6 border-t border-[var(--color-border)] space-y-3 text-sm">
             <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
               <CheckCircle className="w-4 h-4 text-[var(--color-success)] flex-shrink-0" />
-              <span>7-day Pro trial included</span>
+              <span>10 free credits every day</span>
             </div>
             <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
               <CheckCircle className="w-4 h-4 text-[var(--color-success)] flex-shrink-0" />

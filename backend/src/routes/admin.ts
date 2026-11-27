@@ -1,29 +1,43 @@
+import {pagination} from '../services/pagination.js';
+import { selectEffectiveSubscription } from '../services/entitlements.js';
+import { reconcileCredits } from '../services/credit-audit.js';
+import { asyncRouter } from '../middleware/async-router.js';
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
-import { AuthRequest, requireTier } from '../middleware/auth.js';
+import { Prisma } from '@prisma/client';
+import { AuthRequest, requireAdmin } from '../middleware/auth.js';
 
-const prisma = new PrismaClient();
-const router: Router = Router();
+import { prisma } from '../services/db.js';
+const router: Router = asyncRouter();
 
-// Admin middleware - only ELITE tier (or dedicated ADMIN role)
-router.use(requireTier('ELITE'));
+// Admin access is independent of subscription tier.
+router.use(requireAdmin);
+router.get('/credits/reconciliation', async (_req,res)=>{res.json({success:true,data:await reconcileCredits()});});
+router.get('/operations',async(_req,res)=>{
+  const [pending,failed,expiredRuns]=await Promise.all([prisma.telegramDelivery.count({where:{sentAt:null,failedAt:null}}),prisma.telegramDelivery.count({where:{failedAt:{not:null}}}),prisma.radarRun.count({where:{status:'RUNNING',expiresAt:{lte:new Date()}}})]);
+  res.json({success:true,data:{telegram:{pending,failed},expiredRuns}});
+});
 
 const paymentVerifySchema = z.object({
   paymentId: z.string(),
   action: z.enum(['APPROVE', 'REJECT']),
   tier: z.enum(['PRO', 'ELITE']).optional(),
-  durationDays: z.number().int().positive().optional()
+  durationDays: z.number().int().min(1).max(366).optional()
 });
 
 router.get('/users', async (req: AuthRequest, res) => {
-  const { page = '1', limit = '20', tier, search } = req.query;
-  const pageNum = parseInt(page as string);
-  const limitNum = Math.min(parseInt(limit as string), 100);
+  const parsed=z.object({page:z.coerce.number().int().min(1).max(100000).default(1),limit:z.coerce.number().int().min(1).max(100).default(20),tier:z.enum(['FREE','PRO','ELITE']).optional(),search:z.string().max(100).optional()}).safeParse(req.query);
+  if(!parsed.success) return res.status(400).json({success:false,error:'Invalid pagination or filter'});
+  const {page:pageNum,limit:limitNum,tier,search}=parsed.data;
   const skip = (pageNum - 1) * limitNum;
 
-  const where: any = {};
-  if (tier) where.tier = tier;
+  const now=new Date();
+  const current:Prisma.SubscriptionWhereInput={status:{in:['ACTIVE','TRIAL']},startsAt:{lte:now},expiresAt:{gt:now}};
+  const eligible=(t:'PRO'|'ELITE'):Prisma.SubscriptionWhereInput=>({...current,status:{in:['ACTIVE','TRIAL']},tier:t});
+  const where: Prisma.UserWhereInput = {};
+  if(tier==='ELITE') where.subscriptions={some:eligible('ELITE')};
+  if(tier==='PRO') where.subscriptions={some:eligible('PRO'),none:eligible('ELITE')};
+  if(tier==='FREE') where.subscriptions={none:{...eligible('PRO'),tier:{in:['PRO','ELITE']}}};
   if (search) {
     where.OR = [
       { telegramId: { contains: search as string } },
@@ -39,7 +53,7 @@ router.get('/users', async (req: AuthRequest, res) => {
       take: limitNum,
       orderBy: { createdAt: 'desc' },
       include: {
-        subscriptions: { orderBy: { createdAt: 'desc' }, take: 1 },
+        subscriptions: {where:{status:{in:['ACTIVE','TRIAL']},startsAt:{lte:now},expiresAt:{gt:now}}},
         _count: { select: { payments: true, referrals: true } }
       }
     }),
@@ -48,24 +62,24 @@ router.get('/users', async (req: AuthRequest, res) => {
 
   res.json({
     success: true,
-    data: users.map(u => ({
+    data: users.map(u => { const sub=selectEffectiveSubscription(u.subscriptions,now); return ({
       id: u.id,
       telegramId: u.telegramId,
       username: u.username,
       firstName: u.firstName,
-      tier: u.tier,
+      tier: sub?.tier ?? 'FREE',
       trialEndsAt: u.trialEndsAt,
       referralCode: u.referralCode,
       createdAt: u.createdAt,
       lastActiveAt: u.lastActiveAt,
-      activeSubscription: u.subscriptions[0] ? {
-        tier: u.subscriptions[0].tier,
-        status: u.subscriptions[0].status,
-        expiresAt: u.subscriptions[0].expiresAt
+      activeSubscription: sub ? {
+        tier: sub.tier,
+        status: sub.status,
+        expiresAt: sub.expiresAt
       } : null,
       paymentCount: u._count.payments,
       referralCount: u._count.referrals
-    })),
+    }); }),
     meta: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) }
   });
 });
@@ -86,34 +100,31 @@ router.get('/users/:id', async (req: AuthRequest, res) => {
 });
 
 router.patch('/users/:id/tier', async (req: AuthRequest, res) => {
-  const { tier, expiresAt } = req.body;
-  if (!['FREE', 'PRO', 'ELITE'].includes(tier)) {
-    return res.status(400).json({ success: false, error: 'Invalid tier' });
-  }
-
-  const user = await prisma.user.update({
-    where: { id: req.params.id },
-    data: { tier }
-  });
-
-  if (expiresAt) {
-    await prisma.subscription.upsert({
-      where: { id: 'temp' }, // will be created
-      create: { userId: user.id, tier: tier as any, status: 'ACTIVE', expiresAt: new Date(expiresAt) },
-      update: { tier: tier as any, status: 'ACTIVE', expiresAt: new Date(expiresAt) }
-    });
-  }
-
-  res.json({ success: true, data: { id: user.id, tier: user.tier } });
+  const parsed=z.object({tier:z.enum(['FREE','PRO','ELITE']),expiresAt:z.string().datetime({offset:true}).optional()}).safeParse(req.body);
+  if(!parsed.success) return res.status(400).json({success:false,error:'Invalid tier or expiry'});
+  const {tier,expiresAt}=parsed.data;
+  const now=new Date();
+  if(tier!=='FREE' && (!expiresAt || new Date(expiresAt)<=now)) return res.status(400).json({success:false,error:'Paid tier requires a future expiry'});
+  const user=await prisma.$transaction(async tx=>{
+    const user=await tx.user.findUnique({where:{id:req.params.id}});
+    if(!user) return null;
+    await tx.user.update({where:{id:user.id},data:{tier,trialEndsAt:null}});
+    await tx.subscription.updateMany({where:{userId:user.id,status:{in:['ACTIVE','TRIAL']}},data:{status:'CANCELLED'}});
+    if(tier!=='FREE' && expiresAt) await tx.subscription.create({data:{userId:user.id,tier,status:'ACTIVE',startsAt:now,expiresAt:new Date(expiresAt)}});
+    return {id:user.id,tier};
+  },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
+  if(!user) return res.status(404).json({success:false,error:'User not found'});
+  res.json({success:true,data:user});
 });
 
-router.get('/payments/pending', async (_req: AuthRequest, res) => {
+router.get('/payments/pending', async (req: AuthRequest, res) => {
+  const p=pagination(req.query);
   const payments = await prisma.payment.findMany({
-    where: { status: 'PENDING' },
+    where: { status: 'PENDING' },skip:p.skip,take:p.take,
     include: { user: { select: { telegramId: true, username: true, firstName: true, tier: true } } },
-    orderBy: { createdAt: 'asc' }
+    orderBy: [{createdAt:'asc'},{id:'asc'}]
   });
-  res.json({ success: true, data: payments });
+  res.json({ success: true, data: payments,meta:{page:p.page,limit:p.limit} });
 });
 
 router.post('/payments/verify', async (req: AuthRequest, res) => {
@@ -132,34 +143,39 @@ router.post('/payments/verify', async (req: AuthRequest, res) => {
     return res.status(400).json({ success: false, error: 'Payment already processed' });
   }
 
+  if (action === 'APPROVE' && process.env.ENABLE_LEGACY_PAYMENT_APPROVAL !== 'true') return res.status(503).json({success:false,error:'Payment approval disabled pending catalog verification'});
   if (action === 'APPROVE') {
     const subTier = tier || 'PRO';
     const days = durationDays || 30;
     const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
-    await prisma.$transaction([
-      prisma.payment.update({
-        where: { id: paymentId },
+    const approved = await prisma.$transaction(async tx => {
+      const claimed = await tx.payment.updateMany({
+        where: { id: paymentId, status: 'PENDING' },
         data: { status: 'APPROVED', verifiedAt: new Date(), verifiedBy: req.user!.id }
-      }),
-      prisma.user.update({
+      });
+      if (claimed.count !== 1) return false;
+      await tx.user.update({
         where: { id: payment.userId },
         data: { tier: subTier }
-      }),
-      prisma.subscription.create({
+      });
+      await tx.subscription.create({
         data: {
           userId: payment.userId,
           tier: subTier as any,
           status: 'ACTIVE',
           expiresAt
         }
-      })
-    ]);
+      });
+      return true;
+    });
+    if (!approved) return res.status(409).json({ success: false, error: 'Payment already processed' });
   } else {
-    await prisma.payment.update({
-      where: { id: paymentId },
+    const rejected = await prisma.payment.updateMany({
+      where: { id: paymentId, status: 'PENDING' },
       data: { status: 'REJECTED', verifiedAt: new Date(), verifiedBy: req.user!.id }
     });
+    if (rejected.count !== 1) return res.status(409).json({ success: false, error: 'Payment already processed' });
   }
 
   res.json({ success: true, data: { action, paymentId } });
@@ -186,10 +202,10 @@ router.get('/metrics', async (_req: AuthRequest, res) => {
     prisma.user.count(),
     prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
     prisma.user.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
-    prisma.user.count({ where: { tier: 'PRO' } }),
-    prisma.user.count({ where: { tier: 'ELITE' } }),
-    prisma.user.count({ where: { trialEndsAt: { gte: now } } }),
-    prisma.payment.aggregate({ where: { status: 'APPROVED' }, _sum: { amount: true } }),
+    prisma.user.count({ where: { subscriptions:{some:{tier:'PRO',status:{in:['ACTIVE','TRIAL']},startsAt:{lte:now},expiresAt:{gt:now}},none:{tier:'ELITE',status:{in:['ACTIVE','TRIAL']},startsAt:{lte:now},expiresAt:{gt:now}}} } }),
+    prisma.user.count({ where: { subscriptions:{some:{tier:'ELITE',status:{in:['ACTIVE','TRIAL']},startsAt:{lte:now},expiresAt:{gt:now}}} } }),
+    prisma.user.count({ where: { subscriptions:{some:{status:'TRIAL',startsAt:{lte:now},expiresAt:{gt:now}}} } }),
+    prisma.payment.groupBy({by:['currency'],where:{status:'APPROVED'},_sum:{amount:true}}),
     prisma.payment.count({ where: { status: 'PENDING' } }),
     prisma.payment.count({ where: { status: 'APPROVED', createdAt: { gte: thirtyDaysAgo } } }),
     prisma.referral.count(),
@@ -204,7 +220,7 @@ router.get('/metrics', async (_req: AuthRequest, res) => {
     data: {
       users: { total: totalUsers, new30d: newUsers30d, new7d: newUsers7d },
       tiers: { free: totalUsers - proUsers - eliteUsers, pro: proUsers, elite: eliteUsers, trial: trialUsers },
-      revenue: { total: totalRevenue._sum.amount || 0, pendingPayments, approved30d: approvedPayments30d },
+      revenue: { total: totalRevenue.length<=1 ? totalRevenue[0]?._sum.amount ?? 0 : null, currency:totalRevenue.length===1?totalRevenue[0].currency:null, byCurrency:totalRevenue.map(r=>({currency:r.currency,amount:r._sum.amount??0})), pendingPayments, approved30d: approvedPayments30d },
       referrals: { total: totalReferrals, active: activeReferrals },
       activation: { rate: Math.round(activationRate * 100) / 100 },
       trialConversion: { converted: trialConversion }

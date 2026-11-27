@@ -1,22 +1,25 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { analysisApi } from '../services/api';
+import { analysisApi, userApi } from '../services/api';
 import { Target, RefreshCw, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 
 export default function Focus() {
   const { user } = useAuth();
   const [focusData, setFocusData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [balance, setBalance] = useState<number|null>(null);
+  const [error, setError] = useState('');
+  const loadCredits = () => userApi.credits().then(r=>setBalance(r.data.data.balance)).catch(()=>{});
   const [selectedSession, setSelectedSession] = useState<'Asian' | 'London' | 'New York'>('London');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   void lastUpdated;
 
   useEffect(() => {
-    fetchFocus();
-  }, [selectedSession]);
+    void loadCredits();
+  }, []);
 
   const fetchFocus = async () => {
-    setIsLoading(true);
+    setIsLoading(true); setError('');
     try {
       const res = await analysisApi.getFocus(selectedSession, user?.watchlist);
       if (res.data.success) {
@@ -24,9 +27,9 @@ export default function Focus() {
         setLastUpdated(new Date());
       }
     } catch (error) {
-      console.error('Failed to fetch focus:', error);
+      setError('Radar unavailable or insufficient credits. Check your balance and try again.');
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); void loadCredits();
     }
   };
 
@@ -56,13 +59,15 @@ export default function Focus() {
           >
             {sessions.map(s => <option key={s.value} value={s.value}>{s.emoji} {s.label}</option>)}
           </select>
-          <button onClick={fetchFocus} disabled={isLoading} className="btn btn-secondary btn-sm">
+          <button onClick={fetchFocus} disabled={isLoading || balance === null || balance < 10} className="btn btn-secondary btn-sm">
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
+            Run Radar · 10 credits
           </button>
         </div>
       </div>
 
+      <p>Available credits: {balance ?? '—'} · +10 daily</p>
+      {error && <p role="alert">{error}</p>}
       {/* Warnings */}
       {focusData?.warnings?.length && (
         <div className="card border-[var(--color-warning)]/50 bg-[var(--color-warning)]/5">

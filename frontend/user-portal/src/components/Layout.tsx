@@ -1,13 +1,18 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { isTelegram } from '../telegram';
+import PageTransition from './PageTransition';
 import {
   LayoutDashboard,
   Target,
   List,
+  Layers,
   Gem,
   Users,
   CreditCard,
+  Receipt,
   Settings,
+  CircleHelp,
   LogOut,
   Menu
 } from 'lucide-react';
@@ -17,16 +22,77 @@ const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/focus', label: 'Focus List', icon: Target },
   { path: '/watchlist', label: 'Watchlist', icon: List },
+  { path: '/plans', label: 'Plans', icon: Layers },
   { path: '/subscription', label: 'Subscription', icon: Gem },
   { path: '/referral', label: 'Referral', icon: Users },
   { path: '/payments', label: 'Payments', icon: CreditCard },
-  { path: '/settings', label: 'Settings', icon: Settings }
+  { path: '/billing', label: 'Billing', icon: Receipt },
+  { path: '/settings', label: 'Settings', icon: Settings },
+  { path: '/help', label: 'Help', icon: CircleHelp }
 ];
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Inside Telegram: compact chrome — no desktop sidebar, just a slim top
+  // bar (brand, tier, logout), a scrollable nav strip, and bottom padding
+  // for the Telegram / device safe area. Browser layout below is unchanged.
+  if (isTelegram()) {
+    return (
+      <div className="flex flex-col h-screen bg-[var(--color-bg)]">
+        <header className="sticky top-0 z-20 bg-[var(--color-surface)]/90 backdrop-blur-sm border-b border-[var(--color-border)]">
+          <div className="flex items-center justify-between gap-3 h-14 px-4 pt-[env(safe-area-inset-top)]">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-[var(--color-accent)] flex items-center justify-center flex-shrink-0">
+                <Target className="w-4 h-4 text-black" />
+              </div>
+              <h1 className="font-display font-semibold truncate">Session Focus</h1>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-[var(--color-accent)]/15 text-[var(--color-accent)]">
+                {user?.tier || 'FREE'}
+              </span>
+              <button
+                onClick={logout}
+                className="btn btn-ghost p-2 text-red-400 hover:text-red-300"
+                aria-label="Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          <nav className="flex gap-1 px-3 pb-2 overflow-x-auto" aria-label="Primary">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
+                    isActive
+                      ? 'bg-[var(--color-accent)] text-black font-medium'
+                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)]'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <span>{item.label}</span>
+                </NavLink>
+              );
+            })}
+          </nav>
+        </header>
+
+        <main className="flex-1 overflow-y-auto p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          <PageTransition key={location.pathname}>
+            <Outlet />
+          </PageTransition>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-[var(--color-bg)]">
@@ -116,7 +182,9 @@ export default function Layout() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 lg:p-6">
-          <Outlet />
+          <PageTransition key={location.pathname}>
+            <Outlet />
+          </PageTransition>
         </div>
       </main>
     </div>

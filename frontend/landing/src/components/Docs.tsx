@@ -1,4 +1,5 @@
-import { Terminal, Cpu, Database, ShieldCheck, Globe, Zap } from 'lucide-react';
+import { Terminal, Cpu, Database, ShieldCheck, Globe, Zap, ArrowUpRight } from 'lucide-react';
+import { useTelegramLinks, telegramLinkProps } from '../services/telegram';
 
 const docs = [
   {
@@ -30,10 +31,13 @@ const docs = [
     icon: Zap,
     title: 'Telegram Bot',
     desc: '/focus, watchlist, and alerts — the same engine, in your pocket.',
+    telegram: true,
   },
 ];
 
 export default function Docs() {
+  const telegram = useTelegramLinks();
+
   return (
     <section id="docs" className="py-24 bg-[#0a0f24]">
       <div className="max-w-7xl mx-auto px-6">
@@ -60,6 +64,16 @@ export default function Docs() {
                 </div>
                 <h3 className="font-space font-bold text-xl text-white mb-2">{d.title}</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">{d.desc}</p>
+                {'telegram' in d && d.telegram && telegram.botUrl && (
+                  <a
+                    href={telegram.botUrl}
+                    {...telegramLinkProps(telegram)}
+                    className="inline-flex items-center gap-1 mt-3 text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    Open in Telegram
+                    <ArrowUpRight className="w-4 h-4" />
+                  </a>
+                )}
               </div>
             );
           })}

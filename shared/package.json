@@ -1,0 +1,11 @@
+{
+  "name": "@shared/analysis-engine",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "analysis-engine.ts",
+  "types": "analysis-engine.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {}
+}

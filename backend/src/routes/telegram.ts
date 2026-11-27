@@ -1,12 +1,23 @@
+import { normalizeWatchlist } from '../services/watchlist.js';
+import { registerUser } from '../services/users.js';
+import { asyncRouter } from '../middleware/async-router.js';
 import { Router, Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
+import { creditBalance, withRadarCredits, InsufficientCredits, DuplicateTrigger } from '../services/credits.js';
+import { getEffectiveTier } from '../services/entitlements.js';
+import { authMiddleware, requireAdmin } from '../middleware/auth.js';
+import { buildTelegramConfig, getValidMiniAppUrl, isValidMiniAppUrl } from '../services/telegram-config.js';
 
-const prisma = new PrismaClient();
-const router: Router = Router();
+import { prisma } from '../services/db.js';
+const router: Router = asyncRouter();
 
 // Telegram webhook endpoint
 router.post('/webhook', async (req, res) => {
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  const supplied = req.get('X-Telegram-Bot-Api-Secret-Token');
+  if (!secret || !supplied || Buffer.byteLength(secret) !== Buffer.byteLength(supplied) || !crypto.timingSafeEqual(Buffer.from(secret), Buffer.from(supplied))) {
+    return res.status(403).json({ ok: false });
+  }
   try {
     const update = req.body;
 
@@ -29,7 +40,7 @@ router.post('/webhook', async (req, res) => {
 });
 
 // Set webhook
-router.post('/set-webhook', async (req, res) => {
+router.post('/set-webhook', authMiddleware, requireAdmin, async (req, res) => {
   const { url } = req.body;
   if (!url) {
     return res.status(400).json({ success: false, error: 'URL required' });
@@ -37,10 +48,12 @@ router.post('/set-webhook', async (req, res) => {
 
   try {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+    if (!secret || !/^[A-Za-z0-9_-]{1,256}$/.test(secret)) return res.status(503).json({ success: false, error: 'Webhook secret not configured' });
     const response = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, allowed_updates: ['message', 'callback_query'] })
+      body: JSON.stringify({ url, secret_token: secret, allowed_updates: ['message', 'callback_query'] })
     });
     const data = await response.json() as { ok: boolean; result?: any; description?: string };
     res.json({ success: data.ok, data });
@@ -49,8 +62,101 @@ router.post('/set-webhook', async (req, res) => {
   }
 });
 
+/**
+ * Small Telegram Bot API helper. The bot token is only ever interpolated
+ * into the request URL — it is never logged and never included in errors.
+ */
+async function telegramApi<T = any>(method: string, body?: unknown): Promise<T> {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) throw new Error('Telegram bot token not configured');
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/${method}`, {
+      ...(body !== undefined
+        ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+        : {}),
+      signal: AbortSignal.timeout(15000),
+    });
+    const data = (await response.json()) as { ok: boolean; result?: T };
+    if (!response.ok || !data.ok || data.result === undefined) {
+      throw new Error('Telegram API rejected request');
+    }
+    return data.result;
+  } catch {
+    // Deliberately generic: upstream errors may embed the request URL (token).
+    throw new Error(`Telegram API call failed: ${method}`);
+  }
+}
+
+// Public Telegram config (no secrets) for frontends / landing / Mini App
+router.get('/config', (_req, res) => {
+  res.json({ success: true, data: buildTelegramConfig() });
+});
+
+// Admin diagnostics: one call to verify bot, webhook, menu button and config presence
+router.get('/diagnostics', authMiddleware, requireAdmin, async (_req, res) => {
+  if (!process.env.TELEGRAM_BOT_TOKEN) {
+    return res.status(503).json({ success: false, error: 'Bot token not configured' });
+  }
+  try {
+    const [bot, webhook, menuButton] = await Promise.all([
+      telegramApi('getMe'),
+      telegramApi('getWebhookInfo'),
+      telegramApi('getChatMenuButton', {}),
+    ]);
+    res.json({
+      success: true,
+      data: {
+        bot,
+        webhook,
+        menuButton,
+        config: {
+          botTokenSet: true,
+          webhookSecretSet: Boolean(process.env.TELEGRAM_WEBHOOK_SECRET),
+          miniAppUrlSet: getValidMiniAppUrl() !== null,
+          adminIdsSet: Boolean((process.env.ADMIN_TELEGRAM_IDS || '').trim()),
+        },
+      },
+    });
+  } catch {
+    res.status(502).json({ success: false, error: 'Failed to fetch Telegram diagnostics' });
+  }
+});
+
+// Admin: server-side equivalent of scripts/configure-telegram-menu.mjs
+router.post('/set-menu-button', authMiddleware, requireAdmin, async (req, res) => {
+  if (!process.env.TELEGRAM_BOT_TOKEN) {
+    return res.status(503).json({ success: false, error: 'Bot token not configured' });
+  }
+  const rawUrl: unknown = req.body?.url ?? process.env.TELEGRAM_MINI_APP_URL;
+  const rawText: unknown = req.body?.text ?? 'Open App';
+  if (!isValidMiniAppUrl(rawUrl)) {
+    return res.status(400).json({ success: false, error: 'Mini App URL must be a valid HTTPS URL without credentials' });
+  }
+  if (typeof rawText !== 'string' || !rawText.trim() || rawText.trim().length > 64) {
+    return res.status(400).json({ success: false, error: 'Menu button text must be a non-empty string (max 64 characters)' });
+  }
+  const url = new URL(rawUrl as string).href;
+  const text = rawText.trim();
+  try {
+    await telegramApi('setChatMenuButton', { menu_button: { type: 'web_app', text, web_app: { url } } });
+    const menuButton = await telegramApi<any>('getChatMenuButton', {});
+    let verifiedUrl: string | null = null;
+    try {
+      verifiedUrl = menuButton?.web_app?.url ? new URL(menuButton.web_app.url).href : null;
+    } catch {
+      verifiedUrl = null;
+    }
+    if (menuButton?.type !== 'web_app' || verifiedUrl !== url) {
+      return res.status(502).json({ success: false, error: 'Menu button verification failed' });
+    }
+    res.json({ success: true, data: { menuButton } });
+  } catch {
+    res.status(502).json({ success: false, error: 'Failed to set menu button' });
+  }
+});
+
 // Get webhook info
-router.get('/webhook-info', async (_req, res) => {
+router.get('/webhook-info', authMiddleware, requireAdmin, async (_req, res) => {
   try {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const response = await fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`);
@@ -62,62 +168,30 @@ router.get('/webhook-info', async (_req, res) => {
 });
 
 async function handleMessage(message: any) {
+  if (message.chat?.type !== 'private' || !message.from?.id || message.from.is_bot) return;
   const chatId = message.chat.id;
   const text = message.text?.trim() || '';
   const userId = message.from.id.toString();
 
-  // Find or create user
-  let user = await prisma.user.findUnique({ where: { telegramId: userId } });
+  const match = /^\/start\s+ref_([A-Za-z0-9]{1,64})$/.exec(text);
+  let user = await registerUser({telegramId:userId,username:message.from.username,firstName:message.from.first_name,lastName:message.from.last_name,languageCode:message.from.language_code},match?.[1]);
 
-  if (!user) {
-    // New user - extract referral code from /start
-    let referralCode: string | null = null;
-    if (text.startsWith('/start')) {
-      const parts = text.split(' ');
-      if (parts.length > 1 && parts[1].startsWith('ref_')) {
-        referralCode = parts[1].slice(4);
-      }
-    }
-
-    const refCode = crypto.randomBytes(4).toString('hex').toUpperCase();
-    const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-    user = await prisma.user.create({
-      data: {
-        telegramId: userId,
-        username: message.from.username,
-        firstName: message.from.first_name,
-        lastName: message.from.last_name,
-        languageCode: message.from.language_code || 'en',
-        tier: 'FREE',
-        trialEndsAt,
-        referralCode: refCode,
-        referredBy: referralCode
-      }
-    });
-
-    await prisma.subscription.create({
-      data: { userId: user.id, tier: 'PRO', status: 'TRIAL', expiresAt: trialEndsAt }
-    });
-
-    if (referralCode) {
-      const referrer = await prisma.user.findUnique({ where: { referralCode } });
-      if (referrer) {
-        await prisma.referral.create({
-          data: { referrerId: referrer.id, referredId: user.id, status: 'PENDING' }
-        });
-      }
-    }
-  }
-
-  // Update last active
-  await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date() } });
+  user = { ...user, tier: await getEffectiveTier(user.id) };
 
   // Handle commands
-  if (text === '/start' || text === '/help') {
+  if (text === '/login') {
+    const code=crypto.randomBytes(32).toString('hex');
+    const digest=crypto.createHash('sha256').update(code).digest('hex');
+    await prisma.loginCode.create({data:{digest,userId:user.id,expiresAt:new Date(Date.now()+5*60*1000)}});
+    await sendMessage(chatId,'Your one-time browser login code (expires in 5 minutes). Never share it: <code>'+code+'</code>');
+  } else if (text === '/app') {
+    await sendOpenApp(chatId);
+  } else if (text === '/start' || text === '/help' || text.startsWith('/start ')) {
     await sendWelcomeMessage(chatId, user);
+  } else if (text === '/credits') {
+    await sendMessage(chatId, 'Credit balance: '+await creditBalance(user.id)+' | Radar: 10 credits | Daily grant: 10');
   } else if (text === '/focus') {
-    await sendFocusList(chatId, user);
+    await sendFocusList(chatId, user, 'msg:'+chatId+':'+message.message_id);
   } else if (text === '/watchlist') {
     await sendWatchlistMessage(chatId, user);
   } else if (text.startsWith('/watchlist ')) {
@@ -128,22 +202,24 @@ async function handleMessage(message: any) {
   } else if (text === '/referral') {
     await sendReferralInfo(chatId, user);
   } else if (text === '/pay') {
-    await sendPaymentOptions(chatId, user);
+    await sendMessage(chatId,'Premium credit packages are not available yet. Free users receive 10 credits daily.');
   } else {
     await sendMessage(chatId, 'Unknown command. Use /help to see available commands.');
   }
 }
 
-async function handleCallbackQuery(query: { message: { chat: { id: number } }; data: string; from: { id: number }; id: string }) {
+async function handleCallbackQuery(query: { message?: { chat: { id: number; type: string } }; data: string; from: { id: number; is_bot?: boolean }; id: string }) {
+  if (query.message?.chat.type !== 'private' || query.from.is_bot || query.message.chat.id !== query.from.id) return;
   const chatId = query.message.chat.id;
   const data = query.data;
   const userId = query.from.id.toString();
 
-  const user = await prisma.user.findUnique({ where: { telegramId: userId } });
-  if (!user) return;
+  const storedUser = await prisma.user.findUnique({ where: { telegramId: userId } });
+  if (!storedUser) return;
+  const user = { ...storedUser, tier: await getEffectiveTier(storedUser.id) };
 
   if (data === 'focus_now') {
-    await sendFocusList(chatId, user);
+    await sendFocusList(chatId, user, 'callback:'+query.id);
   } else if (data === 'my_watchlist') {
     await sendWatchlistMessage(chatId, user);
   } else if (data === 'my_tier') {
@@ -151,7 +227,7 @@ async function handleCallbackQuery(query: { message: { chat: { id: number } }; d
   } else if (data === 'referral_info') {
     await sendReferralInfo(chatId, user);
   } else if (data === 'payment_options') {
-    await sendPaymentOptions(chatId, user);
+    await sendMessage(chatId,'Premium credit packages are not available yet. Free users receive 10 credits daily.');
   }
 
   // Answer callback query
@@ -163,6 +239,12 @@ async function handleCallbackQuery(query: { message: { chat: { id: number } }; d
   });
 }
 
+async function sendOpenApp(chatId: number) {
+  const url=process.env.TELEGRAM_MINI_APP_URL;
+  if (!url || !url.startsWith('https://')) { await sendMessage(chatId,'Mini App is not configured yet.'); return; }
+  await sendMessage(chatId,'Open your TradingBeast workspace.',{inline_keyboard:[[{text:'Open App',web_app:{url}}]]});
+}
+
 async function sendWelcomeMessage(chatId: number, user: any) {
   const isTrialActive = user.trialEndsAt && new Date(user.trialEndsAt) > new Date();
   const trialDaysLeft = isTrialActive ? Math.ceil((new Date(user.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
@@ -170,12 +252,15 @@ async function sendWelcomeMessage(chatId: number, user: any) {
   const text = `
 🎯 <b>Session Focus Radar</b> — Market Analysis Tool
 
-Welcome${user.firstName ? `, ${user.firstName}` : ''}! This tool provides session-aware trading focus lists for forex traders.
+Welcome${user.firstName ? `, ${escapeHtml(user.firstName)}` : ''}! This tool provides session-aware trading focus lists for forex traders.
 
 <b>Your Status:</b> ${user.tier} ${isTrialActive ? `(Pro Trial: ${trialDaysLeft} days left)` : ''}
 
 <b>Available Commands:</b>
-/focus — Get current session focus list (top 3 pairs)
+/app — Open TradingBeast
+/credits — Check credit balance
+/login — One-time browser login code
+/focus — Run Radar (10 credits)
 /watchlist — View your watchlist
 /watchlist EUR/USD,GBP/JPY,Gold — Update watchlist
 /tier — View subscription details
@@ -192,24 +277,30 @@ Welcome${user.firstName ? `, ${user.firstName}` : ''}! This tool provides sessio
 
   await sendMessage(chatId, text, {
     inline_keyboard: [
-      [{ text: '🎯 Get Focus Now', callback_data: 'focus_now' }],
+      ...(process.env.TELEGRAM_MINI_APP_URL?.startsWith('https://') ? [[{ text: 'Open App', web_app: { url: process.env.TELEGRAM_MINI_APP_URL } }]] : []),
+      [{ text: '🎯 Run Radar · 10 credits', callback_data: 'focus_now' }],
       [{ text: '📋 My Watchlist', callback_data: 'my_watchlist' }, { text: '💎 My Tier', callback_data: 'my_tier' }],
       [{ text: '👥 Referral', callback_data: 'referral_info' }, { text: '💳 Upgrade', callback_data: 'payment_options' }]
     ]
   });
 }
 
-async function sendFocusList(chatId: number, user: any) {
+async function sendFocusList(chatId: number, user: any, key: string) {
   // Import analysis service
   const { runAnalysisForUser } = await import('../services/analysis.js');
 
   try {
-    const result = await runAnalysisForUser(user.id);
-    const text = formatFocusResult(result, user.tier);
-    await sendMessage(chatId, text);
+    await withRadarCredits(user.id,key,()=>runAnalysisForUser(user.id),'default',async(tx,result)=>{
+      const wallet=await tx.creditWallet.findUniqueOrThrow({where:{userId:user.id}});
+      const text=formatFocusResult(result,user.tier)+'\n\nCredits remaining: '+wallet.balance.toString();
+      const id=user.id+':'+key;
+      await tx.telegramDelivery.upsert({where:{id},create:{id,chatId:String(chatId),text},update:{}});
+    });
   } catch (error) {
-    console.error('Focus list error:', error);
-    await sendMessage(chatId, '❌ Failed to generate focus list. Please try again later.');
+    if (error instanceof InsufficientCredits) { await sendMessage(chatId,'You need 10 credits to run Radar. Daily credits accumulate automatically.'); return; }
+    if (error instanceof DuplicateTrigger) return;
+    console.error('Focus list error:', error instanceof Error ? error.name : 'Unknown');
+    throw error;
   }
 }
 
@@ -269,7 +360,7 @@ async function sendWatchlistMessage(chatId: number, user: any) {
   const text = `
 📋 <b>Your Watchlist</b>
 
-${watchlist.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}
+${watchlist.map((p: string, i: number) => `${i + 1}. ${escapeHtml(p)}`).join('\n')}
 
 Use <code>/watchlist EUR/USD,GBP/JPY,Gold</code> to update.
   `.trim();
@@ -277,11 +368,12 @@ Use <code>/watchlist EUR/USD,GBP/JPY,Gold</code> to update.
 }
 
 async function updateWatchlist(chatId: number, user: any, pairs: string[]) {
+  try {pairs=normalizeWatchlist(pairs);} catch {await sendMessage(chatId,'Invalid watchlist instrument or too many instruments.');return;}
   await prisma.user.update({
     where: { id: user.id },
     data: { watchlist: pairs }
   });
-  await sendMessage(chatId, `✅ Watchlist updated: ${pairs.join(', ')}`);
+  await sendMessage(chatId, `✅ Watchlist updated: ${escapeHtml(pairs.join(', '))}`);
 }
 
 async function sendTierInfo(chatId: number, user: any) {
@@ -359,12 +451,12 @@ Contact support for payment details.
 async function sendMessage(chatId: number, text: string, replyMarkup?: any) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) {
-    console.error('TELEGRAM_BOT_TOKEN not set');
-    return;
+    throw new Error('Telegram bot is not configured');
   }
 
-  await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
     method: 'POST',
+    signal: AbortSignal.timeout(15000),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       chat_id: chatId,
@@ -374,6 +466,9 @@ async function sendMessage(chatId: number, text: string, replyMarkup?: any) {
       disable_web_page_preview: true
     })
   });
+  const result=await response.json() as {ok:boolean};
+  if(!response.ok || !result.ok) throw new Error('Telegram message delivery failed');
 }
+function escapeHtml(value:string){return value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 export { router as telegramRoutes };

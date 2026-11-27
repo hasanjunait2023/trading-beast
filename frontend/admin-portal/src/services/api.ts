@@ -1,8 +1,10 @@
 import axios from 'axios';
 
+const API_BASE = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL || '/api';
+
 const api = axios.create({
-  baseURL: '/api',
-  headers: { 'Content-Type': 'application/json' }
+  baseURL: API_BASE,
+  headers: { 'Content-Type': 'application/json' },
 });
 
 api.interceptors.request.use((config) => {
@@ -64,8 +66,55 @@ export interface Metrics {
   trialConversion: { converted: number };
 }
 
+export interface TelegramPublicConfig {
+  botUsername: string | null;
+  miniAppUrl: string | null;
+  miniAppConfigured: boolean;
+  webhookPath: string;
+}
+
+export interface TelegramBotInfo {
+  id: number;
+  is_bot: boolean;
+  first_name: string;
+  username?: string;
+  can_join_groups?: boolean;
+  can_read_all_group_messages?: boolean;
+  supports_inline_queries?: boolean;
+}
+
+export interface TelegramWebhookInfo {
+  url: string;
+  has_custom_certificate: boolean;
+  pending_update_count: number;
+  ip_address?: string;
+  last_error_date?: number;
+  last_error_message?: string;
+  last_synchronization_error_date?: number;
+  max_connections?: number;
+  allowed_updates?: string[];
+}
+
+export interface TelegramChatMenuButton {
+  type: string;
+  text?: string;
+  web_app?: { url: string };
+}
+
+export interface TelegramDiagnostics {
+  bot: TelegramBotInfo;
+  webhook: TelegramWebhookInfo;
+  menuButton: TelegramChatMenuButton;
+  config: {
+    botTokenSet: boolean;
+    webhookSecretSet: boolean;
+    miniAppUrlSet: boolean;
+    adminIdsSet: boolean;
+  };
+}
+
 export const adminApi = {
-  login: (telegramId: string) => api.post('/auth/telegram', { telegramId, isAdmin: true }),
+  login: (code: string) => api.post('/auth/code', { code }),
 
   getUsers: (params?: { page?: number; limit?: number; tier?: string; search?: string }) =>
     api.get('/admin/users', { params }),
@@ -82,7 +131,21 @@ export const adminApi = {
 
   getMetrics: () => api.get('/admin/metrics'),
 
-  triggerAnalysis: () => api.post('/admin/analysis/trigger')
+  triggerAnalysis: () => api.post('/admin/analysis/trigger'),
+
+  telegramConfig: () => api.get('/telegram/config'),
+
+  telegramDiagnostics: () => api.get('/telegram/diagnostics'),
+
+  setTelegramMenuButton: (url?: string, text?: string) =>
+    api.post('/telegram/set-menu-button', {
+      ...(url ? { url } : {}),
+      ...(text ? { text } : {})
+    }),
+
+  telegramWebhookInfo: () => api.get('/telegram/webhook-info'),
+
+  setTelegramWebhook: (url: string) => api.post('/telegram/set-webhook', { url })
 };
 
 export default api;

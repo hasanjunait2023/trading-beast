@@ -1,10 +1,13 @@
-import Navigation from './Navigation';
-export { Navigation };
 export { Hero } from './Hero';
 export { TrustLogos } from './TrustLogos';
 export { ValueProps } from './ValueProps';
+export { default as PainPoints } from './PainPoints';
 export { default as Sessions } from './Sessions';
 export { default as Features } from './Features';
+export { default as AppShowcase } from './AppShowcase';
+export { default as Comparison } from './Comparison';
 export { default as Pricing } from './Pricing';
+export { default as FAQ } from './FAQ';
 export { default as Docs } from './Docs';
+export { default as FinalCTA } from './FinalCTA';
 export { default as Footer } from './Footer';
