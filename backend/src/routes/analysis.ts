@@ -1,5 +1,5 @@
-import { randomUUID } from 'node:crypto';
-import { withRadarCredits, InsufficientCredits, DuplicateTrigger } from '../services/credits.js';
+import { randomUUID, createHash } from 'node:crypto';
+import { withRadarCredits, InsufficientCredits, DuplicateTrigger, RadarRequestConflict, RadarRunExpired } from '../services/credits.js';
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { runAnalysisForUser, getCachedAnalysis, runDailyPublishing } from '../services/analysis.js';
@@ -9,7 +9,7 @@ const router: Router = Router();
 
 const analysisRequestSchema = z.object({
   session: z.enum(['Asian', 'London', 'New York']).optional(),
-  watchlist: z.array(z.string()).optional()
+  watchlist: z.array(z.string().min(1).max(32)).max(32).optional()
 });
 
 router.post('/focus', async (req: AuthRequest, res) => {
@@ -21,10 +21,13 @@ router.post('/focus', async (req: AuthRequest, res) => {
   try {
     const key = req.get('Idempotency-Key') || randomUUID();
     if (!/^[A-Za-z0-9:_-]{1,128}$/.test(key)) return res.status(400).json({success:false,error:'Invalid idempotency key'});
-    const result = await withRadarCredits(req.user!.id, key, () => runAnalysisForUser(req.user!.id, parsed.data));
+    const fingerprint = createHash('sha256').update(JSON.stringify(parsed.data)).digest('hex');
+    const result = await withRadarCredits(req.user!.id, key, () => runAnalysisForUser(req.user!.id, parsed.data), fingerprint);
     res.json({ success: true, data: result });
   } catch (error) {
     if (error instanceof InsufficientCredits) return res.status(402).json({success:false,error:'10 credits required'});
+    if (error instanceof RadarRequestConflict) return res.status(409).json({success:false,error:'Request key already used for different input'});
+    if (error instanceof RadarRunExpired) return res.status(503).json({success:false,error:'Radar timed out; credits refunded'});
     if (error instanceof DuplicateTrigger) return res.status(409).json({success:false,error:'Trigger already submitted'});
     console.error('Analysis error:', error);
     res.status(500).json({ success: false, error: 'Analysis failed' });
