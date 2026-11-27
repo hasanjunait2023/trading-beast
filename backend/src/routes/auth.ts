@@ -3,17 +3,14 @@ import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 import { generateToken, AuthRequest, authMiddleware } from '../middleware/auth.js';
 import crypto from 'crypto';
+import { verifyTelegramInitData } from '../services/telegram-auth.js';
 
 const prisma = new PrismaClient();
 const router: Router = Router();
 
 const telegramAuthSchema = z.object({
   initData: z.string().min(1).max(16384),
-  telegramId: z.string(),
-  username: z.string().optional(),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  languageCode: z.string().optional(),
+  telegramId: z.string().optional(),
   referralCode: z.string().optional()
 });
 
@@ -23,28 +20,14 @@ router.post('/telegram', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Invalid payload', details: parsed.error.errors });
   }
 
-  const { telegramId, username, firstName, lastName, languageCode, referralCode } = parsed.data;
+  const { referralCode } = parsed.data;
 
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) return res.status(503).json({ success: false, error: 'Telegram authentication unavailable' });
-  const params = new URLSearchParams(parsed.data.initData);
-  const hash = params.get('hash');
-  const authDate = Number(params.get('auth_date'));
-  const now = Math.floor(Date.now() / 1000);
-  if (!hash || !/^[a-f0-9]{64}$/i.test(hash) || !Number.isSafeInteger(authDate) || authDate > now + 30 || now - authDate > 300 || new Set(params.keys()).size !== [...params.keys()].length) {
-    return res.status(401).json({ success: false, error: 'Invalid Telegram authentication' });
-  }
-  params.delete('hash');
-  const check = [...params.entries()].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([k, v]) => k + '=' + v).join('\n');
-  const key = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
-  const expected = crypto.createHmac('sha256', key).update(check).digest();
-  if (!crypto.timingSafeEqual(expected, Buffer.from(hash, 'hex'))) return res.status(401).json({ success: false, error: 'Invalid Telegram authentication' });
-  try {
-    const signedUser = JSON.parse(params.get('user') || '{}');
-    if (!Number.isSafeInteger(signedUser.id) || String(signedUser.id) !== telegramId) throw new Error('Identity mismatch');
-  } catch {
-    return res.status(401).json({ success: false, error: 'Invalid Telegram identity' });
-  }
+  const identity = verifyTelegramInitData(parsed.data.initData, botToken);
+  if (!identity || (parsed.data.telegramId && parsed.data.telegramId !== String(identity.id))) return res.status(401).json({ success: false, error: 'Invalid Telegram identity' });
+  const telegramId = String(identity.id);
+  const { username, first_name: firstName, last_name: lastName, language_code: languageCode } = identity;
 
   let user = await prisma.user.findUnique({ where: { telegramId } });
 
