@@ -158,7 +158,7 @@ async function handleCallbackQuery(query: { message: { chat: { id: number } }; d
   const user = { ...storedUser, tier: await getEffectiveTier(storedUser.id) };
 
   if (data === 'focus_now') {
-    await sendFocusList(chatId, user);
+    await sendFocusList(chatId, user, 'callback:'+query.id);
   } else if (data === 'my_watchlist') {
     await sendWatchlistMessage(chatId, user);
   } else if (data === 'my_tier') {
