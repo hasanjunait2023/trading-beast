@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { creditBalance, withRadarCredits, InsufficientCredits, DuplicateTrigger } from '../services/credits.js';
 import { getEffectiveTier } from '../services/entitlements.js';
 import { authMiddleware, requireAdmin } from '../middleware/auth.js';
+import { buildTelegramConfig, getValidMiniAppUrl, isValidMiniAppUrl } from '../services/telegram-config.js';
 
 const prisma = new PrismaClient();
 const router: Router = Router();
@@ -56,6 +57,99 @@ router.post('/set-webhook', authMiddleware, requireAdmin, async (req, res) => {
     res.json({ success: data.ok, data });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to set webhook' });
+  }
+});
+
+/**
+ * Small Telegram Bot API helper. The bot token is only ever interpolated
+ * into the request URL — it is never logged and never included in errors.
+ */
+async function telegramApi<T = any>(method: string, body?: unknown): Promise<T> {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) throw new Error('Telegram bot token not configured');
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/${method}`, {
+      ...(body !== undefined
+        ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+        : {}),
+      signal: AbortSignal.timeout(15000),
+    });
+    const data = (await response.json()) as { ok: boolean; result?: T };
+    if (!response.ok || !data.ok || data.result === undefined) {
+      throw new Error('Telegram API rejected request');
+    }
+    return data.result;
+  } catch {
+    // Deliberately generic: upstream errors may embed the request URL (token).
+    throw new Error(`Telegram API call failed: ${method}`);
+  }
+}
+
+// Public Telegram config (no secrets) for frontends / landing / Mini App
+router.get('/config', (_req, res) => {
+  res.json({ success: true, data: buildTelegramConfig() });
+});
+
+// Admin diagnostics: one call to verify bot, webhook, menu button and config presence
+router.get('/diagnostics', authMiddleware, requireAdmin, async (_req, res) => {
+  if (!process.env.TELEGRAM_BOT_TOKEN) {
+    return res.status(503).json({ success: false, error: 'Bot token not configured' });
+  }
+  try {
+    const [bot, webhook, menuButton] = await Promise.all([
+      telegramApi('getMe'),
+      telegramApi('getWebhookInfo'),
+      telegramApi('getChatMenuButton', {}),
+    ]);
+    res.json({
+      success: true,
+      data: {
+        bot,
+        webhook,
+        menuButton,
+        config: {
+          botTokenSet: true,
+          webhookSecretSet: Boolean(process.env.TELEGRAM_WEBHOOK_SECRET),
+          miniAppUrlSet: getValidMiniAppUrl() !== null,
+          adminIdsSet: Boolean((process.env.ADMIN_TELEGRAM_IDS || '').trim()),
+        },
+      },
+    });
+  } catch {
+    res.status(502).json({ success: false, error: 'Failed to fetch Telegram diagnostics' });
+  }
+});
+
+// Admin: server-side equivalent of scripts/configure-telegram-menu.mjs
+router.post('/set-menu-button', authMiddleware, requireAdmin, async (req, res) => {
+  if (!process.env.TELEGRAM_BOT_TOKEN) {
+    return res.status(503).json({ success: false, error: 'Bot token not configured' });
+  }
+  const rawUrl: unknown = req.body?.url ?? process.env.TELEGRAM_MINI_APP_URL;
+  const rawText: unknown = req.body?.text ?? 'Open App';
+  if (!isValidMiniAppUrl(rawUrl)) {
+    return res.status(400).json({ success: false, error: 'Mini App URL must be a valid HTTPS URL without credentials' });
+  }
+  if (typeof rawText !== 'string' || !rawText.trim() || rawText.trim().length > 64) {
+    return res.status(400).json({ success: false, error: 'Menu button text must be a non-empty string (max 64 characters)' });
+  }
+  const url = new URL(rawUrl as string).href;
+  const text = rawText.trim();
+  try {
+    await telegramApi('setChatMenuButton', { menu_button: { type: 'web_app', text, web_app: { url } } });
+    const menuButton = await telegramApi<any>('getChatMenuButton', {});
+    let verifiedUrl: string | null = null;
+    try {
+      verifiedUrl = menuButton?.web_app?.url ? new URL(menuButton.web_app.url).href : null;
+    } catch {
+      verifiedUrl = null;
+    }
+    if (menuButton?.type !== 'web_app' || verifiedUrl !== url) {
+      return res.status(502).json({ success: false, error: 'Menu button verification failed' });
+    }
+    res.json({ success: true, data: { menuButton } });
+  } catch {
+    res.status(502).json({ success: false, error: 'Failed to set menu button' });
   }
 });
 

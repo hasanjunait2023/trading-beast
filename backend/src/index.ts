@@ -10,6 +10,7 @@ import { adminRoutes } from './routes/admin.js';
 import { telegramRoutes } from './routes/telegram.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { authMiddleware } from './middleware/auth.js';
+import { getMiniAppOrigin } from './services/telegram-config.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +23,12 @@ const allowedOrigins = (
   .split(',')
   .map((o) => o.trim())
   .filter(Boolean);
+
+// The Telegram Mini App is served from TELEGRAM_MINI_APP_URL — trust its origin automatically
+const miniAppOrigin = getMiniAppOrigin();
+if (miniAppOrigin && !allowedOrigins.includes(miniAppOrigin)) {
+  allowedOrigins.push(miniAppOrigin);
+}
 
 app.use(helmet());
 app.use(
