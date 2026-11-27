@@ -257,3 +257,18 @@ DEPLOYED AND VERIFIED LIVE:
   its own subdomain (owner pick). (2) BotFather "Main Mini App" profile
   (short name/photo) is a manual owner step; the chat menu button is already
   set via API.
+
+## 8. FOLLOW-UPS COMPLETED (2026-11-28 ~05:15 +06, Jafrul's order)
+
+- USER PORTAL LIVE: portal.tradingbeast.ecomex.cloud (DNS-only A record,
+  Caddy vhost → :5173, LE cert) serving the user portal; FRONTEND_URL in the
+  VPS .env is now "https://tradingbeast.ecomex.cloud,https://portal.tradingbeast.ecomex.cloud"
+  (comma-separated CORS allowlist) — preflight from the portal origin
+  verified (204 + allow-origin echo).
+- DEPLOY WORKFLOW FIXED + PROVEN: the `compose run --rm backend npx prisma
+  migrate deploy` step was removed from deploy.yml (migrations remain a
+  manual runbook step). Run #3 (main 3b9197a) completed end-to-end
+  unattended: pull → build → up -d (backend + user-frontend recreated) →
+  health gate passed.
+- STILL OWNER-MANUAL: BotFather Main Mini App profile (short name, photo,
+  description) for @tradingbeastbyjunaitbot.
