@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { getEffectiveTier } from '../services/entitlements.js';
@@ -14,6 +15,7 @@ export interface AuthRequest extends Request {
     id: string;
     telegramId: string;
     tier: string;
+    sessionId?: string;
   };
 }
 
@@ -24,24 +26,30 @@ export async function authMiddleware(req: AuthRequest, res: Response, next: Next
   }
 
   const token = authHeader.slice(7);
-  let decoded: { userId: string; telegramId: string };
+  let decoded: { userId: string; telegramId: string; sessionId: string };
   try {
     const payload=jwt.verify(token, signingSecret,{algorithms:['HS256']});
-    if(typeof payload==='string' || typeof payload.userId!=='string' || typeof payload.telegramId!=='string') throw new Error('Invalid claims');
-    decoded={userId:payload.userId,telegramId:payload.telegramId};
+    if(typeof payload==='string' || typeof payload.userId!=='string' || typeof payload.telegramId!=='string' || typeof payload.jti!=='string') throw new Error('Invalid claims');
+    decoded={userId:payload.userId,telegramId:payload.telegramId,sessionId:payload.jti};
   } catch { return res.status(401).json({success:false,error:'Invalid token'}); }
   try {
-    const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+    const session=await prisma.authSession.findFirst({where:{id:decoded.sessionId,userId:decoded.userId,revokedAt:null,expiresAt:{gt:new Date()}},include:{user:true}});
+    const user=session?.user;
     if (!user || user.telegramId!==decoded.telegramId) {
       return res.status(401).json({ success: false, error: 'User not found' });
     }
-    req.user = { id: user.id, telegramId: user.telegramId, tier: await getEffectiveTier(user.id) };
+    req.user = { id: user.id, telegramId: user.telegramId, tier: await getEffectiveTier(user.id),sessionId:decoded.sessionId };
     next();
   } catch(error) { next(error); }
 }
 
-export function generateToken(user: { id: string; telegramId: string; tier: string }): string {
-  return jwt.sign({ userId: user.id, telegramId: user.telegramId, tier: user.tier }, signingSecret, { algorithm:'HS256', expiresIn: '30d' });
+export async function generateToken(user: { id: string; telegramId: string; tier: string }, existingSessionId?:string): Promise<string> {
+  const id=existingSessionId??randomUUID();
+  const now=new Date();
+  const session=existingSessionId
+    ? await prisma.authSession.findFirstOrThrow({where:{id,userId:user.id,revokedAt:null,expiresAt:{gt:now}}})
+    : await prisma.authSession.create({data:{id,userId:user.id,expiresAt:new Date(now.getTime()+30*86400000)}});
+  return jwt.sign({userId:user.id,telegramId:user.telegramId,tier:user.tier,exp:Math.floor(session.expiresAt.getTime()/1000)},signingSecret,{algorithm:'HS256',jwtid:id});
 }
 
 export function requireTier(...allowedTiers: string[]) {
