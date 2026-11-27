@@ -1,3 +1,4 @@
+import { normalizeWatchlist } from '../services/watchlist.js';
 import { selectEffectiveSubscription } from '../services/entitlements.js';
 import { asyncRouter } from '../middleware/async-router.js';
 import { creditBalance, DAILY_CREDITS, RADAR_COST } from '../services/credits.js';
@@ -9,7 +10,7 @@ import { prisma } from '../services/db.js';
 const router: Router = asyncRouter();
 
 const watchlistSchema = z.object({
-  watchlist: z.array(z.string()).min(1).max(50)
+  watchlist: z.array(z.string().min(1).max(32)).max(32)
 });
 
 const paymentSchema = z.object({
@@ -81,9 +82,11 @@ router.patch('/watchlist', async (req: AuthRequest, res) => {
     return res.status(400).json({ success: false, error: 'Invalid watchlist', details: parsed.error.errors });
   }
 
+  let watchlist:string[];
+  try {watchlist=normalizeWatchlist(parsed.data.watchlist);} catch {return res.status(400).json({success:false,error:'Unknown watchlist instrument'});}
   const user = await prisma.user.update({
     where: { id: req.user!.id },
-    data: { watchlist: parsed.data.watchlist }
+    data: { watchlist }
   });
 
   res.json({ success: true, data: { watchlist: user.watchlist } });
