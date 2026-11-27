@@ -91,7 +91,6 @@ async function handleMessage(message: any) {
     }
 
     const refCode = crypto.randomBytes(4).toString('hex').toUpperCase();
-    const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     user = await prisma.user.create({
       data: {
@@ -101,15 +100,11 @@ async function handleMessage(message: any) {
         lastName: message.from.last_name,
         languageCode: message.from.language_code || 'en',
         tier: 'FREE',
-        trialEndsAt,
         referralCode: refCode,
         referredBy: referralCode
       }
     });
 
-    await prisma.subscription.create({
-      data: { userId: user.id, tier: 'PRO', status: 'TRIAL', expiresAt: trialEndsAt }
-    });
 
     if (referralCode) {
       const referrer = await prisma.user.findUnique({ where: { referralCode } });
@@ -150,7 +145,7 @@ async function handleMessage(message: any) {
   } else if (text === '/referral') {
     await sendReferralInfo(chatId, user);
   } else if (text === '/pay') {
-    await sendPaymentOptions(chatId, user);
+    await sendMessage(chatId,'Premium credit packages are not available yet. Free users receive 10 credits daily.');
   } else {
     await sendMessage(chatId, 'Unknown command. Use /help to see available commands.');
   }
@@ -174,7 +169,7 @@ async function handleCallbackQuery(query: { message: { chat: { id: number } }; d
   } else if (data === 'referral_info') {
     await sendReferralInfo(chatId, user);
   } else if (data === 'payment_options') {
-    await sendPaymentOptions(chatId, user);
+    await sendMessage(chatId,'Premium credit packages are not available yet. Free users receive 10 credits daily.');
   }
 
   // Answer callback query
