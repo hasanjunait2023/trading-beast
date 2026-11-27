@@ -1,3 +1,4 @@
+import {pagination} from '../services/pagination.js';
 import { normalizeWatchlist } from '../services/watchlist.js';
 import { selectEffectiveSubscription } from '../services/entitlements.js';
 import { asyncRouter } from '../middleware/async-router.js';
@@ -122,20 +123,22 @@ router.post('/payment', async (req: AuthRequest, res) => {
 });
 
 router.get('/payments', async (req: AuthRequest, res) => {
+  const p=pagination(req.query);
   const payments = await prisma.payment.findMany({
-    where: { userId: req.user!.id },
-    orderBy: { createdAt: 'desc' }
+    where: { userId: req.user!.id },skip:p.skip,take:p.take,
+    orderBy: [{createdAt:'desc'},{id:'desc'}]
   });
-  res.json({ success: true, data: payments });
+  res.json({ success: true, data: payments,meta:{page:p.page,limit:p.limit} });
 });
 
 router.get('/referrals', async (req: AuthRequest, res) => {
+  const p=pagination(req.query);
   const referrals = await prisma.referral.findMany({
-    where: { referrerId: req.user!.id },
+    where: { referrerId: req.user!.id },skip:p.skip,take:p.take,
     include: { referred: { select: { telegramId: true, firstName: true, createdAt: true, tier: true } } },
-    orderBy: { createdAt: 'desc' }
+    orderBy: [{createdAt:'desc'},{id:'desc'}]
   });
-  res.json({ success: true, data: referrals });
+  res.json({ success: true, data: referrals,meta:{page:p.page,limit:p.limit} });
 });
 
 export { router as userRoutes };
