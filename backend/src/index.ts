@@ -50,7 +50,7 @@ app.get('/health', (_req, res) => {
   res.json({ success: true, data: { status: 'ok', timestamp: new Date().toISOString() } });
 });
 
-app.use('/api/analysis', analysisRoutes);
+app.use('/api/analysis', authMiddleware, analysisRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/user', authMiddleware, userRoutes);
 app.use('/api/admin', authMiddleware, adminRoutes);
