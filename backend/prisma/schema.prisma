@@ -22,6 +22,7 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   lastActiveAt    DateTime?
+  loginCodes      LoginCode[]
   creditWallet    CreditWallet?
   creditEntries   CreditEntry[]
   subscriptions   Subscription[]
@@ -160,4 +161,13 @@ model CreditEntry {
   createdAt DateTime @default(now())
   @@unique([userId, reference])
   @@index([userId, createdAt])
+}
+
+model LoginCode {
+  digest String @id
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt DateTime?
+  @@index([userId, expiresAt])
 }
