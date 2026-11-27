@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
+import { creditBalance, withRadarCredits, InsufficientCredits, DuplicateTrigger } from '../services/credits.js';
 import { getEffectiveTier } from '../services/entitlements.js';
 import { authMiddleware, requireAdmin } from '../middleware/auth.js';
 
@@ -127,8 +128,10 @@ async function handleMessage(message: any) {
   // Handle commands
   if (text === '/start' || text === '/help') {
     await sendWelcomeMessage(chatId, user);
+  } else if (text === '/credits') {
+    await sendMessage(chatId, 'Credit balance: '+await creditBalance(user.id)+' | Radar: 10 credits | Daily grant: 10');
   } else if (text === '/focus') {
-    await sendFocusList(chatId, user);
+    await sendFocusList(chatId, user, 'msg:'+chatId+':'+message.message_id);
   } else if (text === '/watchlist') {
     await sendWatchlistMessage(chatId, user);
   } else if (text.startsWith('/watchlist ')) {
@@ -211,15 +214,17 @@ Welcome${user.firstName ? `, ${user.firstName}` : ''}! This tool provides sessio
   });
 }
 
-async function sendFocusList(chatId: number, user: any) {
+async function sendFocusList(chatId: number, user: any, key: string) {
   // Import analysis service
   const { runAnalysisForUser } = await import('../services/analysis.js');
 
   try {
-    const result = await runAnalysisForUser(user.id);
-    const text = formatFocusResult(result, user.tier);
+    const result = await withRadarCredits(user.id,key,()=>runAnalysisForUser(user.id));
+    const text = formatFocusResult(result, user.tier) + '\n\nCredits remaining: ' + await creditBalance(user.id);
     await sendMessage(chatId, text);
   } catch (error) {
+    if (error instanceof InsufficientCredits) { await sendMessage(chatId,'You need 10 credits to run Radar. Daily credits accumulate automatically.'); return; }
+    if (error instanceof DuplicateTrigger) return;
     console.error('Focus list error:', error);
     await sendMessage(chatId, '❌ Failed to generate focus list. Please try again later.');
   }
