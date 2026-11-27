@@ -68,14 +68,21 @@ export async function recoverExpiredRadarRuns(limit=100) {
   for(const run of runs) if(await refundRadar(run.userId,run.requestKey,true)) refunded++;
   return refunded;
 }
-export async function withRadarCredits<T>(userId:string,key:string,run:()=>Promise<T>,fingerprint='default'):Promise<T>{
+export async function withRadarCredits<T>(userId:string,key:string,run:()=>Promise<T>,fingerprint='default',onComplete?:(tx:Prisma.TransactionClient,result:T)=>Promise<void>):Promise<T>{
   const reservation=await reserveRadar(userId,key,fingerprint);
-  if(reservation.replayed) return reservation.result as T;
+  if(reservation.replayed) {
+    const result=reservation.result as T;
+    if(onComplete) await atomic(tx=>onComplete(tx,result));
+    return result;
+  }
   try{
     const result=await run();
     const json=JSON.parse(JSON.stringify(result)) as Prisma.InputJsonValue;
-    const completed=await atomic(tx=>tx.radarRun.updateMany({where:{userId,requestKey:key,status:'RUNNING',expiresAt:{gt:new Date()}},data:{status:'SUCCEEDED',result:json,completedAt:new Date()}}));
-    if(completed.count!==1) throw new RadarRunExpired('Radar run expired');
+    await atomic(async tx=>{
+      const completed=await tx.radarRun.updateMany({where:{userId,requestKey:key,status:'RUNNING',expiresAt:{gt:new Date()}},data:{status:'SUCCEEDED',result:json,completedAt:new Date()}});
+      if(completed.count!==1) throw new RadarRunExpired('Radar run expired');
+      if(onComplete) await onComplete(tx,result);
+    });
     return result;
   }catch(e){await refundRadar(userId,key);throw e;}
 }
