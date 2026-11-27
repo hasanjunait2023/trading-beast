@@ -1,7 +1,6 @@
-import { getSessionWindow } from './session-clock.js';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { runAnalysis, buildPairs, detectSession, type SessionConfig, type FocusResult, type PairConfig } from './analysis-engine.js';
-import { marketSnapshots, toEngineInput, MarketDataUnavailable } from './market-data.js';
+import { fetchMultipleSymbols, type Candle } from './yahoo.js';
 
 const prisma = new PrismaClient();
 
@@ -14,17 +13,46 @@ export async function runAnalysisForUser(userId: string, request: AnalysisReques
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new Error('User not found');
 
-  const snapshot = await marketSnapshots.get();
-  const nowSec = snapshot.asOf;
-  const cfg: SessionConfig = request.session ? getSessionWindow(request.session, nowSec) : detectSession(nowSec);
+  const nowSec = Math.floor(Date.now() / 1000);
+  const cfg = detectSession(nowSec);
+
+  // Override session if explicitly requested (for testing/admin)
+  if (request.session) {
+    const dNow = nowSec + 21600;
+    const hourMap: Record<string, number> = { Asian: 7, London: 12, 'New York': 18 };
+    const startHour = hourMap[request.session];
+    let startD = dNow - (dNow % 86400) + startHour * 3600;
+    if (startD > dNow) startD -= 86400;
+    cfg.session = request.session;
+    cfg.sessionStartTs = startD - 21600;
+    cfg.orDone = nowSec >= cfg.sessionStartTs + 3600;
+  }
 
   cfg.watchlist = request.watchlist ?? (user.watchlist.length ? user.watchlist : null);
 
-  const result = await runAnalysis(toEngineInput(snapshot), cfg, snapshot.asOf);
-  validateResult(result, snapshot.fxCoverage);
+  const pairs = buildPairs();
+  const symbols = pairs.map(p => p.yahoo);
+
+  // Fetch data - use 15m (30d) and 1h (60d max for intraday)
+  const [data15m, data1h] = await Promise.all([
+    fetchMultipleSymbols(symbols, '15m', '30d'),
+    fetchMultipleSymbols(symbols, '1h', '60d')
+  ]);
+
+  const yahooData = new Map<string, { data15m: any; data1h: any }>();
+  for (const p of pairs) {
+    const d15 = data15m.get(p.yahoo);
+    const d1 = data1h.get(p.yahoo);
+    if (d15 && d1) {
+      yahooData.set(p.yahoo, { data15m: { chart: { result: [{ timestamp: d15.map(c => c.ts), indicators: { quote: [{ open: d15.map(c => c.o), high: d15.map(c => c.h), low: d15.map(c => c.l), close: d15.map(c => c.c) }] } }] } },
+        data1h: { chart: { result: [{ timestamp: d1.map(c => c.ts), indicators: { quote: [{ open: d1.map(c => c.o), high: d1.map(c => c.h), low: d1.map(c => c.l), close: d1.map(c => c.c) }] } }] } } });
+    }
+  }
+
+  const result = await runAnalysis(yahooData, cfg, nowSec);
 
   // Personalized requests must never overwrite shared session snapshots.
-  if (!cfg.watchlist) await prisma.focusResult.upsert({
+  if (!cfg.watchlist?.length) await prisma.focusResult.upsert({
     where: { session_date: { session: cfg.session, date: sessionDate(cfg.sessionStartTs) } },
     update: {
       focusPairs: result.focus as unknown as Prisma.InputJsonValue,
@@ -63,16 +91,43 @@ export async function getCachedAnalysis(session: string, date: Date = new Date()
 }
 
 export async function runDailyPublishing(): Promise<FocusResult[]> {
-  const snapshot = await marketSnapshots.get();
-  const nowSec = snapshot.asOf;
+  const nowSec = Math.floor(Date.now() / 1000);
   const sessions: ('Asian' | 'London' | 'New York')[] = ['Asian', 'London', 'New York'];
   const results: FocusResult[] = [];
 
   for (const session of sessions) {
-    const cfg: SessionConfig = { ...getSessionWindow(session, nowSec), watchlist: null };
+    const dNow = nowSec + 21600;
+    const hourMap = { Asian: 7, London: 12, 'New York': 18 };
+    const startHour = hourMap[session];
+    let startD = dNow - (dNow % 86400) + startHour * 3600;
+    if (startD > dNow) startD -= 86400;
+    const cfg = {
+      session,
+      startHour,
+      sessionStartTs: startD - 21600,
+      orDone: nowSec >= startD - 21600 + 3600,
+      watchlist: null as string[] | null
+    } as SessionConfig;
 
-    const result = await runAnalysis(toEngineInput(snapshot), cfg, snapshot.asOf);
-    validateResult(result, snapshot.fxCoverage);
+    const pairs = buildPairs();
+    const symbols = pairs.map(p => p.yahoo);
+    const [data15m, data1h] = await Promise.all([
+      fetchMultipleSymbols(symbols, '15m', '30d'),
+      fetchMultipleSymbols(symbols, '1h', '60d')
+    ]);
+
+    const yahooData = new Map<string, { data15m: any; data1h: any }>();
+    for (const p of pairs) {
+      const d15 = data15m.get(p.yahoo);
+      const d1 = data1h.get(p.yahoo);
+      if (d15 && d1) {
+        yahooData.set(p.yahoo, {
+          data15m: { chart: { result: [{ timestamp: d15.map(c => c.ts), indicators: { quote: [{ open: d15.map(c => c.o), high: d15.map(c => c.h), low: d15.map(c => c.l), close: d15.map(c => c.c) }] } }] } },
+          data1h: { chart: { result: [{ timestamp: d1.map(c => c.ts), indicators: { quote: [{ open: d1.map(c => c.o), high: d1.map(c => c.h), low: d1.map(c => c.l), close: d1.map(c => c.c) }] } }] } } });
+      }
+    }
+
+    const result = await runAnalysis(yahooData, cfg, nowSec);
 
     await prisma.focusResult.upsert({
       where: { session_date: { session, date: sessionDate(cfg.sessionStartTs) } },
@@ -97,9 +152,3 @@ export async function runDailyPublishing(): Promise<FocusResult[]> {
 }
 // UTC calendar date representing the session's local start day.
 function sessionDate(ts: number): Date { const d = new Date((ts + 21600) * 1000); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); }
-
-function validateResult(result: FocusResult, coverage: number) {
-  if (result.skippedCount > 8 || coverage < 0.8) throw new MarketDataUnavailable('Insufficient analyzable market data');
-  if (!result.focus.length && !result.watch.length && !result.avoid.length) throw new MarketDataUnavailable('No analyzable results for requested scope');
-  result.warnings.push('Closed candles only; quotes are not live execution prices');
-}
