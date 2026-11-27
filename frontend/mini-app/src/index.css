@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+/*
+  TradingBeast Mini App theme.
+  Brand fallback = shared design system (dark navy #060918 + electric blue
+  #4f6dff / violet #7c5cff, Space Grotesk / Inter / JetBrains Mono — see
+  frontend/shared/design-tokens). When Telegram supplies themeParams,
+  telegram.ts writes --tg-theme-* variables and those win.
+*/
+:root {
+  --color-bg: var(--tg-theme-bg-color, #060918);
+  --color-surface: var(--tg-theme-secondary-bg-color, #0c1126);
+  --color-surface-elevated: var(--tg-theme-section-bg-color, #121a33);
+  --color-border: #1c2748;
+  --color-text: var(--tg-theme-text-color, #e8edfb);
+  --color-text-muted: var(--tg-theme-hint-color, #8896bd);
+  --color-accent: var(--tg-theme-button-color, #4f6dff);
+  --color-accent-text: var(--tg-theme-button-text-color, #ffffff);
+  --color-link: var(--tg-theme-link-color, #6b86ff);
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: var(--tg-theme-destructive-text-color, #ef4444);
+  --color-info: #3b82f6;
+  --color-violet: #7c5cff;
+  --color-cyan: #22d3ee;
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --tg-safe-top: env(safe-area-inset-top, 0px);
+  --tg-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; line-height: 1.2; margin: 0; }
+p { margin: 0; }
+button { font-family: inherit; cursor: pointer; }
+input { font-family: inherit; }
+
+.font-display { font-family: var(--font-display); }
+.font-mono { font-family: var(--font-mono); }
+
+.app-shell {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100%;
+  padding-top: calc(var(--tg-safe-top) + 12px);
+  /* room for the bottom tab bar + safe area */
+  padding-bottom: calc(84px + var(--tg-safe-bottom));
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.card-elevated {
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.btn-primary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: linear-gradient(135deg, #4f6dff 0%, #7c5cff 100%);
+  background-color: var(--color-accent);
+  color: var(--color-accent-text);
+  border: none; border-radius: 12px;
+  padding: 12px 18px; font-weight: 600; font-size: 15px;
+  box-shadow: 0 0 24px rgba(79, 109, 255, 0.35);
+  transition: opacity 150ms ease, transform 150ms ease;
+  width: 100%;
+}
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.45; box-shadow: none; }
+
+.btn-secondary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--color-surface-elevated); color: var(--color-text);
+  border: 1px solid var(--color-border); border-radius: 12px;
+  padding: 10px 14px; font-weight: 500; font-size: 14px;
+}
+.btn-secondary:disabled { opacity: 0.5; }
+
+.btn-ghost {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: none; border: none; color: var(--color-text-muted);
+  padding: 10px 14px; font-weight: 500; font-size: 14px; border-radius: 12px;
+}
+
+.input {
+  width: 100%; padding: 12px 14px;
+  background: var(--color-bg); color: var(--color-text);
+  border: 1px solid var(--color-border); border-radius: 12px; font-size: 15px;
+}
+.input:focus { outline: none; border-color: var(--color-accent); }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 9999px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.badge-free { background: rgba(136,150,189,0.15); color: var(--color-text-muted); }
+.badge-pro { background: rgba(107,134,255,0.15); color: #6b86ff; }
+.badge-elite { background: rgba(251,191,36,0.15); color: #fbbf24; }
+.badge-trial { background: rgba(34,197,94,0.15); color: var(--color-success); }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.animate-fade-in { animation: fadeIn 250ms ease; }
+.animate-slide-up { animation: slideUp 250ms ease; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
