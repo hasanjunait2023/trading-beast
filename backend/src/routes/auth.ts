@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 import { generateToken, AuthRequest, authMiddleware } from '../middleware/auth.js';
 import crypto from 'crypto';
+import { getEffectiveTier } from '../services/entitlements.js';
 import { verifyTelegramInitData } from '../services/telegram-auth.js';
 
 const prisma = new PrismaClient();
@@ -92,7 +93,8 @@ router.post('/telegram', async (req, res) => {
     });
   }
 
-  const token = generateToken({ id: user.id, telegramId: user.telegramId, tier: user.tier });
+  const tier = await getEffectiveTier(user.id);
+  const token = generateToken({ id: user.id, telegramId: user.telegramId, tier });
 
   res.json({
     success: true,
@@ -103,7 +105,7 @@ router.post('/telegram', async (req, res) => {
         telegramId: user.telegramId,
         username: user.username,
         firstName: user.firstName,
-        tier: user.tier,
+        tier,
         trialEndsAt: user.trialEndsAt,
         referralCode: user.referralCode
       }
@@ -121,7 +123,8 @@ router.post('/refresh', authMiddleware, async (req: AuthRequest, res) => {
     return res.status(404).json({ success: false, error: 'User not found' });
   }
 
-  const token = generateToken({ id: user.id, telegramId: user.telegramId, tier: user.tier });
+  const tier = await getEffectiveTier(user.id);
+  const token = generateToken({ id: user.id, telegramId: user.telegramId, tier });
   res.json({ success: true, data: { token } });
 });
 
