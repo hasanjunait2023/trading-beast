@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { withRadarCredits, InsufficientCredits, DuplicateTrigger, creditBalance } from '../services/credits.js';
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { runAnalysisForUser, getCachedAnalysis, runDailyPublishing } from '../services/analysis.js';
@@ -17,9 +19,13 @@ router.post('/focus', async (req: AuthRequest, res) => {
   }
 
   try {
-    const result = await runAnalysisForUser(req.user!.id, parsed.data);
+    const key = req.get('Idempotency-Key') || randomUUID();
+    if (!/^[A-Za-z0-9:_-]{1,128}$/.test(key)) return res.status(400).json({success:false,error:'Invalid idempotency key'});
+    const result = await withRadarCredits(req.user!.id, key, () => runAnalysisForUser(req.user!.id, parsed.data));
     res.json({ success: true, data: result });
   } catch (error) {
+    if (error instanceof InsufficientCredits) return res.status(402).json({success:false,error:'10 credits required'});
+    if (error instanceof DuplicateTrigger) return res.status(409).json({success:false,error:'Trigger already submitted'});
     console.error('Analysis error:', error);
     res.status(500).json({ success: false, error: 'Analysis failed' });
   }
@@ -34,9 +40,10 @@ router.get('/focus/:session', async (req: AuthRequest, res) => {
   try {
     // Honor the user's watchlist; shared snapshots are not personalized results.
     // Fall back to live analysis
-    const result = await runAnalysisForUser(req.user!.id, { session: session as any });
+    const result = await withRadarCredits(req.user!.id, randomUUID(), () => runAnalysisForUser(req.user!.id, { session: session as any }));
     res.json({ success: true, data: result });
   } catch (error) {
+    if (error instanceof InsufficientCredits) return res.status(402).json({success:false,error:'10 credits required'});
     console.error('Cached analysis error:', error);
     res.status(500).json({ success: false, error: 'Failed to get analysis' });
   }
