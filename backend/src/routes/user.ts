@@ -43,7 +43,7 @@ router.get('/me', async (req: AuthRequest, res) => {
       telegramId: user.telegramId,
       username: user.username,
       firstName: user.firstName,
-      tier: user.tier,
+      tier: req.user!.tier,
       trialEndsAt: user.trialEndsAt,
       referralCode: user.referralCode,
       watchlist: user.watchlist,
