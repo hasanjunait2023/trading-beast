@@ -5,7 +5,14 @@ import { z } from 'zod';
 import { runAnalysisForUser, getCachedAnalysis, runDailyPublishing } from '../services/analysis.js';
 import { AuthRequest, requireAdmin } from '../middleware/auth.js';
 
+import { sessionOverview } from '../services/session-clock.js';
+import { MarketDataUnavailable } from '../services/market-data.js';
 const router: Router = Router();
+
+// Read-only market clock: no credits charged.
+router.get('/sessions', (_req, res) => {
+  res.json({success:true,data:sessionOverview(Math.floor(Date.now()/1000))});
+});
 
 const analysisRequestSchema = z.object({
   session: z.enum(['Asian', 'London', 'New York']).optional(),
@@ -26,6 +33,7 @@ router.post('/focus', async (req: AuthRequest, res) => {
     res.json({ success: true, data: result });
   } catch (error) {
     if (error instanceof InsufficientCredits) return res.status(402).json({success:false,error:'10 credits required'});
+    if (error instanceof MarketDataUnavailable) return res.status(503).json({success:false,error:'Market data unavailable; try again later'});
     if (error instanceof RadarRequestConflict) return res.status(409).json({success:false,error:'Request key already used for different input'});
     if (error instanceof RadarRunExpired) return res.status(503).json({success:false,error:'Radar timed out; credits refunded'});
     if (error instanceof DuplicateTrigger) return res.status(409).json({success:false,error:'Trigger already submitted'});
