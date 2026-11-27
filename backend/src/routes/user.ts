@@ -2,10 +2,9 @@ import { asyncRouter } from '../middleware/async-router.js';
 import { creditBalance, DAILY_CREDITS, RADAR_COST } from '../services/credits.js';
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth.js';
 
-const prisma = new PrismaClient();
+import { prisma } from '../services/db.js';
 const router: Router = asyncRouter();
 
 const watchlistSchema = z.object({
