@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
+import { getEffectiveTier } from '../services/entitlements.js';
 import { authMiddleware, requireAdmin } from '../middleware/auth.js';
 
 const prisma = new PrismaClient();
@@ -121,6 +122,8 @@ async function handleMessage(message: any) {
   // Update last active
   await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date() } });
 
+  user = { ...user, tier: await getEffectiveTier(user.id) };
+
   // Handle commands
   if (text === '/start' || text === '/help') {
     await sendWelcomeMessage(chatId, user);
@@ -147,8 +150,9 @@ async function handleCallbackQuery(query: { message: { chat: { id: number } }; d
   const data = query.data;
   const userId = query.from.id.toString();
 
-  const user = await prisma.user.findUnique({ where: { telegramId: userId } });
-  if (!user) return;
+  const storedUser = await prisma.user.findUnique({ where: { telegramId: userId } });
+  if (!storedUser) return;
+  const user = { ...storedUser, tier: await getEffectiveTier(storedUser.id) };
 
   if (data === 'focus_now') {
     await sendFocusList(chatId, user);
