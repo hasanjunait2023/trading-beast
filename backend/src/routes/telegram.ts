@@ -1,3 +1,4 @@
+import { normalizeWatchlist } from '../services/watchlist.js';
 import { registerUser } from '../services/users.js';
 import { asyncRouter } from '../middleware/async-router.js';
 import { Router, Request, Response, NextFunction } from 'express';
@@ -270,6 +271,7 @@ Use <code>/watchlist EUR/USD,GBP/JPY,Gold</code> to update.
 }
 
 async function updateWatchlist(chatId: number, user: any, pairs: string[]) {
+  try {pairs=normalizeWatchlist(pairs);} catch {await sendMessage(chatId,'Invalid watchlist instrument or too many instruments.');return;}
   await prisma.user.update({
     where: { id: user.id },
     data: { watchlist: pairs }
