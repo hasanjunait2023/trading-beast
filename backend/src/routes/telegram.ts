@@ -1,3 +1,4 @@
+import { registerUser } from '../services/users.js';
 import { asyncRouter } from '../middleware/async-router.js';
 import { Router, Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
@@ -77,47 +78,8 @@ async function handleMessage(message: any) {
   const text = message.text?.trim() || '';
   const userId = message.from.id.toString();
 
-  // Find or create user
-  let user = await prisma.user.findUnique({ where: { telegramId: userId } });
-
-  if (!user) {
-    // New user - extract referral code from /start
-    let referralCode: string | null = null;
-    if (text.startsWith('/start')) {
-      const parts = text.split(' ');
-      if (parts.length > 1 && parts[1].startsWith('ref_')) {
-        referralCode = parts[1].slice(4);
-      }
-    }
-
-    const refCode = crypto.randomBytes(4).toString('hex').toUpperCase();
-
-    user = await prisma.user.create({
-      data: {
-        telegramId: userId,
-        username: message.from.username,
-        firstName: message.from.first_name,
-        lastName: message.from.last_name,
-        languageCode: message.from.language_code || 'en',
-        tier: 'FREE',
-        referralCode: refCode,
-        referredBy: referralCode
-      }
-    });
-
-
-    if (referralCode) {
-      const referrer = await prisma.user.findUnique({ where: { referralCode } });
-      if (referrer) {
-        await prisma.referral.create({
-          data: { referrerId: referrer.id, referredId: user.id, status: 'PENDING' }
-        });
-      }
-    }
-  }
-
-  // Update last active
-  await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date() } });
+  const match = /^\/start\s+ref_([A-Za-z0-9]{1,64})$/.exec(text);
+  let user = await registerUser({telegramId:userId,username:message.from.username,firstName:message.from.first_name,lastName:message.from.last_name,languageCode:message.from.language_code},match?.[1]);
 
   user = { ...user, tier: await getEffectiveTier(user.id) };
 
