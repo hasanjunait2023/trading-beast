@@ -1,22 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { analysisApi } from '../services/api';
+import { analysisApi, userApi } from '../services/api';
 import { Target, AlertTriangle, CheckCircle } from 'lucide-react';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [focusData, setFocusData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [balance, setBalance] = useState<number|null>(null);
+  const [error, setError] = useState('');
+  const loadCredits = () => userApi.credits().then(r=>setBalance(r.data.data.balance)).catch(()=>{});
   const [activeTab, setActiveTab] = useState<'focus' | 'watch' | 'avoid'>('focus');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
-    fetchFocus();
-    const interval = setInterval(fetchFocus, 5 * 60 * 1000); // Refresh every 5 minutes
-    return () => clearInterval(interval);
+    void loadCredits();
   }, []);
 
   const fetchFocus = async () => {
+    setIsLoading(true); setError('');
     try {
       const res = await analysisApi.getFocus();
       if (res.data.success) {
@@ -24,9 +26,9 @@ export default function Dashboard() {
         setLastUpdated(new Date());
       }
     } catch (error) {
-      console.error('Failed to fetch focus:', error);
+      setError('Radar unavailable or insufficient credits. Check your balance and try again.');
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); void loadCredits();
     }
   };
 
@@ -65,7 +67,7 @@ export default function Dashboard() {
         <div>
           <h1 className="font-display text-2xl font-bold">Dashboard</h1>
           <p className="text-[var(--color-text-muted)]">
-            {focusData ? `${focusData.session} Session · ${focusData.timestamp} BDT` : 'Loading...'}
+            {focusData ? `${focusData.session} Session · ${focusData.timestamp} BDT` : 'Run Radar when ready'}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -74,13 +76,15 @@ export default function Dashboard() {
               Updated {lastUpdated.toLocaleTimeString()}
             </span>
           )}
-          <button onClick={fetchFocus} disabled={isLoading} className="btn btn-secondary btn-sm">
+          <button onClick={fetchFocus} disabled={isLoading || balance === null || balance < 10} className="btn btn-secondary btn-sm">
             <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24"><path d="M23 4v6h-6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M1 20v-6h6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            Refresh
+            Run Radar · 10 credits
           </button>
         </div>
       </div>
 
+      <p>Available credits: {balance ?? '—'} · +10 daily</p>
+      {error && <p role="alert">{error}</p>}
       {/* Warnings */}
       {focusData?.warnings?.length && (
         <div className="card border-[var(--color-warning)]/50 bg-[var(--color-warning)]/5">
