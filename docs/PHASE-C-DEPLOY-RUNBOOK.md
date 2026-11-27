@@ -101,21 +101,47 @@ read-only inspection of the live VPS + domains on 2026-11-28 ~02:35 +06.
   `docker-compose.prod.yml` gained `landing` + `mini-frontend` (7 services);
   `frontend/landing/Dockerfile.prod` + `nginx.conf` ported from main with
   VITE_* build args.
-- **Schema:** master has NO `prisma/migrations/` — `migrate deploy` is a
-  no-op. The schema diff main→master is **purely additive** (+CreditWallet,
-  +CreditEntry, +LoginCode, +3 User relations; nothing dropped/altered), so
-  the one-time step below is safe after the §2 DB backup.
+- **Schema (UPDATED after the b01 merge, PR #2 → master `600fdb2`):** master
+  now HAS `prisma/migrations/` (3 migrations: initial, auth_sessions,
+  telegram_delivery) from the backend/b01-reliability branch. BUT the live DB
+  has **no migration history** and an older schema, and the b01 team's own
+  gate (docs/PRE-MERGE-CHECKLIST.md) says: *"Initial migration is only safe
+  for an empty database. Do not blindly baseline."* So do NOT run
+  `migrate deploy` blindly and do NOT baseline blindly. Use the diff-first
+  procedure below: generate the incremental SQL from the LIVE database to
+  the merged schema, review it by hand (expected: create CreditWallet,
+  CreditEntry, LoginCode, AuthSession, RadarRun, TelegramDelivery + new
+  indexes; **no drops, no destructive alters** — abort if any appear), apply
+  it, and only then record the 3 migrations as applied.
+- **JWT (b01 hardening):** the merged backend refuses to boot with a weak or
+  example JWT secret (<32 chars). The §1.3 rotation (fresh strong secret,
+  generated on the VPS) must happen BEFORE the new backend first starts.
+  Note the new tracked-session system invalidates legacy JWTs anyway —
+  all users re-login via Telegram after this deploy.
+- **Env additions at deploy time:** the 3 keys from §2 PLUS
+  `TRUST_PROXY_HOPS=1` (single Caddy hop, so IP rate limits see real IPs).
 
 **Pre-merge manual steps on the VPS (run minutes before merging):**
 ```bash
 cd /opt/session-focus-radar
 cp .env /root/tb-env-preserve.env            # extra safety beyond the workflow
+# 1) DB backup first (§2; backend/scripts/backup-db.sh also exists on master)
+# 2) Incremental schema diff from the LIVE db to the merged schema — review it:
 git fetch origin master
 mkdir -p /tmp/tb-schema && git show origin/master:backend/prisma/schema.prisma > /tmp/tb-schema/schema.prisma
-# additive-only db push using the live DATABASE_URL (value stays on the VPS):
 set -a; . ./.env; set +a
-cd /tmp/tb-schema && npx --yes prisma@5.18.0 db push --schema=schema.prisma --skip-generate
-# append the 3 new keys to /opt/session-focus-radar/.env (see §2), then merge master→main on GitHub
+cd /tmp/tb-schema && npx --yes prisma@5.18.0 migrate diff \
+  --from-url "$DATABASE_URL" --to-schema-datamodel schema.prisma \
+  --script > /tmp/tb-schema/incremental.sql
+less /tmp/tb-schema/incremental.sql          # MUST be additive-only; abort on drops
+# 3) Apply the reviewed SQL, then record migration history:
+psql "$DATABASE_URL" -f /tmp/tb-schema/incremental.sql
+cd /opt/session-focus-radar   # (after the merge pull, or use the fetched tree)
+for m in 20261128000000_initial 20261128010000_auth_sessions 20261128020000_telegram_delivery; do
+  npx --yes prisma@5.18.0 migrate resolve --applied "$m" --schema=backend/prisma/schema.prisma
+done
+# 4) append the new env keys (§2 + TRUST_PROXY_HOPS=1) and rotate JWT (§1.3),
+#    then merge master→main on GitHub
 ```
 Also verify in GitHub repo Settings → Secrets → Actions that `VPS_SSH_KEY`
 still exists before merging (the workflow cannot deploy without it).
