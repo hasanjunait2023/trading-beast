@@ -1,3 +1,4 @@
+import { reconcileCredits } from '../services/credit-audit.js';
 import { asyncRouter } from '../middleware/async-router.js';
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
@@ -9,6 +10,7 @@ const router: Router = asyncRouter();
 
 // Admin access is independent of subscription tier.
 router.use(requireAdmin);
+router.get('/credits/reconciliation', async (_req,res)=>{res.json({success:true,data:await reconcileCredits()});});
 
 const paymentVerifySchema = z.object({
   paymentId: z.string(),
