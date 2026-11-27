@@ -4,7 +4,7 @@ import { getEffectiveTier } from '../services/entitlements.js';
 
 import { prisma } from '../services/db.js';
 const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET || JWT_SECRET.length < 32 || JWT_SECRET === 'dev-secret-change-in-production') {
+if (!JWT_SECRET || JWT_SECRET.length < 32 || ['dev-secret-change-in-production','your-super-secret-jwt-key-change-in-production-min-32-chars'].includes(JWT_SECRET)) {
   throw new Error('JWT_SECRET must be configured with at least 32 characters');
 }
 const signingSecret: string = JWT_SECRET;
@@ -24,21 +24,24 @@ export async function authMiddleware(req: AuthRequest, res: Response, next: Next
   }
 
   const token = authHeader.slice(7);
+  let decoded: { userId: string; telegramId: string };
   try {
-    const decoded = jwt.verify(token, signingSecret) as { userId: string; telegramId: string; tier: string };
+    const payload=jwt.verify(token, signingSecret,{algorithms:['HS256']});
+    if(typeof payload==='string' || typeof payload.userId!=='string' || typeof payload.telegramId!=='string') throw new Error('Invalid claims');
+    decoded={userId:payload.userId,telegramId:payload.telegramId};
+  } catch { return res.status(401).json({success:false,error:'Invalid token'}); }
+  try {
     const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
-    if (!user) {
+    if (!user || user.telegramId!==decoded.telegramId) {
       return res.status(401).json({ success: false, error: 'User not found' });
     }
     req.user = { id: user.id, telegramId: user.telegramId, tier: await getEffectiveTier(user.id) };
     next();
-  } catch {
-    return res.status(401).json({ success: false, error: 'Invalid token' });
-  }
+  } catch(error) { next(error); }
 }
 
 export function generateToken(user: { id: string; telegramId: string; tier: string }): string {
-  return jwt.sign({ userId: user.id, telegramId: user.telegramId, tier: user.tier }, signingSecret, { expiresIn: '30d' });
+  return jwt.sign({ userId: user.id, telegramId: user.telegramId, tier: user.tier }, signingSecret, { algorithm:'HS256', expiresIn: '30d' });
 }
 
 export function requireTier(...allowedTiers: string[]) {
