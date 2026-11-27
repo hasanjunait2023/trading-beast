@@ -1,3 +1,4 @@
+import { asyncRouter } from '../middleware/async-router.js';
 import { Router, Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
@@ -6,7 +7,7 @@ import { getEffectiveTier } from '../services/entitlements.js';
 import { authMiddleware, requireAdmin } from '../middleware/auth.js';
 
 const prisma = new PrismaClient();
-const router: Router = Router();
+const router: Router = asyncRouter();
 
 // Telegram webhook endpoint
 router.post('/webhook', async (req, res) => {
