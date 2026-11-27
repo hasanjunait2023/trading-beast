@@ -30,8 +30,8 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: sfr-backend
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/session_focus_radar?schema=public
@@ -51,8 +51,8 @@ services:
       quickchart:
         condition: service_started
     volumes:
-      - ./backend:/app
-      - /app/node_modules
+      - ./backend:/app/backend
+      - /app/backend/node_modules
 
   user-frontend:
     build:

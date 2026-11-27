@@ -1,13 +1,15 @@
+import { normalizeWatchlist } from '../services/watchlist.js';
+import { registerUser } from '../services/users.js';
+import { asyncRouter } from '../middleware/async-router.js';
 import { Router, Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
 import { creditBalance, withRadarCredits, InsufficientCredits, DuplicateTrigger } from '../services/credits.js';
 import { getEffectiveTier } from '../services/entitlements.js';
 import { authMiddleware, requireAdmin } from '../middleware/auth.js';
 import { buildTelegramConfig, getValidMiniAppUrl, isValidMiniAppUrl } from '../services/telegram-config.js';
 
-const prisma = new PrismaClient();
-const router: Router = Router();
+import { prisma } from '../services/db.js';
+const router: Router = asyncRouter();
 
 // Telegram webhook endpoint
 router.post('/webhook', async (req, res) => {
@@ -171,47 +173,8 @@ async function handleMessage(message: any) {
   const text = message.text?.trim() || '';
   const userId = message.from.id.toString();
 
-  // Find or create user
-  let user = await prisma.user.findUnique({ where: { telegramId: userId } });
-
-  if (!user) {
-    // New user - extract referral code from /start
-    let referralCode: string | null = null;
-    if (text.startsWith('/start')) {
-      const parts = text.split(' ');
-      if (parts.length > 1 && parts[1].startsWith('ref_')) {
-        referralCode = parts[1].slice(4);
-      }
-    }
-
-    const refCode = crypto.randomBytes(4).toString('hex').toUpperCase();
-
-    user = await prisma.user.create({
-      data: {
-        telegramId: userId,
-        username: message.from.username,
-        firstName: message.from.first_name,
-        lastName: message.from.last_name,
-        languageCode: message.from.language_code || 'en',
-        tier: 'FREE',
-        referralCode: refCode,
-        referredBy: referralCode
-      }
-    });
-
-
-    if (referralCode) {
-      const referrer = await prisma.user.findUnique({ where: { referralCode } });
-      if (referrer) {
-        await prisma.referral.create({
-          data: { referrerId: referrer.id, referredId: user.id, status: 'PENDING' }
-        });
-      }
-    }
-  }
-
-  // Update last active
-  await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date() } });
+  const match = /^\/start\s+ref_([A-Za-z0-9]{1,64})$/.exec(text);
+  let user = await registerUser({telegramId:userId,username:message.from.username,firstName:message.from.first_name,lastName:message.from.last_name,languageCode:message.from.language_code},match?.[1]);
 
   user = { ...user, tier: await getEffectiveTier(user.id) };
 
@@ -245,7 +208,8 @@ async function handleMessage(message: any) {
   }
 }
 
-async function handleCallbackQuery(query: { message: { chat: { id: number } }; data: string; from: { id: number }; id: string }) {
+async function handleCallbackQuery(query: { message?: { chat: { id: number; type: string } }; data: string; from: { id: number; is_bot?: boolean }; id: string }) {
+  if (query.message?.chat.type !== 'private' || query.from.is_bot || query.message.chat.id !== query.from.id) return;
   const chatId = query.message.chat.id;
   const data = query.data;
   const userId = query.from.id.toString();
@@ -288,7 +252,7 @@ async function sendWelcomeMessage(chatId: number, user: any) {
   const text = `
 🎯 <b>Session Focus Radar</b> — Market Analysis Tool
 
-Welcome${user.firstName ? `, ${user.firstName}` : ''}! This tool provides session-aware trading focus lists for forex traders.
+Welcome${user.firstName ? `, ${escapeHtml(user.firstName)}` : ''}! This tool provides session-aware trading focus lists for forex traders.
 
 <b>Your Status:</b> ${user.tier} ${isTrialActive ? `(Pro Trial: ${trialDaysLeft} days left)` : ''}
 
@@ -326,14 +290,17 @@ async function sendFocusList(chatId: number, user: any, key: string) {
   const { runAnalysisForUser } = await import('../services/analysis.js');
 
   try {
-    const result = await withRadarCredits(user.id,key,()=>runAnalysisForUser(user.id));
-    const text = formatFocusResult(result, user.tier) + '\n\nCredits remaining: ' + await creditBalance(user.id);
-    await sendMessage(chatId, text);
+    await withRadarCredits(user.id,key,()=>runAnalysisForUser(user.id),'default',async(tx,result)=>{
+      const wallet=await tx.creditWallet.findUniqueOrThrow({where:{userId:user.id}});
+      const text=formatFocusResult(result,user.tier)+'\n\nCredits remaining: '+wallet.balance.toString();
+      const id=user.id+':'+key;
+      await tx.telegramDelivery.upsert({where:{id},create:{id,chatId:String(chatId),text},update:{}});
+    });
   } catch (error) {
     if (error instanceof InsufficientCredits) { await sendMessage(chatId,'You need 10 credits to run Radar. Daily credits accumulate automatically.'); return; }
     if (error instanceof DuplicateTrigger) return;
-    console.error('Focus list error:', error);
-    await sendMessage(chatId, '❌ Failed to generate focus list. Please try again later.');
+    console.error('Focus list error:', error instanceof Error ? error.name : 'Unknown');
+    throw error;
   }
 }
 
@@ -393,7 +360,7 @@ async function sendWatchlistMessage(chatId: number, user: any) {
   const text = `
 📋 <b>Your Watchlist</b>
 
-${watchlist.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}
+${watchlist.map((p: string, i: number) => `${i + 1}. ${escapeHtml(p)}`).join('\n')}
 
 Use <code>/watchlist EUR/USD,GBP/JPY,Gold</code> to update.
   `.trim();
@@ -401,11 +368,12 @@ Use <code>/watchlist EUR/USD,GBP/JPY,Gold</code> to update.
 }
 
 async function updateWatchlist(chatId: number, user: any, pairs: string[]) {
+  try {pairs=normalizeWatchlist(pairs);} catch {await sendMessage(chatId,'Invalid watchlist instrument or too many instruments.');return;}
   await prisma.user.update({
     where: { id: user.id },
     data: { watchlist: pairs }
   });
-  await sendMessage(chatId, `✅ Watchlist updated: ${pairs.join(', ')}`);
+  await sendMessage(chatId, `✅ Watchlist updated: ${escapeHtml(pairs.join(', '))}`);
 }
 
 async function sendTierInfo(chatId: number, user: any) {
@@ -483,12 +451,12 @@ Contact support for payment details.
 async function sendMessage(chatId: number, text: string, replyMarkup?: any) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) {
-    console.error('TELEGRAM_BOT_TOKEN not set');
-    return;
+    throw new Error('Telegram bot is not configured');
   }
 
-  await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
     method: 'POST',
+    signal: AbortSignal.timeout(15000),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       chat_id: chatId,
@@ -498,6 +466,9 @@ async function sendMessage(chatId: number, text: string, replyMarkup?: any) {
       disable_web_page_preview: true
     })
   });
+  const result=await response.json() as {ok:boolean};
+  if(!response.ok || !result.ok) throw new Error('Telegram message delivery failed');
 }
+function escapeHtml(value:string){return value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 export { router as telegramRoutes };

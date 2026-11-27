@@ -1,22 +1,25 @@
+import {pagination} from '../services/pagination.js';
+import { normalizeWatchlist } from '../services/watchlist.js';
+import { selectEffectiveSubscription } from '../services/entitlements.js';
+import { asyncRouter } from '../middleware/async-router.js';
 import { creditBalance, DAILY_CREDITS, RADAR_COST } from '../services/credits.js';
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth.js';
 
-const prisma = new PrismaClient();
-const router: Router = Router();
+import { prisma } from '../services/db.js';
+const router: Router = asyncRouter();
 
 const watchlistSchema = z.object({
-  watchlist: z.array(z.string()).min(1).max(50)
+  watchlist: z.array(z.string().min(1).max(32)).max(32)
 });
 
 const paymentSchema = z.object({
-  amount: z.number().int().positive(),
-  currency: z.string().default('USD'),
+  amount: z.number().int().positive().max(2147483647),
+  currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3,4}$/).default('USD'),
   method: z.enum(['BKASH', 'NAGAD', 'USDT']),
-  transactionId: z.string().min(1),
-  screenshotUrl: z.string().url().optional()
+  transactionId: z.string().trim().min(1).max(128),
+  screenshotUrl: z.string().max(2048).url().refine(s=>s.startsWith('https://')).optional()
 });
 
 router.get('/credits', async (req: AuthRequest, res, next) => {
@@ -24,10 +27,11 @@ router.get('/credits', async (req: AuthRequest, res, next) => {
 });
 
 router.get('/me', async (req: AuthRequest, res) => {
+  const now = new Date();
   const user = await prisma.user.findUnique({
     where: { id: req.user!.id },
     include: {
-      subscriptions: { orderBy: { createdAt: 'desc' }, take: 1 },
+      subscriptions: { where: {status:{in:['ACTIVE','TRIAL']},startsAt:{lte:now},expiresAt:{gt:now}} },
       payments: { orderBy: { createdAt: 'desc' }, take: 5 },
       referrals: { where: { status: 'CREDITED' } }
     }
@@ -37,7 +41,7 @@ router.get('/me', async (req: AuthRequest, res) => {
     return res.status(404).json({ success: false, error: 'User not found' });
   }
 
-  const activeSub = user.subscriptions[0];
+  const activeSub = selectEffectiveSubscription(user.subscriptions, now);
   const isTrialActive = activeSub?.status === 'TRIAL' && activeSub.expiresAt > new Date();
   const isProActive = activeSub?.status === 'ACTIVE' && activeSub.expiresAt > new Date();
 
@@ -79,9 +83,11 @@ router.patch('/watchlist', async (req: AuthRequest, res) => {
     return res.status(400).json({ success: false, error: 'Invalid watchlist', details: parsed.error.errors });
   }
 
+  let watchlist:string[];
+  try {watchlist=normalizeWatchlist(parsed.data.watchlist);} catch {return res.status(400).json({success:false,error:'Unknown watchlist instrument'});}
   const user = await prisma.user.update({
     where: { id: req.user!.id },
-    data: { watchlist: parsed.data.watchlist }
+    data: { watchlist }
   });
 
   res.json({ success: true, data: { watchlist: user.watchlist } });
@@ -117,20 +123,22 @@ router.post('/payment', async (req: AuthRequest, res) => {
 });
 
 router.get('/payments', async (req: AuthRequest, res) => {
+  const p=pagination(req.query);
   const payments = await prisma.payment.findMany({
-    where: { userId: req.user!.id },
-    orderBy: { createdAt: 'desc' }
+    where: { userId: req.user!.id },skip:p.skip,take:p.take,
+    orderBy: [{createdAt:'desc'},{id:'desc'}]
   });
-  res.json({ success: true, data: payments });
+  res.json({ success: true, data: payments,meta:{page:p.page,limit:p.limit} });
 });
 
 router.get('/referrals', async (req: AuthRequest, res) => {
+  const p=pagination(req.query);
   const referrals = await prisma.referral.findMany({
-    where: { referrerId: req.user!.id },
+    where: { referrerId: req.user!.id },skip:p.skip,take:p.take,
     include: { referred: { select: { telegramId: true, firstName: true, createdAt: true, tier: true } } },
-    orderBy: { createdAt: 'desc' }
+    orderBy: [{createdAt:'desc'},{id:'desc'}]
   });
-  res.json({ success: true, data: referrals });
+  res.json({ success: true, data: referrals,meta:{page:p.page,limit:p.limit} });
 });
 
 export { router as userRoutes };

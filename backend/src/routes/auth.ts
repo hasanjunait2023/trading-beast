@@ -1,13 +1,14 @@
+import { registerUser } from '../services/users.js';
+import { asyncRouter } from '../middleware/async-router.js';
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
 import { generateToken, AuthRequest, authMiddleware } from '../middleware/auth.js';
 import crypto from 'crypto';
 import { getEffectiveTier } from '../services/entitlements.js';
 import { verifyTelegramInitData } from '../services/telegram-auth.js';
 
-const prisma = new PrismaClient();
-const router: Router = Router();
+import { prisma } from '../services/db.js';
+const router: Router = asyncRouter();
 
 const telegramAuthSchema = z.object({
   initData: z.string().min(1).max(16384),
@@ -30,59 +31,10 @@ router.post('/telegram', async (req, res) => {
   const telegramId = String(identity.id);
   const { username, first_name: firstName, last_name: lastName, language_code: languageCode } = identity;
 
-  let user = await prisma.user.findUnique({ where: { telegramId } });
-
-  if (!user) {
-    // Generate unique referral code
-    let refCode: string;
-    let attempts = 0;
-    do {
-      refCode = crypto.randomBytes(4).toString('hex').toUpperCase();
-      attempts++;
-    } while (await prisma.user.findUnique({ where: { referralCode: refCode } }) && attempts < 10);
-
-    if (attempts >= 10) {
-      return res.status(500).json({ success: false, error: 'Could not generate referral code' });
-    }
-
-
-    user = await prisma.user.create({
-      data: {
-        telegramId,
-        username,
-        firstName,
-        lastName,
-        languageCode: languageCode || 'en',
-        tier: 'FREE',
-        referralCode: refCode,
-        referredBy: referralCode || null
-      }
-    });
-
-
-    // Handle referral
-    if (referralCode) {
-      const referrer = await prisma.user.findUnique({ where: { referralCode } });
-      if (referrer) {
-        await prisma.referral.create({
-          data: {
-            referrerId: referrer.id,
-            referredId: user.id,
-            status: 'PENDING'
-          }
-        });
-      }
-    }
-  } else {
-    // Update last active
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastActiveAt: new Date() }
-    });
-  }
+  const user = await registerUser({telegramId,username,firstName,lastName,languageCode},referralCode);
 
   const tier = await getEffectiveTier(user.id);
-  const token = generateToken({ id: user.id, telegramId: user.telegramId, tier });
+  const token = await generateToken({ id: user.id, telegramId: user.telegramId, tier });
 
   res.json({
     success: true,
@@ -131,8 +83,16 @@ router.post('/refresh', authMiddleware, async (req: AuthRequest, res) => {
   }
 
   const tier = await getEffectiveTier(user.id);
-  const token = generateToken({ id: user.id, telegramId: user.telegramId, tier });
+  const token = await generateToken({ id: user.id, telegramId: user.telegramId, tier },req.user.sessionId);
   res.json({ success: true, data: { token } });
 });
 
+router.post('/logout',authMiddleware,async(req:AuthRequest,res)=>{
+  await prisma.authSession.updateMany({where:{id:req.user!.sessionId,userId:req.user!.id,revokedAt:null},data:{revokedAt:new Date()}});
+  res.json({success:true});
+});
+router.post('/logout-all',authMiddleware,async(req:AuthRequest,res)=>{
+  await prisma.authSession.updateMany({where:{userId:req.user!.id,revokedAt:null},data:{revokedAt:new Date()}});
+  res.json({success:true});
+});
 export { router as authRoutes };
