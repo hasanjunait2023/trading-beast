@@ -1,3 +1,8 @@
+# Dependencies & builds
+node_modules/
+dist/
+*.tsbuildinfo
+
 # Environment files
 .env
 .env.local

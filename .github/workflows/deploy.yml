@@ -1,0 +1,66 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  VPS_HOST: 72.62.228.196
+  VPS_USER: root
+  PROJECT_DIR: /opt/session-focus-radar
+  COMPOSE: docker compose -f docker-compose.prod.yml
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Deploy to VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.VPS_USER }}@${{ env.VPS_HOST }} << 'SSHEOF'
+            set -e
+            cd ${{ env.PROJECT_DIR }}
+
+            # Preserve env files that older branches tracked in git:
+            # a pull must never delete the live .env (compose interpolation
+            # and the running stack depend on it).
+            [ -f .env ] && cp .env /root/tb-env-preserve.env || true
+            [ -f deploy/.env.production ] && cp deploy/.env.production /root/tb-env-production-preserve || true
+
+            # Pull latest changes
+            git pull origin main
+
+            # Restore preserved env files if the pull removed them
+            [ -f .env ] || cp /root/tb-env-preserve.env .env
+            [ -f deploy/.env.production ] || cp /root/tb-env-production-preserve deploy/.env.production || true
+
+            # Build all production services
+            ${{ env.COMPOSE }} build backend user-frontend admin-frontend mini-frontend landing
+
+            # Apply reviewed migrations (no-op until prisma/migrations exists;
+            # additive schema changes are applied manually per the Phase C
+            # runbook BEFORE the first deploy of a schema change)
+            ${{ env.COMPOSE }} up -d postgres
+            ${{ env.COMPOSE }} run --rm backend npx prisma migrate deploy || true
+
+            # Deploy
+            ${{ env.COMPOSE }} up -d backend user-frontend admin-frontend mini-frontend landing
+
+            # Health check (fail the workflow if the backend does not come up)
+            for i in $(seq 1 20); do
+              if curl -fs http://localhost:3000/health > /dev/null; then echo "backend healthy"; break; fi
+              if [ "$i" = "20" ]; then echo "backend health check FAILED"; docker logs sfr-backend --tail 100; exit 1; fi
+              sleep 3
+            done
+
+            # Show status
+            docker ps --filter name=sfr- --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+          SSHEOF
