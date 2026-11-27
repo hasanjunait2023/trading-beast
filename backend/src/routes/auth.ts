@@ -45,8 +45,6 @@ router.post('/telegram', async (req, res) => {
       return res.status(500).json({ success: false, error: 'Could not generate referral code' });
     }
 
-    // Determine trial end (7 days from now)
-    const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     user = await prisma.user.create({
       data: {
@@ -56,21 +54,11 @@ router.post('/telegram', async (req, res) => {
         lastName,
         languageCode: languageCode || 'en',
         tier: 'FREE',
-        trialEndsAt,
         referralCode: refCode,
         referredBy: referralCode || null
       }
     });
 
-    // Create trial subscription
-    await prisma.subscription.create({
-      data: {
-        userId: user.id,
-        tier: 'PRO',
-        status: 'TRIAL',
-        expiresAt: trialEndsAt
-      }
-    });
 
     // Handle referral
     if (referralCode) {
