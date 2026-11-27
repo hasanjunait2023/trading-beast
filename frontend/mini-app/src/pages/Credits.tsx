@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Coins, CalendarPlus, Radar, Crown, Clock } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { userApi, CreditsData } from '../services/api';
+import { CreditsSkeleton } from '../components/ui';
 
 export default function Credits() {
   const { user } = useAuth();
@@ -36,7 +38,7 @@ export default function Credits() {
       : null;
 
   return (
-    <div className="space-y-4 animate-fade-in px-4">
+    <div className="space-y-4 px-4">
       <div>
         <h1 className="text-xl">Credits & Tier</h1>
         <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
@@ -44,35 +46,46 @@ export default function Credits() {
         </p>
       </div>
 
-      <div className="card-elevated text-center py-6">
-        <Coins className="w-10 h-10 mx-auto mb-2" style={{ color: 'var(--color-warning)' }} />
-        <p className="font-display font-bold text-4xl">{loading ? '—' : (balance ?? '—')}</p>
-        <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-          Available credits
-        </p>
-        {runsLeft !== null && (
-          <p className="text-sm mt-2">
-            ≈ {runsLeft} Radar run{runsLeft === 1 ? '' : 's'} available
-          </p>
-        )}
-      </div>
+      {loading ? (
+        <CreditsSkeleton />
+      ) : (
+        <>
+          <motion.div
+            className="card-gradient text-center py-6"
+            initial={{ opacity: 0, scale: 0.98, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+          >
+            <Coins className="w-10 h-10 mx-auto mb-2" style={{ color: 'var(--color-warning)' }} />
+            <p className="font-display font-bold text-4xl">{balance ?? '—'}</p>
+            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+              Available credits
+            </p>
+            {runsLeft !== null && (
+              <p className="text-sm mt-2">
+                ≈ {runsLeft} Radar run{runsLeft === 1 ? '' : 's'} available
+              </p>
+            )}
+          </motion.div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="card text-center">
-          <CalendarPlus className="w-6 h-6 mx-auto mb-1.5" style={{ color: 'var(--color-success)' }} />
-          <p className="font-display font-bold text-xl">+{dailyGrant}</p>
-          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-            Free credits every day (they accumulate, never expire)
-          </p>
-        </div>
-        <div className="card text-center">
-          <Radar className="w-6 h-6 mx-auto mb-1.5" style={{ color: 'var(--color-link)' }} />
-          <p className="font-display font-bold text-xl">{radarCost}</p>
-          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-            Credits per Radar run (refunded if analysis fails)
-          </p>
-        </div>
-      </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="card text-center">
+              <CalendarPlus className="w-6 h-6 mx-auto mb-1.5" style={{ color: 'var(--color-success)' }} />
+              <p className="font-display font-bold text-xl">+{dailyGrant}</p>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                Free credits every day (they accumulate, never expire)
+              </p>
+            </div>
+            <div className="card text-center">
+              <Radar className="w-6 h-6 mx-auto mb-1.5" style={{ color: 'var(--color-link)' }} />
+              <p className="font-display font-bold text-xl">{radarCost}</p>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                Credits per Radar run (refunded if analysis fails)
+              </p>
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="card space-y-3">
         <h2 className="flex items-center gap-2 text-base">

@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { MotionConfig } from 'framer-motion';
 import App from './App';
 import { AuthProvider } from './hooks/useAuth';
 import { initTelegram } from './telegram';
@@ -12,8 +13,10 @@ initTelegram();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <MotionConfig reducedMotion="user">
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </MotionConfig>
   </React.StrictMode>
 );

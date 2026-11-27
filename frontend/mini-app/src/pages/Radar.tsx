@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import {
   Target,
   RefreshCw,
@@ -17,6 +18,7 @@ import {
   FocusResult,
 } from '../services/api';
 import { haptics, mainButton } from '../telegram';
+import { EmptyState, RadarSkeleton } from '../components/ui';
 
 export type SessionName = 'Asian' | 'London' | 'New York';
 
@@ -47,14 +49,28 @@ function PairCard({
   pair,
   accent,
   detailed,
+  index = 0,
 }: {
   pair: AnalyzedPair;
   accent: string;
   detailed: boolean;
+  index?: number;
 }) {
   const label = pair.kind === 'asset' ? pair.name : pair.pair;
+  const scorePct = Math.max(0, Math.min(100, pair.score));
+  const scoreColor =
+    pair.bias === 'BUY'
+      ? 'var(--color-success)'
+      : pair.bias === 'SELL'
+        ? 'var(--color-danger)'
+        : 'var(--color-link)';
   return (
-    <div className="card-elevated relative overflow-hidden">
+    <motion.div
+      className="card-elevated relative overflow-hidden"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, ease: 'easeOut', delay: Math.min(index, 6) * 0.05 }}
+    >
       <div
         className="absolute top-0 left-0 w-full"
         style={{ height: 3, background: accent }}
@@ -113,6 +129,22 @@ function PairCard({
         )}
       </div>
 
+      {/* Score bar — animates in with the card (transform/opacity only) */}
+      <div
+        className="h-1.5 rounded-full mt-3 overflow-hidden"
+        style={{ background: 'var(--color-bg)' }}
+        role="img"
+        aria-label={`Score ${pair.score} of 100`}
+      >
+        <motion.div
+          className="h-full rounded-full"
+          style={{ background: scoreColor, transformOrigin: 'left' }}
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: scorePct / 100 }}
+          transition={{ duration: 0.55, ease: 'easeOut', delay: 0.15 + Math.min(index, 6) * 0.05 }}
+        />
+      </div>
+
       {detailed && (
         <>
           <div className="grid grid-cols-3 gap-2 mt-3 text-center text-xs">
@@ -161,7 +193,7 @@ function PairCard({
           )}
         </>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -272,7 +304,7 @@ export default function Radar() {
   const showFull = !isFree || user?.isTrialActive || user?.isProActive;
 
   return (
-    <div className="space-y-4 animate-fade-in px-4">
+    <div className="space-y-4 px-4">
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-xl">Session Radar</h1>
@@ -385,13 +417,11 @@ export default function Radar() {
             Focus ({data.focus.length})
           </h2>
           {data.focus.length === 0 ? (
-            <div className="card text-center py-8">
-              <Target className="w-10 h-10 mx-auto mb-2 opacity-50" />
-              <p className="font-medium">No focus pairs right now</p>
-              <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
-                No pairs meet the full criteria for this session.
-              </p>
-            </div>
+            <EmptyState
+              Icon={Target}
+              title="No focus pairs right now"
+              body="No pairs meet the full criteria for this session."
+            />
           ) : (
             data.focus.map((p, i) => (
               <PairCard
@@ -399,6 +429,7 @@ export default function Radar() {
                 pair={p}
                 accent="var(--color-success)"
                 detailed={!!showFull}
+                index={i}
               />
             ))
           )}
@@ -443,14 +474,23 @@ export default function Radar() {
         </div>
       )}
 
+      {/* First run in flight — skeleton pair cards mirror the result layout */}
+      {!data && loading && (
+        <section className="space-y-3">
+          <h2 className="flex items-center gap-2 text-base">
+            <Target className="w-5 h-5" style={{ color: 'var(--color-success)' }} />
+            Scanning the {session} session…
+          </h2>
+          <RadarSkeleton />
+        </section>
+      )}
+
       {!data && !loading && (
-        <div className="card text-center py-8">
-          <Target className="w-10 h-10 mx-auto mb-2 opacity-50" />
-          <p className="font-medium">No radar run yet</p>
-          <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
-            Run Radar to get the {session} session focus list.
-          </p>
-        </div>
+        <EmptyState
+          Icon={Target}
+          title="No radar run yet"
+          body={`Run Radar to get the ${session} session focus list.`}
+        />
       )}
 
       <p className="text-center text-[11px] pb-2" style={{ color: 'var(--color-text-muted)' }}>

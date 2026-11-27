@@ -12,7 +12,7 @@ export default function Profile() {
   const language = user?.languageCode || tgUser?.language_code || 'en';
 
   return (
-    <div className="space-y-4 animate-fade-in px-4">
+    <div className="space-y-4 px-4">
       <div>
         <h1 className="text-xl">Profile</h1>
         <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>

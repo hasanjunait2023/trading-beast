@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Users, Copy, Check, Share2, Link as LinkIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Users, Copy, Check, Share2, Link as LinkIcon, UserPlus } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { userApi, telegramApi, ReferralEntry, TelegramConfig } from '../services/api';
 import { haptics, shareViaTelegram } from '../telegram';
+import { EmptyState, ReferralListSkeleton } from '../components/ui';
 
 const ENV_BOT_USERNAME =
   import.meta.env.VITE_BOT_USERNAME ||
@@ -73,7 +75,7 @@ export default function Referral() {
   const displayTotal = totalCount ?? user?.referralCount ?? referrals.length;
 
   return (
-    <div className="space-y-4 animate-fade-in px-4">
+    <div className="space-y-4 px-4">
       <div>
         <h1 className="text-xl">Referral Program</h1>
         <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
@@ -167,12 +169,25 @@ export default function Referral() {
         </ol>
       </div>
 
+      {loading && <ReferralListSkeleton />}
+
+      {!loading && referrals.length === 0 && (
+        <EmptyState
+          Icon={UserPlus}
+          title="No referrals yet"
+          body="Share your link above — friends who join with it will appear here."
+        />
+      )}
+
       {referrals.length > 0 && (
         <div className="card space-y-2">
           <h2 className="text-base">Recent referrals</h2>
-          {referrals.slice(0, 10).map((ref) => (
-            <div
+          {referrals.slice(0, 10).map((ref, i) => (
+            <motion.div
               key={ref.id}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.22, ease: 'easeOut', delay: Math.min(i, 6) * 0.04 }}
               className="flex items-center justify-between p-2.5 rounded-lg"
               style={{ background: 'var(--color-bg)' }}
             >
@@ -194,7 +209,7 @@ export default function Referral() {
               >
                 {ref.status}
               </span>
-            </div>
+            </motion.div>
           ))}
         </div>
       )}

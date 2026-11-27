@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { List, Check, Search, Save } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { List, Check, Search, Save, Star } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { analysisApi, userApi } from '../services/api';
 import { haptics } from '../telegram';
+import { EmptyState, WatchlistSkeleton } from '../components/ui';
 
 // Fallback list (same pairs as user-portal) if /api/analysis/pairs fails.
 const FALLBACK_PAIRS = [
@@ -23,6 +25,7 @@ export default function Watchlist() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [loadingPairs, setLoadingPairs] = useState(true);
 
   useEffect(() => {
     if (user?.watchlist) setSelected(user.watchlist);
@@ -38,7 +41,8 @@ export default function Watchlist() {
       })
       .catch(() => {
         /* keep fallback list */
-      });
+      })
+      .finally(() => setLoadingPairs(false));
   }, []);
 
   const toggle = (pair: string) => {
@@ -81,7 +85,7 @@ export default function Watchlist() {
   );
 
   return (
-    <div className="space-y-4 animate-fade-in px-4">
+    <div className="space-y-4 px-4">
       <div>
         <h1 className="text-xl">Watchlist</h1>
         <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
@@ -122,43 +126,58 @@ export default function Watchlist() {
         </div>
       )}
 
-      <div className="card space-y-1" style={{ padding: 8 }}>
-        {filtered.length === 0 && (
-          <p className="text-center py-6 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-            <List className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            No matching pairs found
-          </p>
-        )}
-        {filtered.map((pair) => {
-          const active = selected.includes(pair);
-          return (
-            <button
-              key={pair}
-              onClick={() => toggle(pair)}
-              aria-pressed={active}
-              className="w-full flex items-center justify-between p-3 rounded-lg border-none text-left"
-              style={{
-                background: active ? 'rgba(79,109,255,0.12)' : 'transparent',
-                color: 'var(--color-text)',
-              }}
-            >
-              <span className="font-mono font-medium text-sm">{pair}</span>
-              <span
-                className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+      {selected.length === 0 && !search && !loadingPairs && (
+        <EmptyState
+          Icon={Star}
+          title="No pairs in your watchlist yet"
+          body="Check the Radar tab to see what's in focus this session, then tap pairs below to add them here."
+        />
+      )}
+
+      {loadingPairs ? (
+        <WatchlistSkeleton />
+      ) : (
+        <div className="card space-y-1" style={{ padding: 8 }}>
+          {filtered.length === 0 && (
+            <p className="text-center py-6 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+              <List className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              No matching pairs found
+            </p>
+          )}
+          {filtered.map((pair) => {
+            const active = selected.includes(pair);
+            return (
+              <motion.button
+                key={pair}
+                onClick={() => toggle(pair)}
+                aria-pressed={active}
+                whileTap={{ scale: 0.98 }}
+                className="w-full flex items-center justify-between p-3 rounded-lg border-none text-left"
                 style={{
-                  background: active ? 'var(--color-accent)' : 'transparent',
-                  border: active
-                    ? '1px solid transparent'
-                    : '1px solid var(--color-border)',
-                  color: '#fff',
+                  background: active ? 'rgba(79,109,255,0.12)' : 'transparent',
+                  color: 'var(--color-text)',
                 }}
               >
-                {active && <Check className="w-4 h-4" />}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+                <span className="font-mono font-medium text-sm">{pair}</span>
+                <motion.span
+                  className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+                  style={{
+                    background: active ? 'var(--color-accent)' : 'transparent',
+                    border: active
+                      ? '1px solid transparent'
+                      : '1px solid var(--color-border)',
+                    color: '#fff',
+                  }}
+                  animate={{ scale: active ? 1 : 0.85 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 24 }}
+                >
+                  {active && <Check className="w-4 h-4" />}
+                </motion.span>
+              </motion.button>
+            );
+          })}
+        </div>
+      )}
 
       {error && (
         <p role="alert" className="text-sm" style={{ color: 'var(--color-danger)' }}>

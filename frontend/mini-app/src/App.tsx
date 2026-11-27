@@ -1,4 +1,5 @@
 import { useState, FormEvent } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   Radar as RadarIcon,
   List,
@@ -177,13 +178,21 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <main key={tab}>
-        {tab === 'radar' && <Radar />}
-        {tab === 'watchlist' && <Watchlist />}
-        {tab === 'credits' && <Credits />}
-        {tab === 'referral' && <Referral />}
-        {tab === 'profile' && <Profile />}
-      </main>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.main
+          key={tab}
+          initial={{ opacity: 0, x: 14 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -14 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+        >
+          {tab === 'radar' && <Radar />}
+          {tab === 'watchlist' && <Watchlist />}
+          {tab === 'credits' && <Credits />}
+          {tab === 'referral' && <Referral />}
+          {tab === 'profile' && <Profile />}
+        </motion.main>
+      </AnimatePresence>
 
       <nav
         aria-label="Mini App tabs"
@@ -198,21 +207,41 @@ export default function App() {
           {TABS.map(({ id, label, Icon }) => {
             const active = tab === id;
             return (
-              <button
+              <motion.button
                 key={id}
                 onClick={() => {
                   setTab(id);
                   haptics.selection();
                 }}
                 aria-current={active ? 'page' : undefined}
+                whileTap={{ scale: 0.9 }}
                 className="flex flex-col items-center gap-0.5 py-2.5 border-none bg-transparent"
                 style={{
                   color: active ? 'var(--color-link)' : 'var(--color-text-muted)',
                 }}
               >
-                <Icon className="w-5 h-5" />
+                <span className="relative flex items-center justify-center">
+                  {active && (
+                    <motion.span
+                      layoutId="tab-active-pill"
+                      className="absolute rounded-full"
+                      style={{
+                        inset: -6,
+                        background: 'rgba(107, 134, 255, 0.14)',
+                      }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                    />
+                  )}
+                  <motion.span
+                    className="relative flex"
+                    animate={{ scale: active ? 1.12 : 1 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 22 }}
+                  >
+                    <Icon className="w-5 h-5" />
+                  </motion.span>
+                </span>
                 <span className="text-[10px] font-medium">{label}</span>
-              </button>
+              </motion.button>
             );
           })}
         </div>
