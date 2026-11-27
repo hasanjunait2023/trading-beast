@@ -1,13 +1,13 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
-import { AuthRequest, requireTier } from '../middleware/auth.js';
+import { AuthRequest, requireAdmin } from '../middleware/auth.js';
 
 const prisma = new PrismaClient();
 const router: Router = Router();
 
-// Admin middleware - only ELITE tier (or dedicated ADMIN role)
-router.use(requireTier('ELITE'));
+// Admin access is independent of subscription tier.
+router.use(requireAdmin);
 
 const paymentVerifySchema = z.object({
   paymentId: z.string(),
@@ -137,29 +137,33 @@ router.post('/payments/verify', async (req: AuthRequest, res) => {
     const days = durationDays || 30;
     const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
-    await prisma.$transaction([
-      prisma.payment.update({
-        where: { id: paymentId },
+    const approved = await prisma.$transaction(async tx => {
+      const claimed = await tx.payment.updateMany({
+        where: { id: paymentId, status: 'PENDING' },
         data: { status: 'APPROVED', verifiedAt: new Date(), verifiedBy: req.user!.id }
-      }),
-      prisma.user.update({
+      });
+      if (claimed.count !== 1) return false;
+      await tx.user.update({
         where: { id: payment.userId },
         data: { tier: subTier }
-      }),
-      prisma.subscription.create({
+      });
+      await tx.subscription.create({
         data: {
           userId: payment.userId,
           tier: subTier as any,
           status: 'ACTIVE',
           expiresAt
         }
-      })
-    ]);
+      });
+      return true;
+    });
+    if (!approved) return res.status(409).json({ success: false, error: 'Payment already processed' });
   } else {
-    await prisma.payment.update({
-      where: { id: paymentId },
+    const rejected = await prisma.payment.updateMany({
+      where: { id: paymentId, status: 'PENDING' },
       data: { status: 'REJECTED', verifiedAt: new Date(), verifiedBy: req.user!.id }
     });
+    if (rejected.count !== 1) return res.status(409).json({ success: false, error: 'Payment already processed' });
   }
 
   res.json({ success: true, data: { action, paymentId } });

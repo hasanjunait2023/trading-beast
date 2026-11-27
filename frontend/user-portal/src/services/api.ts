@@ -117,13 +117,15 @@ export interface AnalyzedPair {
 }
 
 export const authApi = {
-  telegramLogin: (data: { telegramId: string; username?: string; firstName?: string; lastName?: string; languageCode?: string; referralCode?: string }) =>
+  telegramLogin: (data: { initData: string; referralCode?: string }) =>
     api.post('/auth/telegram', data),
+  codeLogin: (code:string) => api.post('/auth/code',{code}),
   refresh: () => api.post('/auth/refresh')
 };
 
 export const userApi = {
   me: () => api.get('/user/me'),
+  credits: () => api.get('/user/credits'),
   updateWatchlist: (watchlist: string[]) => api.patch('/user/watchlist', { watchlist }),
   submitPayment: (data: { amount: number; currency: string; method: string; transactionId: string; screenshotUrl?: string }) =>
     api.post('/user/payment', data),
@@ -133,7 +135,7 @@ export const userApi = {
 
 export const analysisApi = {
   getFocus: (session?: string, watchlist?: string[]) =>
-    api.post('/analysis/focus', { session, watchlist }),
+    api.post('/analysis/focus', { session, watchlist }, { headers: { 'Idempotency-Key': crypto.randomUUID() } }),
   getCachedFocus: (session: string) =>
     api.get(`/analysis/focus/${session}`),
   getPairs: () => api.get('/analysis/pairs')

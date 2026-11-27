@@ -1,12 +1,20 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
+import { creditBalance, withRadarCredits, InsufficientCredits, DuplicateTrigger } from '../services/credits.js';
+import { getEffectiveTier } from '../services/entitlements.js';
+import { authMiddleware, requireAdmin } from '../middleware/auth.js';
 
 const prisma = new PrismaClient();
 const router: Router = Router();
 
 // Telegram webhook endpoint
 router.post('/webhook', async (req, res) => {
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  const supplied = req.get('X-Telegram-Bot-Api-Secret-Token');
+  if (!secret || !supplied || Buffer.byteLength(secret) !== Buffer.byteLength(supplied) || !crypto.timingSafeEqual(Buffer.from(secret), Buffer.from(supplied))) {
+    return res.status(403).json({ ok: false });
+  }
   try {
     const update = req.body;
 
@@ -29,7 +37,7 @@ router.post('/webhook', async (req, res) => {
 });
 
 // Set webhook
-router.post('/set-webhook', async (req, res) => {
+router.post('/set-webhook', authMiddleware, requireAdmin, async (req, res) => {
   const { url } = req.body;
   if (!url) {
     return res.status(400).json({ success: false, error: 'URL required' });
@@ -37,10 +45,12 @@ router.post('/set-webhook', async (req, res) => {
 
   try {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+    if (!secret || !/^[A-Za-z0-9_-]{1,256}$/.test(secret)) return res.status(503).json({ success: false, error: 'Webhook secret not configured' });
     const response = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, allowed_updates: ['message', 'callback_query'] })
+      body: JSON.stringify({ url, secret_token: secret, allowed_updates: ['message', 'callback_query'] })
     });
     const data = await response.json() as { ok: boolean; result?: any; description?: string };
     res.json({ success: data.ok, data });
@@ -50,7 +60,7 @@ router.post('/set-webhook', async (req, res) => {
 });
 
 // Get webhook info
-router.get('/webhook-info', async (_req, res) => {
+router.get('/webhook-info', authMiddleware, requireAdmin, async (_req, res) => {
   try {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const response = await fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`);
@@ -62,6 +72,7 @@ router.get('/webhook-info', async (_req, res) => {
 });
 
 async function handleMessage(message: any) {
+  if (message.chat?.type !== 'private' || !message.from?.id || message.from.is_bot) return;
   const chatId = message.chat.id;
   const text = message.text?.trim() || '';
   const userId = message.from.id.toString();
@@ -80,7 +91,6 @@ async function handleMessage(message: any) {
     }
 
     const refCode = crypto.randomBytes(4).toString('hex').toUpperCase();
-    const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     user = await prisma.user.create({
       data: {
@@ -90,15 +100,11 @@ async function handleMessage(message: any) {
         lastName: message.from.last_name,
         languageCode: message.from.language_code || 'en',
         tier: 'FREE',
-        trialEndsAt,
         referralCode: refCode,
         referredBy: referralCode
       }
     });
 
-    await prisma.subscription.create({
-      data: { userId: user.id, tier: 'PRO', status: 'TRIAL', expiresAt: trialEndsAt }
-    });
 
     if (referralCode) {
       const referrer = await prisma.user.findUnique({ where: { referralCode } });
@@ -113,11 +119,22 @@ async function handleMessage(message: any) {
   // Update last active
   await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date() } });
 
+  user = { ...user, tier: await getEffectiveTier(user.id) };
+
   // Handle commands
-  if (text === '/start' || text === '/help') {
+  if (text === '/login') {
+    const code=crypto.randomBytes(32).toString('hex');
+    const digest=crypto.createHash('sha256').update(code).digest('hex');
+    await prisma.loginCode.create({data:{digest,userId:user.id,expiresAt:new Date(Date.now()+5*60*1000)}});
+    await sendMessage(chatId,'Your one-time browser login code (expires in 5 minutes). Never share it: <code>'+code+'</code>');
+  } else if (text === '/app') {
+    await sendOpenApp(chatId);
+  } else if (text === '/start' || text === '/help' || text.startsWith('/start ')) {
     await sendWelcomeMessage(chatId, user);
+  } else if (text === '/credits') {
+    await sendMessage(chatId, 'Credit balance: '+await creditBalance(user.id)+' | Radar: 10 credits | Daily grant: 10');
   } else if (text === '/focus') {
-    await sendFocusList(chatId, user);
+    await sendFocusList(chatId, user, 'msg:'+chatId+':'+message.message_id);
   } else if (text === '/watchlist') {
     await sendWatchlistMessage(chatId, user);
   } else if (text.startsWith('/watchlist ')) {
@@ -128,7 +145,7 @@ async function handleMessage(message: any) {
   } else if (text === '/referral') {
     await sendReferralInfo(chatId, user);
   } else if (text === '/pay') {
-    await sendPaymentOptions(chatId, user);
+    await sendMessage(chatId,'Premium credit packages are not available yet. Free users receive 10 credits daily.');
   } else {
     await sendMessage(chatId, 'Unknown command. Use /help to see available commands.');
   }
@@ -139,11 +156,12 @@ async function handleCallbackQuery(query: { message: { chat: { id: number } }; d
   const data = query.data;
   const userId = query.from.id.toString();
 
-  const user = await prisma.user.findUnique({ where: { telegramId: userId } });
-  if (!user) return;
+  const storedUser = await prisma.user.findUnique({ where: { telegramId: userId } });
+  if (!storedUser) return;
+  const user = { ...storedUser, tier: await getEffectiveTier(storedUser.id) };
 
   if (data === 'focus_now') {
-    await sendFocusList(chatId, user);
+    await sendFocusList(chatId, user, 'callback:'+query.id);
   } else if (data === 'my_watchlist') {
     await sendWatchlistMessage(chatId, user);
   } else if (data === 'my_tier') {
@@ -151,7 +169,7 @@ async function handleCallbackQuery(query: { message: { chat: { id: number } }; d
   } else if (data === 'referral_info') {
     await sendReferralInfo(chatId, user);
   } else if (data === 'payment_options') {
-    await sendPaymentOptions(chatId, user);
+    await sendMessage(chatId,'Premium credit packages are not available yet. Free users receive 10 credits daily.');
   }
 
   // Answer callback query
@@ -161,6 +179,12 @@ async function handleCallbackQuery(query: { message: { chat: { id: number } }; d
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ callback_query_id: query.id })
   });
+}
+
+async function sendOpenApp(chatId: number) {
+  const url=process.env.TELEGRAM_MINI_APP_URL;
+  if (!url || !url.startsWith('https://')) { await sendMessage(chatId,'Mini App is not configured yet.'); return; }
+  await sendMessage(chatId,'Open your TradingBeast workspace.',{inline_keyboard:[[{text:'Open App',web_app:{url}}]]});
 }
 
 async function sendWelcomeMessage(chatId: number, user: any) {
@@ -175,7 +199,10 @@ Welcome${user.firstName ? `, ${user.firstName}` : ''}! This tool provides sessio
 <b>Your Status:</b> ${user.tier} ${isTrialActive ? `(Pro Trial: ${trialDaysLeft} days left)` : ''}
 
 <b>Available Commands:</b>
-/focus — Get current session focus list (top 3 pairs)
+/app — Open TradingBeast
+/credits — Check credit balance
+/login — One-time browser login code
+/focus — Run Radar (10 credits)
 /watchlist — View your watchlist
 /watchlist EUR/USD,GBP/JPY,Gold — Update watchlist
 /tier — View subscription details
@@ -192,22 +219,25 @@ Welcome${user.firstName ? `, ${user.firstName}` : ''}! This tool provides sessio
 
   await sendMessage(chatId, text, {
     inline_keyboard: [
-      [{ text: '🎯 Get Focus Now', callback_data: 'focus_now' }],
+      ...(process.env.TELEGRAM_MINI_APP_URL?.startsWith('https://') ? [[{ text: 'Open App', web_app: { url: process.env.TELEGRAM_MINI_APP_URL } }]] : []),
+      [{ text: '🎯 Run Radar · 10 credits', callback_data: 'focus_now' }],
       [{ text: '📋 My Watchlist', callback_data: 'my_watchlist' }, { text: '💎 My Tier', callback_data: 'my_tier' }],
       [{ text: '👥 Referral', callback_data: 'referral_info' }, { text: '💳 Upgrade', callback_data: 'payment_options' }]
     ]
   });
 }
 
-async function sendFocusList(chatId: number, user: any) {
+async function sendFocusList(chatId: number, user: any, key: string) {
   // Import analysis service
   const { runAnalysisForUser } = await import('../services/analysis.js');
 
   try {
-    const result = await runAnalysisForUser(user.id);
-    const text = formatFocusResult(result, user.tier);
+    const result = await withRadarCredits(user.id,key,()=>runAnalysisForUser(user.id));
+    const text = formatFocusResult(result, user.tier) + '\n\nCredits remaining: ' + await creditBalance(user.id);
     await sendMessage(chatId, text);
   } catch (error) {
+    if (error instanceof InsufficientCredits) { await sendMessage(chatId,'You need 10 credits to run Radar. Daily credits accumulate automatically.'); return; }
+    if (error instanceof DuplicateTrigger) return;
     console.error('Focus list error:', error);
     await sendMessage(chatId, '❌ Failed to generate focus list. Please try again later.');
   }

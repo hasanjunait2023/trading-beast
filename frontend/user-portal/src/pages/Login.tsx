@@ -6,7 +6,8 @@ import { Target, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
 export default function Login() {
   const { login, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [telegramId, setTelegramId] = useState('');
+  const initData = (window as Window & { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData || '';
+  const [code,setCode] = useState('');
   const [referralCode, setReferralCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -16,7 +17,7 @@ export default function Login() {
     setError('');
     setIsLoading(true);
     try {
-      await login({ telegramId, referralCode: referralCode || undefined });
+      await login({ initData, code: initData ? undefined : code.trim(), referralCode: referralCode || undefined });
       navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -46,19 +47,7 @@ export default function Login() {
             )}
 
             <div>
-              <label className="label">Telegram User ID</label>
-              <input
-                type="text"
-                className="input"
-                placeholder="123456789"
-                value={telegramId}
-                onChange={(e) => setTelegramId(e.target.value)}
-                required
-                disabled={isLoading || authLoading}
-              />
-              <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                Find your ID by messaging @userinfobot on Telegram
-              </p>
+              {initData ? <p>Connect your verified Telegram account.</p> : <><p>Send /login to the TradingBeast bot in private chat and paste the one-time code.</p><input className="input" type="password" autoComplete="one-time-code" value={code} onChange={e=>setCode(e.target.value)} placeholder="One-time login code" /></>}
             </div>
 
             <div>
@@ -77,7 +66,7 @@ export default function Login() {
             <button
               type="submit"
               className="btn btn-primary w-full justify-center gap-2"
-              disabled={isLoading || authLoading || !telegramId.trim()}
+              disabled={isLoading || authLoading || (!initData && code.trim().length !== 64)}
             >
               {isLoading || authLoading ? (
                 <>
@@ -96,7 +85,7 @@ export default function Login() {
           <div className="mt-6 pt-6 border-t border-[var(--color-border)] space-y-3 text-sm">
             <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
               <CheckCircle className="w-4 h-4 text-[var(--color-success)] flex-shrink-0" />
-              <span>7-day Pro trial included</span>
+              <span>10 free credits every day</span>
             </div>
             <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
               <CheckCircle className="w-4 h-4 text-[var(--color-success)] flex-shrink-0" />

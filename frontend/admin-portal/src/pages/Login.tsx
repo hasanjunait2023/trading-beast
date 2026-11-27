@@ -45,18 +45,18 @@ export default function Login() {
             )}
 
             <div>
-              <label className="label">Admin Telegram ID</label>
+              <label className="label">One-time admin login code</label>
               <input
-                type="text"
+                type="password"
                 className="input"
-                placeholder="123456789"
+                placeholder="Code from /login in the bot"
                 value={telegramId}
                 onChange={(e) => setTelegramId(e.target.value)}
                 required
                 disabled={isLoading || authLoading}
               />
               <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                Only authorized admin accounts can access
+                Request a code in the private bot chat. Only authorized admin accounts can access.
               </p>
             </div>
 

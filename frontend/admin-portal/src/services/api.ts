@@ -67,7 +67,7 @@ export interface Metrics {
 }
 
 export const adminApi = {
-  login: (telegramId: string) => api.post('/auth/telegram', { telegramId, isAdmin: true }),
+  login: (code: string) => api.post('/auth/code', { code }),
 
   getUsers: (params?: { page?: number; limit?: number; tier?: string; search?: string }) =>
     api.get('/admin/users', { params }),
