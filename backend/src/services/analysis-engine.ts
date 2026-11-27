@@ -1,3 +1,5 @@
+import { openingRange, type RangeBreach } from './opening-range.js';
+import { getSessionWindow } from './session-clock.js';
 import { detectSessionWindow, isFxWeekOpen } from './session-clock.js';
 /**
  * Session Focus Radar - Core Analysis Engine
@@ -50,6 +52,8 @@ export interface AnalyzedPair {
   pdl: number | null;
   div: 'BULLISH' | 'BEARISH' | null;
   orHave: boolean;
+  orBreach?: RangeBreach;
+  orBreachTs?: number | null;
   orHigh: number | null;
   orLow: number | null;
   stale: boolean;
@@ -107,7 +111,7 @@ export interface PartialAnalyzedPair extends Partial<AnalyzedPair> {
 
 export interface SessionConfig {
   session: 'Asian' | 'London' | 'New York';
-  startHour: number; // UTC hour when session starts
+  startHour: number; // Dhaka local hour when session starts
   sessionStartTs: number;
   orDone: boolean;
   watchlist?: string[] | null;
@@ -348,10 +352,9 @@ function analyzePair(
   const t = day[todayKey];
   const adrPct = (adr && t) ? Math.round((t.h - t.l) / adr * 100) : null;
 
-  const orC = data15m.filter(x => x.ts >= cfg.sessionStartTs && x.ts < cfg.sessionStartTs + 3600);
-  const orHave = orC.length === 4 && orC.every((c, i) => c.ts === cfg.sessionStartTs + i * 900);
-  const orHigh = orHave ? Math.max(...orC.map(x => x.h)) : null;
-  const orLow = orHave ? Math.min(...orC.map(x => x.l)) : null;
+  const active = getSessionWindow(cfg.session,nowSec).active;
+  const range = openingRange(data15m,cfg.sessionStartTs,nowSec,active);
+  const {ready:orHave,high:orHigh,low:orLow,breach:orBreach,breachTs:orBreachTs}=range;
 
   return {
     kind: pairConfig.kind,
@@ -364,7 +367,7 @@ function analyzePair(
     base: pairConfig.base,
     quote: pairConfig.quote,
     live: data15m[data15m.length - 1].c,
-    p15, e20, e50, rsi, er, net, act, atr15, adrPct, pdh, pdl, div, orHave, orHigh, orLow,
+    p15, e20, e50, rsi, er, net, act, atr15, adrPct, pdh, pdl, div, orHave, orHigh, orLow, orBreach, orBreachTs,
     stale: nowSec - data15m[data15m.length - 1].ts > 10800,
     bias: null, cnt: 0, d4: 0, d1: 0, d15: 0, score: 0,
     orConfirmed: false, orLive: false, obstacle: null, roomATR: null,
@@ -394,7 +397,7 @@ function scorePairs(
     s15[p.base!] += p.win15; s15[p.quote!] -= p.win15;
   }
 
-  const orReady = cfg.orDone && pairs.some(p => p.orHave);
+  const orReady = getSessionWindow(cfg.session,nowSec).active && cfg.orDone && pairs.some(p => p.orHave);
   const active = SESSION_MAP[cfg.session] || [];
   const closedAssets: string[] = [];
 
@@ -507,6 +510,7 @@ export async function runAnalysis(
   if (closedAssets.length) warnings.push(`Closed: ${closedAssets.join(', ')} (market closed)`);
   if (!cfg.orDone) warnings.push(`Opening range in progress (${(cfg.startHour + 1) % 24}:00 Dhaka end) — trend only`);
   else if (!analyzed.some(p=>p.orHave)) warnings.push('Opening range data unavailable — trend only');
+  if (!getSessionWindow(cfg.session,nowSec).active) warnings.push('Selected session inactive — historical opening range, trend-only scoring');
   if (skipped.length) warnings.push(`${skipped.length} pairs missing data — strength calc incomplete`);
 
   return {
@@ -520,7 +524,7 @@ export async function runAnalysis(
     marketClosed,
     closedAssets,
     skippedCount: skipped.length,
-    orReady: cfg.orDone && analyzed.some(p => p.orHave)
+    orReady: getSessionWindow(cfg.session,nowSec).active && cfg.orDone && analyzed.some(p => p.orHave)
   };
 }
 
