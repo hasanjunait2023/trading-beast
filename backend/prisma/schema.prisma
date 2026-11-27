@@ -207,3 +207,17 @@ model AuthSession {
   @@index([userId,expiresAt])
   @@index([expiresAt])
 }
+
+model TelegramDelivery {
+  id String @id
+  chatId String
+  text String
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  leaseUntil DateTime?
+  leaseToken String?
+  sentAt DateTime?
+  failedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([sentAt,failedAt,nextAttemptAt])
+}
