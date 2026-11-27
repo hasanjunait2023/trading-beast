@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { getEffectiveTier } from '../services/entitlements.js';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -30,7 +31,7 @@ export async function authMiddleware(req: AuthRequest, res: Response, next: Next
     if (!user) {
       return res.status(401).json({ success: false, error: 'User not found' });
     }
-    req.user = { id: user.id, telegramId: user.telegramId, tier: user.tier };
+    req.user = { id: user.id, telegramId: user.telegramId, tier: await getEffectiveTier(user.id) };
     next();
   } catch {
     return res.status(401).json({ success: false, error: 'Invalid token' });
