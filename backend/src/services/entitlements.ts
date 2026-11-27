@@ -1,5 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import { prisma } from './db.js';
 type Tier = 'FREE' | 'PRO' | 'ELITE';
 type Subscription = { tier: Tier; status: string; startsAt: Date; expiresAt: Date };
 const rank: Record<Tier, number> = { FREE: 0, PRO: 1, ELITE: 2 };
