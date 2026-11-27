@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Menu, X, Zap } from 'lucide-react';
+import { useTelegramLinks, telegramLinkProps } from '../services/telegram';
 
 const links = [
   { label: 'Home', href: '#hero' },
@@ -12,6 +13,7 @@ const links = [
 export default function Navigation() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const telegram = useTelegramLinks();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -46,14 +48,19 @@ export default function Navigation() {
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
-          <a href="/login" className="text-sm text-gray-300 hover:text-white px-4 py-2 transition-colors">
-            Sign In
+          <a
+            href={telegram.botUrl ?? '#docs'}
+            {...(telegram.botUrl ? telegramLinkProps(telegram) : {})}
+            className="text-sm text-gray-300 hover:text-white px-4 py-2 transition-colors"
+          >
+            Telegram Bot
           </a>
           <a
-            href="/dashboard"
+            href={telegram.primaryHref}
+            {...telegramLinkProps(telegram)}
             className="bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white text-sm font-semibold px-5 py-2.5 rounded-full shadow-[0_0_20px_rgba(79,109,255,0.4)] transition-all"
           >
-            Open App →
+            {telegram.isTelegram ? 'Open in Telegram' : 'Get Started'}
           </a>
         </div>
 
@@ -78,8 +85,13 @@ export default function Navigation() {
               {l.label}
             </a>
           ))}
-          <a href="/dashboard" className="block text-center bg-gradient-to-r from-blue-600 to-violet-600 text-white font-semibold px-5 py-2.5 rounded-full">
-            Open App →
+          <a
+            href={telegram.primaryHref}
+            {...telegramLinkProps(telegram)}
+            onClick={() => setOpen(false)}
+            className="block text-center bg-gradient-to-r from-blue-600 to-violet-600 text-white font-semibold px-5 py-2.5 rounded-full"
+          >
+            {telegram.isTelegram ? 'Open in Telegram' : 'Get Started'}
           </a>
         </div>
       )}

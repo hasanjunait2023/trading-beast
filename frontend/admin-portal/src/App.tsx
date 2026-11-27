@@ -7,6 +7,7 @@ import Users from './pages/Users';
 import Payments from './pages/Payments';
 import Metrics from './pages/Metrics';
 import Analysis from './pages/Analysis';
+import Telegram from './pages/Telegram';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -25,6 +26,7 @@ function App() {
         <Route path="/payments" element={<Payments />} />
         <Route path="/metrics" element={<Metrics />} />
         <Route path="/analysis" element={<Analysis />} />
+        <Route path="/telegram" element={<Telegram />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

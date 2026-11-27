@@ -6,6 +6,7 @@ import {
   CreditCard,
   BarChart3,
   Activity,
+  Send,
   Settings,
   LogOut,
   Menu,
@@ -18,7 +19,8 @@ const navItems = [
   { path: '/users', label: 'Users', icon: Users },
   { path: '/payments', label: 'Payments', icon: CreditCard },
   { path: '/metrics', label: 'Metrics', icon: BarChart3 },
-  { path: '/analysis', label: 'Analysis', icon: Activity }
+  { path: '/analysis', label: 'Analysis', icon: Activity },
+  { path: '/telegram', label: 'Telegram', icon: Send }
 ];
 
 export default function Layout() {
