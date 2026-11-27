@@ -1,3 +1,4 @@
+import { registerUser } from '../services/users.js';
 import { asyncRouter } from '../middleware/async-router.js';
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
@@ -30,56 +31,7 @@ router.post('/telegram', async (req, res) => {
   const telegramId = String(identity.id);
   const { username, first_name: firstName, last_name: lastName, language_code: languageCode } = identity;
 
-  let user = await prisma.user.findUnique({ where: { telegramId } });
-
-  if (!user) {
-    // Generate unique referral code
-    let refCode: string;
-    let attempts = 0;
-    do {
-      refCode = crypto.randomBytes(4).toString('hex').toUpperCase();
-      attempts++;
-    } while (await prisma.user.findUnique({ where: { referralCode: refCode } }) && attempts < 10);
-
-    if (attempts >= 10) {
-      return res.status(500).json({ success: false, error: 'Could not generate referral code' });
-    }
-
-
-    user = await prisma.user.create({
-      data: {
-        telegramId,
-        username,
-        firstName,
-        lastName,
-        languageCode: languageCode || 'en',
-        tier: 'FREE',
-        referralCode: refCode,
-        referredBy: referralCode || null
-      }
-    });
-
-
-    // Handle referral
-    if (referralCode) {
-      const referrer = await prisma.user.findUnique({ where: { referralCode } });
-      if (referrer) {
-        await prisma.referral.create({
-          data: {
-            referrerId: referrer.id,
-            referredId: user.id,
-            status: 'PENDING'
-          }
-        });
-      }
-    }
-  } else {
-    // Update last active
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastActiveAt: new Date() }
-    });
-  }
+  const user = await registerUser({telegramId,username,firstName,lastName,languageCode},referralCode);
 
   const tier = await getEffectiveTier(user.id);
   const token = generateToken({ id: user.id, telegramId: user.telegramId, tier });
