@@ -45,13 +45,13 @@ jobs:
             # Build all production services
             ${{ env.COMPOSE }} build backend user-frontend admin-frontend mini-frontend landing
 
-            # Apply reviewed migrations (no-op until prisma/migrations exists;
-            # additive schema changes are applied manually per the Phase C
-            # runbook BEFORE the first deploy of a schema change)
-            ${{ env.COMPOSE }} up -d postgres
-            ${{ env.COMPOSE }} run --rm backend npx prisma migrate deploy || true
+            # Migrations are NOT run here: schema changes are reviewed and
+            # applied manually per docs/PHASE-C-DEPLOY-RUNBOOK.md before the
+            # deploy that needs them. (The previous `compose run --rm backend
+            # npx prisma migrate deploy` step stalled the 2026-11-28 deploy
+            # after the image builds — removed 2026-11-28.)
 
-            # Deploy
+            # Deploy (postgres/quickchart come up via depends_on)
             ${{ env.COMPOSE }} up -d backend user-frontend admin-frontend mini-frontend landing
 
             # Health check (fail the workflow if the backend does not come up)
