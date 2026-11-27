@@ -7,6 +7,7 @@ export default function Login() {
   const { login, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const initData = (window as Window & { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData || '';
+  const [code,setCode] = useState('');
   const [referralCode, setReferralCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -16,7 +17,7 @@ export default function Login() {
     setError('');
     setIsLoading(true);
     try {
-      await login({ initData, referralCode: referralCode || undefined });
+      await login({ initData, code: initData ? undefined : code.trim(), referralCode: referralCode || undefined });
       navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -46,7 +47,7 @@ export default function Login() {
             )}
 
             <div>
-              <p>Open TradingBeast from the Telegram bot to securely connect your account.</p>
+              {initData ? <p>Connect your verified Telegram account.</p> : <><p>Send /login to the TradingBeast bot in private chat and paste the one-time code.</p><input className="input" type="password" autoComplete="one-time-code" value={code} onChange={e=>setCode(e.target.value)} placeholder="One-time login code" /></>}
             </div>
 
             <div>
@@ -65,7 +66,7 @@ export default function Login() {
             <button
               type="submit"
               className="btn btn-primary w-full justify-center gap-2"
-              disabled={isLoading || authLoading || !initData}
+              disabled={isLoading || authLoading || (!initData && code.trim().length !== 64)}
             >
               {isLoading || authLoading ? (
                 <>
