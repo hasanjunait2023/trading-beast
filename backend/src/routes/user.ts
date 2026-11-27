@@ -1,3 +1,4 @@
+import { selectEffectiveSubscription } from '../services/entitlements.js';
 import { asyncRouter } from '../middleware/async-router.js';
 import { creditBalance, DAILY_CREDITS, RADAR_COST } from '../services/credits.js';
 import { Router, Request, Response, NextFunction } from 'express';
@@ -12,11 +13,11 @@ const watchlistSchema = z.object({
 });
 
 const paymentSchema = z.object({
-  amount: z.number().int().positive(),
-  currency: z.string().default('USD'),
+  amount: z.number().int().positive().max(2147483647),
+  currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3,4}$/).default('USD'),
   method: z.enum(['BKASH', 'NAGAD', 'USDT']),
-  transactionId: z.string().min(1),
-  screenshotUrl: z.string().url().optional()
+  transactionId: z.string().trim().min(1).max(128),
+  screenshotUrl: z.string().max(2048).url().refine(s=>s.startsWith('https://')).optional()
 });
 
 router.get('/credits', async (req: AuthRequest, res, next) => {
@@ -24,10 +25,11 @@ router.get('/credits', async (req: AuthRequest, res, next) => {
 });
 
 router.get('/me', async (req: AuthRequest, res) => {
+  const now = new Date();
   const user = await prisma.user.findUnique({
     where: { id: req.user!.id },
     include: {
-      subscriptions: { orderBy: { createdAt: 'desc' }, take: 1 },
+      subscriptions: { where: {status:{in:['ACTIVE','TRIAL']},startsAt:{lte:now},expiresAt:{gt:now}} },
       payments: { orderBy: { createdAt: 'desc' }, take: 5 },
       referrals: { where: { status: 'CREDITED' } }
     }
@@ -37,7 +39,7 @@ router.get('/me', async (req: AuthRequest, res) => {
     return res.status(404).json({ success: false, error: 'User not found' });
   }
 
-  const activeSub = user.subscriptions[0];
+  const activeSub = selectEffectiveSubscription(user.subscriptions, now);
   const isTrialActive = activeSub?.status === 'TRIAL' && activeSub.expiresAt > new Date();
   const isProActive = activeSub?.status === 'ACTIVE' && activeSub.expiresAt > new Date();
 
