@@ -1,3 +1,4 @@
+import {pagination} from '../services/pagination.js';
 import { selectEffectiveSubscription } from '../services/entitlements.js';
 import { reconcileCredits } from '../services/credit-audit.js';
 import { asyncRouter } from '../middleware/async-router.js';
@@ -12,6 +13,10 @@ const router: Router = asyncRouter();
 // Admin access is independent of subscription tier.
 router.use(requireAdmin);
 router.get('/credits/reconciliation', async (_req,res)=>{res.json({success:true,data:await reconcileCredits()});});
+router.get('/operations',async(_req,res)=>{
+  const [pending,failed,expiredRuns]=await Promise.all([prisma.telegramDelivery.count({where:{sentAt:null,failedAt:null}}),prisma.telegramDelivery.count({where:{failedAt:{not:null}}}),prisma.radarRun.count({where:{status:'RUNNING',expiresAt:{lte:new Date()}}})]);
+  res.json({success:true,data:{telegram:{pending,failed},expiredRuns}});
+});
 
 const paymentVerifySchema = z.object({
   paymentId: z.string(),
@@ -112,13 +117,14 @@ router.patch('/users/:id/tier', async (req: AuthRequest, res) => {
   res.json({success:true,data:user});
 });
 
-router.get('/payments/pending', async (_req: AuthRequest, res) => {
+router.get('/payments/pending', async (req: AuthRequest, res) => {
+  const p=pagination(req.query);
   const payments = await prisma.payment.findMany({
-    where: { status: 'PENDING' },
+    where: { status: 'PENDING' },skip:p.skip,take:p.take,
     include: { user: { select: { telegramId: true, username: true, firstName: true, tier: true } } },
-    orderBy: { createdAt: 'asc' }
+    orderBy: [{createdAt:'asc'},{id:'asc'}]
   });
-  res.json({ success: true, data: payments });
+  res.json({ success: true, data: payments,meta:{page:p.page,limit:p.limit} });
 });
 
 router.post('/payments/verify', async (req: AuthRequest, res) => {
