@@ -1,14 +1,18 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { isTelegram } from '../telegram';
+import PageTransition from './PageTransition';
 import {
   LayoutDashboard,
   Target,
   List,
+  Layers,
   Gem,
   Users,
   CreditCard,
+  Receipt,
   Settings,
+  CircleHelp,
   LogOut,
   Menu
 } from 'lucide-react';
@@ -18,10 +22,13 @@ const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/focus', label: 'Focus List', icon: Target },
   { path: '/watchlist', label: 'Watchlist', icon: List },
+  { path: '/plans', label: 'Plans', icon: Layers },
   { path: '/subscription', label: 'Subscription', icon: Gem },
   { path: '/referral', label: 'Referral', icon: Users },
   { path: '/payments', label: 'Payments', icon: CreditCard },
-  { path: '/settings', label: 'Settings', icon: Settings }
+  { path: '/billing', label: 'Billing', icon: Receipt },
+  { path: '/settings', label: 'Settings', icon: Settings },
+  { path: '/help', label: 'Help', icon: CircleHelp }
 ];
 
 export default function Layout() {
@@ -79,7 +86,9 @@ export default function Layout() {
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-          <Outlet />
+          <PageTransition key={location.pathname}>
+            <Outlet />
+          </PageTransition>
         </main>
       </div>
     );
@@ -173,7 +182,9 @@ export default function Layout() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 lg:p-6">
-          <Outlet />
+          <PageTransition key={location.pathname}>
+            <Outlet />
+          </PageTransition>
         </div>
       </main>
     </div>

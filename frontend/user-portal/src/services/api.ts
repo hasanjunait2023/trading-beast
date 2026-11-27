@@ -46,11 +46,15 @@ export interface User {
 
 export interface Payment {
   id: string;
-  amount: number;
+  amount: number; // smallest currency unit (cents)
   currency: string;
   method: string;
-  status: string;
+  status: string; // PENDING | APPROVED | REJECTED | EXPIRED
+  transactionId?: string | null;
+  screenshotUrl?: string | null;
+  verifiedAt?: string | null;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface FocusResult {

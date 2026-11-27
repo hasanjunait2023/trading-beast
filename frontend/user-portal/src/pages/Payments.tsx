@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { userApi } from '../services/api';
 import { CreditCard, Upload, CheckCircle, XCircle, Clock, AlertCircle, Smartphone, ImageIcon, DollarSign } from 'lucide-react';
@@ -11,6 +12,7 @@ const PAYMENT_METHODS = [
 
 export default function Payments() {
   useAuth();
+  const navigate = useNavigate();
   const [payments, setPayments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -58,19 +60,21 @@ export default function Payments() {
         screenshotUrl = URL.createObjectURL(screenshot);
       }
 
-      await userApi.submitPayment({
+      const submittedPayment = {
         amount: Math.round(amount * 100), // Convert to cents
         currency: 'USD',
         method: selectedMethod,
         transactionId: transactionId.trim(),
-        screenshotUrl
-      });
+        submittedAt: new Date().toISOString()
+      };
+
+      await userApi.submitPayment({ ...submittedPayment, screenshotUrl });
 
       setShowModal(false);
       setTransactionId('');
       setScreenshot(null);
       setError('');
-      fetchPayments();
+      navigate('/payment/success', { state: { payment: submittedPayment } });
     } catch (err: any) {
       setError(err.response?.data?.error || 'Payment submission failed');
     } finally {
