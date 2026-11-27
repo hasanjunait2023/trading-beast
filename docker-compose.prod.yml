@@ -87,8 +87,10 @@ services:
 
   user-frontend:
     build:
-      context: ./frontend/user-portal
-      dockerfile: Dockerfile.prod
+      context: ./frontend
+      dockerfile: user-portal/Dockerfile.prod
+      args:
+        - VITE_API_URL=https://api.tradingbeast.ecomex.cloud/api
     container_name: sfr-user-frontend
     environment:
       - VITE_API_URL=${FRONTEND_URL}/api
@@ -108,8 +110,8 @@ services:
 
   mini-frontend:
     build:
-      context: ./frontend/mini-app
-      dockerfile: Dockerfile.prod
+      context: ./frontend
+      dockerfile: mini-app/Dockerfile.prod
       args:
         - VITE_API_URL=https://api.tradingbeast.ecomex.cloud/api
         - VITE_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
@@ -129,8 +131,8 @@ services:
 
   landing:
     build:
-      context: ./frontend/landing
-      dockerfile: Dockerfile.prod
+      context: ./frontend
+      dockerfile: landing/Dockerfile.prod
       args:
         - VITE_API_URL=https://api.tradingbeast.ecomex.cloud/api
         - VITE_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
@@ -148,8 +150,10 @@ services:
 
   admin-frontend:
     build:
-      context: ./frontend/admin-portal
-      dockerfile: Dockerfile.prod
+      context: ./frontend
+      dockerfile: admin-portal/Dockerfile.prod
+      args:
+        - VITE_API_URL=https://api.tradingbeast.ecomex.cloud/api
     container_name: sfr-admin-frontend
     environment:
       - VITE_API_URL=${ADMIN_FRONTEND_URL}/api
