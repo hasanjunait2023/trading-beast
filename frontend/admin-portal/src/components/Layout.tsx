@@ -10,17 +10,39 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  Crown,
+  Wallet,
+  Coins
 } from 'lucide-react';
 import { useState } from 'react';
 
-const navItems = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/users', label: 'Users', icon: Users },
-  { path: '/payments', label: 'Payments', icon: CreditCard },
-  { path: '/metrics', label: 'Metrics', icon: BarChart3 },
-  { path: '/analysis', label: 'Analysis', icon: Activity },
-  { path: '/telegram', label: 'Telegram', icon: Send }
+const navGroups = [
+  {
+    label: 'Overview',
+    items: [
+      { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { path: '/metrics', label: 'Metrics', icon: BarChart3 }
+    ]
+  },
+  {
+    label: 'Business',
+    items: [
+      { path: '/users', label: 'Users', icon: Users },
+      { path: '/subscriptions', label: 'Subscriptions', icon: Crown },
+      { path: '/payments', label: 'Payments', icon: CreditCard },
+      { path: '/finance', label: 'Finance', icon: Wallet },
+      { path: '/credits', label: 'Credits', icon: Coins }
+    ]
+  },
+  {
+    label: 'Operations',
+    items: [
+      { path: '/analysis', label: 'Analysis', icon: Activity },
+      { path: '/telegram', label: 'Telegram', icon: Send },
+      { path: '/settings', label: 'Settings', icon: Settings }
+    ]
+  }
 ];
 
 export default function Layout() {
@@ -45,26 +67,35 @@ export default function Layout() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-            {navItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              const Icon = item.icon;
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-[var(--color-accent)] text-black font-medium'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)]'
-                  }`}
-                >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
-                  <span>{item.label}</span>
-                </NavLink>
-              );
-            })}
+          <nav className="flex-1 px-4 py-6 overflow-y-auto">
+            {navGroups.map((group, groupIndex) => (
+              <div key={group.label} className={groupIndex > 0 ? 'mt-6' : ''}>
+                <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+                  {group.label}
+                </p>
+                <div className="space-y-1">
+                  {group.items.map((item) => {
+                    const isActive = location.pathname === item.path;
+                    const Icon = item.icon;
+                    return (
+                      <NavLink
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => setSidebarOpen(false)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                          isActive
+                            ? 'bg-[var(--color-accent)] text-black font-medium'
+                            : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)]'
+                        }`}
+                      >
+                        <Icon className="w-5 h-5 flex-shrink-0" />
+                        <span>{item.label}</span>
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
 
           {/* User info & logout */}
