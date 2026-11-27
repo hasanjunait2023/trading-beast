@@ -1,10 +1,9 @@
 import { asyncRouter } from '../middleware/async-router.js';
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
 import { AuthRequest, requireAdmin } from '../middleware/auth.js';
 
-const prisma = new PrismaClient();
+import { prisma } from '../services/db.js';
 const router: Router = asyncRouter();
 
 // Admin access is independent of subscription tier.
