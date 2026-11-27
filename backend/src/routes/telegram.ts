@@ -113,7 +113,8 @@ async function handleMessage(message: any) {
   }
 }
 
-async function handleCallbackQuery(query: { message: { chat: { id: number } }; data: string; from: { id: number }; id: string }) {
+async function handleCallbackQuery(query: { message?: { chat: { id: number; type: string } }; data: string; from: { id: number; is_bot?: boolean }; id: string }) {
+  if (query.message?.chat.type !== 'private' || query.from.is_bot || query.message.chat.id !== query.from.id) return;
   const chatId = query.message.chat.id;
   const data = query.data;
   const userId = query.from.id.toString();
@@ -156,7 +157,7 @@ async function sendWelcomeMessage(chatId: number, user: any) {
   const text = `
 🎯 <b>Session Focus Radar</b> — Market Analysis Tool
 
-Welcome${user.firstName ? `, ${user.firstName}` : ''}! This tool provides session-aware trading focus lists for forex traders.
+Welcome${user.firstName ? `, ${escapeHtml(user.firstName)}` : ''}! This tool provides session-aware trading focus lists for forex traders.
 
 <b>Your Status:</b> ${user.tier} ${isTrialActive ? `(Pro Trial: ${trialDaysLeft} days left)` : ''}
 
@@ -261,7 +262,7 @@ async function sendWatchlistMessage(chatId: number, user: any) {
   const text = `
 📋 <b>Your Watchlist</b>
 
-${watchlist.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}
+${watchlist.map((p: string, i: number) => `${i + 1}. ${escapeHtml(p)}`).join('\n')}
 
 Use <code>/watchlist EUR/USD,GBP/JPY,Gold</code> to update.
   `.trim();
@@ -273,7 +274,7 @@ async function updateWatchlist(chatId: number, user: any, pairs: string[]) {
     where: { id: user.id },
     data: { watchlist: pairs }
   });
-  await sendMessage(chatId, `✅ Watchlist updated: ${pairs.join(', ')}`);
+  await sendMessage(chatId, `✅ Watchlist updated: ${escapeHtml(pairs.join(', '))}`);
 }
 
 async function sendTierInfo(chatId: number, user: any) {
@@ -351,12 +352,12 @@ Contact support for payment details.
 async function sendMessage(chatId: number, text: string, replyMarkup?: any) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) {
-    console.error('TELEGRAM_BOT_TOKEN not set');
-    return;
+    throw new Error('Telegram bot is not configured');
   }
 
-  await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
     method: 'POST',
+    signal: AbortSignal.timeout(15000),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       chat_id: chatId,
@@ -366,6 +367,9 @@ async function sendMessage(chatId: number, text: string, replyMarkup?: any) {
       disable_web_page_preview: true
     })
   });
+  const result=await response.json() as {ok:boolean};
+  if(!response.ok || !result.ok) throw new Error('Telegram message delivery failed');
 }
+function escapeHtml(value:string){return value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 export { router as telegramRoutes };
