@@ -1,6 +1,3 @@
-import { openingRange, type RangeBreach } from './opening-range.js';
-import { getSessionWindow } from './session-clock.js';
-import { detectSessionWindow, isFxWeekOpen } from './session-clock.js';
 /**
  * Session Focus Radar - Core Analysis Engine
  * Ported from n8n workflow: Seating time analysis chapter 2 important.json
@@ -52,8 +49,6 @@ export interface AnalyzedPair {
   pdl: number | null;
   div: 'BULLISH' | 'BEARISH' | null;
   orHave: boolean;
-  orBreach?: RangeBreach;
-  orBreachTs?: number | null;
   orHigh: number | null;
   orLow: number | null;
   stale: boolean;
@@ -111,7 +106,7 @@ export interface PartialAnalyzedPair extends Partial<AnalyzedPair> {
 
 export interface SessionConfig {
   session: 'Asian' | 'London' | 'New York';
-  startHour: number; // Dhaka local hour when session starts
+  startHour: number; // UTC hour when session starts
   sessionStartTs: number;
   orDone: boolean;
   watchlist?: string[] | null;
@@ -278,7 +273,20 @@ function buildPairs(): PairConfig[] {
 // Session Detection
 // ============================================================================
 
-function detectSession(nowSec: number): SessionConfig { return detectSessionWindow(nowSec); }
+function detectSession(nowSec: number): SessionConfig {
+  const dNow = nowSec + OFF;
+  const hour = Math.floor((dNow % 86400) / 3600);
+  let session: 'Asian' | 'London' | 'New York', startHour: number;
+  if (hour >= 18) { session = 'New York'; startHour = 18; }
+  else if (hour >= 12) { session = 'London'; startHour = 12; }
+  else if (hour >= 7) { session = 'Asian'; startHour = 7; }
+  else { session = 'New York'; startHour = 18; }
+  let startD = dNow - (dNow % 86400) + startHour * 3600;
+  if (startD > dNow) startD -= 86400;
+  const sessionStartTs = startD - OFF;
+  const orDone = nowSec >= sessionStartTs + 3600;
+  return { session, startHour, sessionStartTs, orDone };
+}
 
 // ============================================================================
 // Core Analysis - Single Pair
@@ -293,7 +301,7 @@ function analyzePair(
 ): AnalyzedPair | null {
   const cl15 = data15m.map(x => x.c);
   const cl1 = data1h.map(x => x.c);
-  const data4h = bucket(data1h, 14400).filter(b => b.ts + 14400 <= nowSec && data1h.filter(h => h.ts >= b.ts && h.ts < b.ts + 14400).length === 4);
+  const data4h = bucket(data1h, 14400);
   const cl4 = data4h.map(x => x.c);
 
   if (cl15.length < 220 || cl1.length < 210 || cl4.length < 205) return null;
@@ -314,7 +322,6 @@ function analyzePair(
   for (let i = data15m.length - 208; i < data15m.length; i++) trs.push(trOf(data15m, i));
   const act = avg(trs.slice(0, -8)) > 0 ? avg(trs.slice(-8)) / avg(trs.slice(0, -8)) : 1;
   const atr15 = avg(trs.slice(-14));
-  if (!Number.isFinite(atr15) || atr15 <= 0) return null;
 
   const ts4 = nz(e4 !== null ? cl4[cl4.length - 1] - e4 : null, atrS(data4h));
   const ts1 = nz(e1 !== null ? cl1[cl1.length - 1] - e1 : null, atrS(data1h));
@@ -352,9 +359,10 @@ function analyzePair(
   const t = day[todayKey];
   const adrPct = (adr && t) ? Math.round((t.h - t.l) / adr * 100) : null;
 
-  const active = getSessionWindow(cfg.session,nowSec).active;
-  const range = openingRange(data15m,cfg.sessionStartTs,nowSec,active);
-  const {ready:orHave,high:orHigh,low:orLow,breach:orBreach,breachTs:orBreachTs}=range;
+  const orC = data15m.filter(x => x.ts >= cfg.sessionStartTs && x.ts < cfg.sessionStartTs + 3600);
+  const orHave = orC.length >= 4;
+  const orHigh = orHave ? Math.max(...orC.map(x => x.h)) : null;
+  const orLow = orHave ? Math.min(...orC.map(x => x.l)) : null;
 
   return {
     kind: pairConfig.kind,
@@ -367,7 +375,7 @@ function analyzePair(
     base: pairConfig.base,
     quote: pairConfig.quote,
     live: data15m[data15m.length - 1].c,
-    p15, e20, e50, rsi, er, net, act, atr15, adrPct, pdh, pdl, div, orHave, orHigh, orLow, orBreach, orBreachTs,
+    p15, e20, e50, rsi, er, net, act, atr15, adrPct, pdh, pdl, div, orHave, orHigh, orLow,
     stale: nowSec - data15m[data15m.length - 1].ts > 10800,
     bias: null, cnt: 0, d4: 0, d1: 0, d15: 0, score: 0,
     orConfirmed: false, orLive: false, obstacle: null, roomATR: null,
@@ -391,13 +399,13 @@ function scorePairs(
   const s1: Record<string, number> = {}, s4: Record<string, number> = {}, s15: Record<string, number> = {};
   MAJORS.forEach(c => { s1[c] = 0; s4[c] = 0; s15[c] = 0; });
   for (const p of pairs) {
-    if (p.kind === 'asset' || p.stale) continue;
+    if (p.kind === 'asset') continue;
     s1[p.base!] += p.win1; s1[p.quote!] -= p.win1;
     s4[p.base!] += p.win4; s4[p.quote!] -= p.win4;
     s15[p.base!] += p.win15; s15[p.quote!] -= p.win15;
   }
 
-  const orReady = getSessionWindow(cfg.session,nowSec).active && cfg.orDone && pairs.some(p => p.orHave);
+  const orReady = cfg.orDone && pairs.some(p => p.orHave);
   const active = SESSION_MAP[cfg.session] || [];
   const closedAssets: string[] = [];
 
@@ -446,7 +454,7 @@ function scorePairs(
       return { ...p, d4, d1, d15, bias, cnt, score, orConfirmed, orLive, obstacle, roomATR, cramped, stretched, divAgainst, extended };
     });
 
-  const isFocus = (r: AnalyzedPair) => (r.kind === 'asset' || isFxWeekOpen(nowSec)) && !r.stale && r.bias !== null && r.cnt === 3 && r.score >= 65 && !r.cramped && (orReady ? r.orConfirmed : true);
+  const isFocus = (r: AnalyzedPair) => r.bias !== null && r.cnt === 3 && r.score >= 65 && !r.cramped && (orReady ? r.orConfirmed : true);
   const keysOf = (r: AnalyzedPair) => r.kind === 'asset' ? [r.group!] : [r.base!, r.quote!];
   function pickDiverse(list: AnalyzedPair[], n: number) {
     const chosen: AnalyzedPair[] = []; const used = new Set<string>();
@@ -460,7 +468,7 @@ function scorePairs(
   }
 
   const focus = pickDiverse(evald.filter(isFocus).sort((a, b) => b.score - a.score), 3).sort((a, b) => b.score - a.score);
-  const watch = evald.filter((r): r is AnalyzedPair => !focus.includes(r) && (r.kind === 'asset' || isFxWeekOpen(nowSec)) && !r.stale && r.bias !== null && r.cnt >= 2 && r.score >= 55).sort((a, b) => b.score - a.score).slice(0, 2);
+  const watch = evald.filter((r): r is AnalyzedPair => !focus.includes(r) && r.bias !== null && r.cnt >= 2 && r.score >= 55).sort((a, b) => b.score - a.score).slice(0, 2);
   const avoid = evald.filter((r): r is AnalyzedPair => !focus.includes(r) && !watch.includes(r)).sort((a, b) => a.score - b.score).slice(0, 3);
 
   return { focus, watch, avoid };
@@ -497,20 +505,16 @@ export async function runAnalysis(
 
   const { focus, watch, avoid } = scorePairs(analyzed, cfg, nowSec);
 
-  const time = new Date(nowSec * 1000).toLocaleString('en-GB', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit' });
+  const time = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit' });
   const scope = cfg.watchlist ? `${cfg.watchlist.length} item watchlist` : 'all pairs';
   const hasAsset = analyzed.some(r => r.kind === 'asset');
-  const marketClosed = !isFxWeekOpen(nowSec);
-  const dataStale = nowSec - lastTs > 10800;
+  const marketClosed = nowSec - lastTs > 10800;
   const closedAssets = analyzed.filter(r => r.kind === 'asset' && r.stale).map(r => r.name);
 
   const warnings: string[] = [];
-  if (marketClosed) warnings.push('Forex standard weekly market closed — using last available data');
-  else if (dataStale) warnings.push('Forex data stale — market status cannot be inferred from feed');
+  if (marketClosed) warnings.push('Forex market closed — using last available data');
   if (closedAssets.length) warnings.push(`Closed: ${closedAssets.join(', ')} (market closed)`);
-  if (!cfg.orDone) warnings.push(`Opening range in progress (${(cfg.startHour + 1) % 24}:00 Dhaka end) — trend only`);
-  else if (!analyzed.some(p=>p.orHave)) warnings.push('Opening range data unavailable — trend only');
-  if (!getSessionWindow(cfg.session,nowSec).active) warnings.push('Selected session inactive — historical opening range, trend-only scoring');
+  if (!cfg.orDone) warnings.push(cfg.orDone ? 'Opening range data unavailable — trend only' : `Opening range in progress (${(cfg.startHour + 1) % 24}:00 end) — trend only`);
   if (skipped.length) warnings.push(`${skipped.length} pairs missing data — strength calc incomplete`);
 
   return {
@@ -524,7 +528,7 @@ export async function runAnalysis(
     marketClosed,
     closedAssets,
     skippedCount: skipped.length,
-    orReady: getSessionWindow(cfg.session,nowSec).active && cfg.orDone && analyzed.some(p => p.orHave)
+    orReady: cfg.orDone && analyzed.some(p => p.orHave)
   };
 }
 
