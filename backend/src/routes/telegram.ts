@@ -72,6 +72,7 @@ router.get('/webhook-info', authMiddleware, requireAdmin, async (_req, res) => {
 });
 
 async function handleMessage(message: any) {
+  if (message.chat?.type !== 'private' || !message.from?.id || message.from.is_bot) return;
   const chatId = message.chat.id;
   const text = message.text?.trim() || '';
   const userId = message.from.id.toString();
@@ -126,7 +127,14 @@ async function handleMessage(message: any) {
   user = { ...user, tier: await getEffectiveTier(user.id) };
 
   // Handle commands
-  if (text === '/start' || text === '/help') {
+  if (text === '/login') {
+    const code=crypto.randomBytes(32).toString('hex');
+    const digest=crypto.createHash('sha256').update(code).digest('hex');
+    await prisma.loginCode.create({data:{digest,userId:user.id,expiresAt:new Date(Date.now()+5*60*1000)}});
+    await sendMessage(chatId,'Your one-time browser login code (expires in 5 minutes). Never share it: <code>'+code+'</code>');
+  } else if (text === '/app') {
+    await sendOpenApp(chatId);
+  } else if (text === '/start' || text === '/help' || text.startsWith('/start ')) {
     await sendWelcomeMessage(chatId, user);
   } else if (text === '/credits') {
     await sendMessage(chatId, 'Credit balance: '+await creditBalance(user.id)+' | Radar: 10 credits | Daily grant: 10');
@@ -178,6 +186,12 @@ async function handleCallbackQuery(query: { message: { chat: { id: number } }; d
   });
 }
 
+async function sendOpenApp(chatId: number) {
+  const url=process.env.TELEGRAM_MINI_APP_URL;
+  if (!url || !url.startsWith('https://')) { await sendMessage(chatId,'Mini App is not configured yet.'); return; }
+  await sendMessage(chatId,'Open your TradingBeast workspace.',{inline_keyboard:[[{text:'Open App',web_app:{url}}]]});
+}
+
 async function sendWelcomeMessage(chatId: number, user: any) {
   const isTrialActive = user.trialEndsAt && new Date(user.trialEndsAt) > new Date();
   const trialDaysLeft = isTrialActive ? Math.ceil((new Date(user.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
@@ -190,7 +204,10 @@ Welcome${user.firstName ? `, ${user.firstName}` : ''}! This tool provides sessio
 <b>Your Status:</b> ${user.tier} ${isTrialActive ? `(Pro Trial: ${trialDaysLeft} days left)` : ''}
 
 <b>Available Commands:</b>
-/focus — Get current session focus list (top 3 pairs)
+/app — Open TradingBeast
+/credits — Check credit balance
+/login — One-time browser login code
+/focus — Run Radar (10 credits)
 /watchlist — View your watchlist
 /watchlist EUR/USD,GBP/JPY,Gold — Update watchlist
 /tier — View subscription details
@@ -207,7 +224,8 @@ Welcome${user.firstName ? `, ${user.firstName}` : ''}! This tool provides sessio
 
   await sendMessage(chatId, text, {
     inline_keyboard: [
-      [{ text: '🎯 Get Focus Now', callback_data: 'focus_now' }],
+      ...(process.env.TELEGRAM_MINI_APP_URL?.startsWith('https://') ? [[{ text: 'Open App', web_app: { url: process.env.TELEGRAM_MINI_APP_URL } }]] : []),
+      [{ text: '🎯 Run Radar · 10 credits', callback_data: 'focus_now' }],
       [{ text: '📋 My Watchlist', callback_data: 'my_watchlist' }, { text: '💎 My Tier', callback_data: 'my_tier' }],
       [{ text: '👥 Referral', callback_data: 'referral_info' }, { text: '💳 Upgrade', callback_data: 'payment_options' }]
     ]
