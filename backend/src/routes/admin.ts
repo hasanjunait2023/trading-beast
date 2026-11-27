@@ -1,3 +1,4 @@
+import { selectEffectiveSubscription } from '../services/entitlements.js';
 import { reconcileCredits } from '../services/credit-audit.js';
 import { asyncRouter } from '../middleware/async-router.js';
 import { Router, Request, Response, NextFunction } from 'express';
@@ -25,8 +26,13 @@ router.get('/users', async (req: AuthRequest, res) => {
   const {page:pageNum,limit:limitNum,tier,search}=parsed.data;
   const skip = (pageNum - 1) * limitNum;
 
-  const where: any = {};
-  if (tier) where.tier = tier;
+  const now=new Date();
+  const current={status:{in:['ACTIVE','TRIAL'] as const},startsAt:{lte:now},expiresAt:{gt:now}};
+  const eligible=(t:'PRO'|'ELITE'):Prisma.SubscriptionWhereInput=>({...current,status:{in:['ACTIVE','TRIAL']},tier:t});
+  const where: Prisma.UserWhereInput = {};
+  if(tier==='ELITE') where.subscriptions={some:eligible('ELITE')};
+  if(tier==='PRO') where.subscriptions={some:eligible('PRO'),none:eligible('ELITE')};
+  if(tier==='FREE') where.subscriptions={none:{...eligible('PRO'),tier:{in:['PRO','ELITE']}}};
   if (search) {
     where.OR = [
       { telegramId: { contains: search as string } },
@@ -42,7 +48,7 @@ router.get('/users', async (req: AuthRequest, res) => {
       take: limitNum,
       orderBy: { createdAt: 'desc' },
       include: {
-        subscriptions: { orderBy: { createdAt: 'desc' }, take: 1 },
+        subscriptions: {where:{status:{in:['ACTIVE','TRIAL']},startsAt:{lte:now},expiresAt:{gt:now}}},
         _count: { select: { payments: true, referrals: true } }
       }
     }),
@@ -51,24 +57,24 @@ router.get('/users', async (req: AuthRequest, res) => {
 
   res.json({
     success: true,
-    data: users.map(u => ({
+    data: users.map(u => { const sub=selectEffectiveSubscription(u.subscriptions,now); return ({
       id: u.id,
       telegramId: u.telegramId,
       username: u.username,
       firstName: u.firstName,
-      tier: u.tier,
+      tier: sub?.tier ?? 'FREE',
       trialEndsAt: u.trialEndsAt,
       referralCode: u.referralCode,
       createdAt: u.createdAt,
       lastActiveAt: u.lastActiveAt,
-      activeSubscription: u.subscriptions[0] ? {
-        tier: u.subscriptions[0].tier,
-        status: u.subscriptions[0].status,
-        expiresAt: u.subscriptions[0].expiresAt
+      activeSubscription: sub ? {
+        tier: sub.tier,
+        status: sub.status,
+        expiresAt: sub.expiresAt
       } : null,
       paymentCount: u._count.payments,
       referralCount: u._count.referrals
-    })),
+    }); }),
     meta: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) }
   });
 });
@@ -190,10 +196,10 @@ router.get('/metrics', async (_req: AuthRequest, res) => {
     prisma.user.count(),
     prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
     prisma.user.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
-    prisma.user.count({ where: { tier: 'PRO' } }),
-    prisma.user.count({ where: { tier: 'ELITE' } }),
-    prisma.user.count({ where: { trialEndsAt: { gte: now } } }),
-    prisma.payment.aggregate({ where: { status: 'APPROVED' }, _sum: { amount: true } }),
+    prisma.user.count({ where: { subscriptions:{some:{tier:'PRO',status:{in:['ACTIVE','TRIAL']},startsAt:{lte:now},expiresAt:{gt:now}},none:{tier:'ELITE',status:{in:['ACTIVE','TRIAL']},startsAt:{lte:now},expiresAt:{gt:now}}} } }),
+    prisma.user.count({ where: { subscriptions:{some:{tier:'ELITE',status:{in:['ACTIVE','TRIAL']},startsAt:{lte:now},expiresAt:{gt:now}}} } }),
+    prisma.user.count({ where: { subscriptions:{some:{status:'TRIAL',startsAt:{lte:now},expiresAt:{gt:now}}} } }),
+    prisma.payment.groupBy({by:['currency'],where:{status:'APPROVED'},_sum:{amount:true}}),
     prisma.payment.count({ where: { status: 'PENDING' } }),
     prisma.payment.count({ where: { status: 'APPROVED', createdAt: { gte: thirtyDaysAgo } } }),
     prisma.referral.count(),
@@ -208,7 +214,7 @@ router.get('/metrics', async (_req: AuthRequest, res) => {
     data: {
       users: { total: totalUsers, new30d: newUsers30d, new7d: newUsers7d },
       tiers: { free: totalUsers - proUsers - eliteUsers, pro: proUsers, elite: eliteUsers, trial: trialUsers },
-      revenue: { total: totalRevenue._sum.amount || 0, pendingPayments, approved30d: approvedPayments30d },
+      revenue: { total: totalRevenue.length<=1 ? totalRevenue[0]?._sum.amount ?? 0 : null, currency:totalRevenue.length===1?totalRevenue[0].currency:null, byCurrency:totalRevenue.map(r=>({currency:r.currency,amount:r._sum.amount??0})), pendingPayments, approved30d: approvedPayments30d },
       referrals: { total: totalReferrals, active: activeReferrals },
       activation: { rate: Math.round(activationRate * 100) / 100 },
       trialConversion: { converted: trialConversion }
