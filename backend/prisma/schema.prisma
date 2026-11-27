@@ -25,6 +25,7 @@ model User {
   loginCodes      LoginCode[]
   creditWallet    CreditWallet?
   creditEntries   CreditEntry[]
+  radarRuns       RadarRun[]
   subscriptions   Subscription[]
   payments        Payment[]
   referrals       Referral[] @relation("Referrer")
@@ -170,4 +171,25 @@ model LoginCode {
   expiresAt DateTime
   usedAt DateTime?
   @@index([userId, expiresAt])
+}
+
+model RadarRun {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requestKey String
+  fingerprint String
+  status RadarRunStatus @default(RUNNING)
+  result Json?
+  startedAt DateTime @default(now())
+  expiresAt DateTime
+  completedAt DateTime?
+  @@unique([userId, requestKey])
+  @@index([status, expiresAt])
+  @@index([userId, startedAt])
+}
+enum RadarRunStatus {
+  RUNNING
+  SUCCEEDED
+  REFUNDED
 }
