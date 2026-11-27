@@ -1,3 +1,4 @@
+import { detectSessionWindow, isFxWeekOpen } from './session-clock.js';
 /**
  * Session Focus Radar - Core Analysis Engine
  * Ported from n8n workflow: Seating time analysis chapter 2 important.json
@@ -273,20 +274,7 @@ function buildPairs(): PairConfig[] {
 // Session Detection
 // ============================================================================
 
-function detectSession(nowSec: number): SessionConfig {
-  const dNow = nowSec + OFF;
-  const hour = Math.floor((dNow % 86400) / 3600);
-  let session: 'Asian' | 'London' | 'New York', startHour: number;
-  if (hour >= 18) { session = 'New York'; startHour = 18; }
-  else if (hour >= 12) { session = 'London'; startHour = 12; }
-  else if (hour >= 7) { session = 'Asian'; startHour = 7; }
-  else { session = 'New York'; startHour = 18; }
-  let startD = dNow - (dNow % 86400) + startHour * 3600;
-  if (startD > dNow) startD -= 86400;
-  const sessionStartTs = startD - OFF;
-  const orDone = nowSec >= sessionStartTs + 3600;
-  return { session, startHour, sessionStartTs, orDone };
-}
+function detectSession(nowSec: number): SessionConfig { return detectSessionWindow(nowSec); }
 
 // ============================================================================
 // Core Analysis - Single Pair
@@ -455,7 +443,7 @@ function scorePairs(
       return { ...p, d4, d1, d15, bias, cnt, score, orConfirmed, orLive, obstacle, roomATR, cramped, stretched, divAgainst, extended };
     });
 
-  const isFocus = (r: AnalyzedPair) => !r.stale && r.bias !== null && r.cnt === 3 && r.score >= 65 && !r.cramped && (orReady ? r.orConfirmed : true);
+  const isFocus = (r: AnalyzedPair) => (r.kind === 'asset' || isFxWeekOpen(nowSec)) && !r.stale && r.bias !== null && r.cnt === 3 && r.score >= 65 && !r.cramped && (orReady ? r.orConfirmed : true);
   const keysOf = (r: AnalyzedPair) => r.kind === 'asset' ? [r.group!] : [r.base!, r.quote!];
   function pickDiverse(list: AnalyzedPair[], n: number) {
     const chosen: AnalyzedPair[] = []; const used = new Set<string>();
@@ -469,7 +457,7 @@ function scorePairs(
   }
 
   const focus = pickDiverse(evald.filter(isFocus).sort((a, b) => b.score - a.score), 3).sort((a, b) => b.score - a.score);
-  const watch = evald.filter((r): r is AnalyzedPair => !focus.includes(r) && !r.stale && r.bias !== null && r.cnt >= 2 && r.score >= 55).sort((a, b) => b.score - a.score).slice(0, 2);
+  const watch = evald.filter((r): r is AnalyzedPair => !focus.includes(r) && (r.kind === 'asset' || isFxWeekOpen(nowSec)) && !r.stale && r.bias !== null && r.cnt >= 2 && r.score >= 55).sort((a, b) => b.score - a.score).slice(0, 2);
   const avoid = evald.filter((r): r is AnalyzedPair => !focus.includes(r) && !watch.includes(r)).sort((a, b) => a.score - b.score).slice(0, 3);
 
   return { focus, watch, avoid };
@@ -509,13 +497,16 @@ export async function runAnalysis(
   const time = new Date(nowSec * 1000).toLocaleString('en-GB', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit' });
   const scope = cfg.watchlist ? `${cfg.watchlist.length} item watchlist` : 'all pairs';
   const hasAsset = analyzed.some(r => r.kind === 'asset');
-  const marketClosed = nowSec - lastTs > 10800;
+  const marketClosed = !isFxWeekOpen(nowSec);
+  const dataStale = nowSec - lastTs > 10800;
   const closedAssets = analyzed.filter(r => r.kind === 'asset' && r.stale).map(r => r.name);
 
   const warnings: string[] = [];
-  if (marketClosed) warnings.push('Forex market closed — using last available data');
+  if (marketClosed) warnings.push('Forex standard weekly market closed — using last available data');
+  else if (dataStale) warnings.push('Forex data stale — market status cannot be inferred from feed');
   if (closedAssets.length) warnings.push(`Closed: ${closedAssets.join(', ')} (market closed)`);
-  if (!cfg.orDone) warnings.push(cfg.orDone ? 'Opening range data unavailable — trend only' : `Opening range in progress (${(cfg.startHour + 1) % 24}:00 end) — trend only`);
+  if (!cfg.orDone) warnings.push(`Opening range in progress (${(cfg.startHour + 1) % 24}:00 Dhaka end) — trend only`);
+  else if (!analyzed.some(p=>p.orHave)) warnings.push('Opening range data unavailable — trend only');
   if (skipped.length) warnings.push(`${skipped.length} pairs missing data — strength calc incomplete`);
 
   return {
