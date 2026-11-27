@@ -48,6 +48,7 @@ model Subscription {
 
   @@index([userId])
   @@index([status])
+  @@index([userId, status, expiresAt])
 }
 
 model Payment {
@@ -171,6 +172,7 @@ model LoginCode {
   expiresAt DateTime
   usedAt DateTime?
   @@index([userId, expiresAt])
+  @@index([expiresAt])
 }
 
 model RadarRun {
