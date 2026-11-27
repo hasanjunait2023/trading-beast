@@ -34,7 +34,7 @@ router.post('/telegram', async (req, res) => {
   const user = await registerUser({telegramId,username,firstName,lastName,languageCode},referralCode);
 
   const tier = await getEffectiveTier(user.id);
-  const token = generateToken({ id: user.id, telegramId: user.telegramId, tier });
+  const token = await generateToken({ id: user.id, telegramId: user.telegramId, tier });
 
   res.json({
     success: true,
@@ -83,8 +83,16 @@ router.post('/refresh', authMiddleware, async (req: AuthRequest, res) => {
   }
 
   const tier = await getEffectiveTier(user.id);
-  const token = generateToken({ id: user.id, telegramId: user.telegramId, tier });
+  const token = await generateToken({ id: user.id, telegramId: user.telegramId, tier },req.user.sessionId);
   res.json({ success: true, data: { token } });
 });
 
+router.post('/logout',authMiddleware,async(req:AuthRequest,res)=>{
+  await prisma.authSession.updateMany({where:{id:req.user!.sessionId,userId:req.user!.id,revokedAt:null},data:{revokedAt:new Date()}});
+  res.json({success:true});
+});
+router.post('/logout-all',authMiddleware,async(req:AuthRequest,res)=>{
+  await prisma.authSession.updateMany({where:{userId:req.user!.id,revokedAt:null},data:{revokedAt:new Date()}});
+  res.json({success:true});
+});
 export { router as authRoutes };
