@@ -1,4 +1,3 @@
-import { enqueueRadarDelivery } from '../services/telegram-delivery.js';
 import { normalizeWatchlist } from '../services/watchlist.js';
 import { registerUser } from '../services/users.js';
 import { asyncRouter } from '../middleware/async-router.js';
@@ -197,9 +196,12 @@ async function sendFocusList(chatId: number, user: any, key: string) {
   const { runAnalysisForUser } = await import('../services/analysis.js');
 
   try {
-    const result = await withRadarCredits(user.id,key,()=>runAnalysisForUser(user.id));
-    const text = formatFocusResult(result, user.tier) + '\n\nCredits remaining: ' + await creditBalance(user.id);
-    await enqueueRadarDelivery(user.id+':'+key,chatId,text);
+    await withRadarCredits(user.id,key,()=>runAnalysisForUser(user.id),'default',async(tx,result)=>{
+      const wallet=await tx.creditWallet.findUniqueOrThrow({where:{userId:user.id}});
+      const text=formatFocusResult(result,user.tier)+'\n\nCredits remaining: '+wallet.balance.toString();
+      const id=user.id+':'+key;
+      await tx.telegramDelivery.upsert({where:{id},create:{id,chatId:String(chatId),text},update:{}});
+    });
   } catch (error) {
     if (error instanceof InsufficientCredits) { await sendMessage(chatId,'You need 10 credits to run Radar. Daily credits accumulate automatically.'); return; }
     if (error instanceof DuplicateTrigger) return;
