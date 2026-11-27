@@ -1,3 +1,4 @@
+import { creditBalance, DAILY_CREDITS, RADAR_COST } from '../services/credits.js';
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
@@ -16,6 +17,10 @@ const paymentSchema = z.object({
   method: z.enum(['BKASH', 'NAGAD', 'USDT']),
   transactionId: z.string().min(1),
   screenshotUrl: z.string().url().optional()
+});
+
+router.get('/credits', async (req: AuthRequest, res, next) => {
+  try { res.json({success:true,data:{balance:await creditBalance(req.user!.id),dailyGrant:DAILY_CREDITS,radarCost:RADAR_COST}}); } catch(e) { next(e); }
 });
 
 router.get('/me', async (req: AuthRequest, res) => {
