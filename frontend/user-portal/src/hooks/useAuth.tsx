@@ -5,7 +5,7 @@ import { authApi } from '../services/api';
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (data: { telegramId: string; username?: string; firstName?: string; lastName?: string; languageCode?: string; referralCode?: string }) => Promise<void>;
+  login: (data: { initData: string; referralCode?: string }) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
   }, []);
 
-  const login = async (data: { telegramId: string; username?: string; firstName?: string; lastName?: string; languageCode?: string; referralCode?: string }) => {
+  const login = async (data: { initData: string; referralCode?: string }) => {
     const res = await authApi.telegramLogin(data);
     if (!res.data.success) throw new Error(res.data.error || 'Login failed');
     const { token: newToken, user: newUser } = res.data.data;
