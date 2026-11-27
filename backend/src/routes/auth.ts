@@ -113,6 +113,25 @@ router.post('/telegram', async (req, res) => {
   });
 });
 
+router.post('/code', async (req, res, next) => {
+  try {
+    const parsed = z.object({code:z.string().regex(/^[a-f0-9]{64}$/)}).safeParse(req.body);
+    if(!parsed.success) return res.status(400).json({success:false,error:'Invalid code'});
+    const digest=crypto.createHash('sha256').update(parsed.data.code).digest('hex');
+    const now=new Date();
+    const user=await prisma.$transaction(async tx=>{
+      const claimed=await tx.loginCode.updateMany({where:{digest,usedAt:null,expiresAt:{gt:now}},data:{usedAt:now}});
+      if(claimed.count!==1)return null;
+      const record=await tx.loginCode.findUniqueOrThrow({where:{digest},include:{user:true}});
+      return record.user;
+    });
+    if(!user)return res.status(401).json({success:false,error:'Invalid or expired code'});
+    const tier=await getEffectiveTier(user.id);
+    const token=generateToken({id:user.id,telegramId:user.telegramId,tier});
+    res.json({success:true,data:{token,user:{id:user.id,telegramId:user.telegramId,username:user.username,firstName:user.firstName,tier,referralCode:user.referralCode,watchlist:user.watchlist,languageCode:user.languageCode}}});
+  } catch(e){next(e);}
+});
+
 router.post('/refresh', authMiddleware, async (req: AuthRequest, res) => {
   if (!req.user) {
     return res.status(401).json({ success: false, error: 'Not authenticated' });
