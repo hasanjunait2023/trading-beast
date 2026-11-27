@@ -32,10 +32,7 @@ router.get('/focus/:session', async (req: AuthRequest, res) => {
   }
 
   try {
-    const cached = await getCachedAnalysis(session);
-    if (cached) {
-      return res.json({ success: true, data: cached });
-    }
+    // Honor the user's watchlist; shared snapshots are not personalized results.
     // Fall back to live analysis
     const result = await runAnalysisForUser(req.user!.id, { session: session as any });
     res.json({ success: true, data: result });
