@@ -9,6 +9,7 @@ import { userRoutes } from './routes/user.js';
 import { adminRoutes } from './routes/admin.js';
 import { telegramRoutes } from './routes/telegram.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { recoverExpiredRadarRuns } from './services/credits.js';
 import { authMiddleware } from './middleware/auth.js';
 
 const app = express();
@@ -58,7 +59,15 @@ app.use('/api/telegram', telegramRoutes);
 
 app.use(errorHandler);
 
+let recovering = false;
+async function recover() {
+  if (recovering) return;
+  recovering = true;
+  try { await recoverExpiredRadarRuns(); } catch (e) { console.error('Radar recovery failed', e); } finally { recovering = false; }
+}
 app.listen(PORT, () => {
+  void recover();
+  setInterval(() => void recover(), 60_000).unref();
   console.log(`Server running on port ${PORT}`);
 });
 
