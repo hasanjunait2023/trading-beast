@@ -1,3 +1,4 @@
+import { deliverTelegramBatch } from './services/telegram-delivery.js';
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -60,6 +61,7 @@ app.get('/ready', async (_req,res) => {
     await prisma.$queryRaw`SELECT 1`;
     await prisma.radarRun.findFirst({select:{id:true}});
     await prisma.authSession.findFirst({select:{id:true}});
+    await prisma.telegramDelivery.findFirst({select:{id:true}});
     res.json({success:true,data:{status:'ready'}});
   } catch {
     res.status(503).json({success:false,error:'Database not ready'});
@@ -80,7 +82,15 @@ async function recover() {
   recovering = true;
   try { await recoverExpiredRadarRuns(); await prisma.loginCode.deleteMany({where:{expiresAt:{lt:new Date(Date.now()-86400000)}}}); await prisma.authSession.deleteMany({where:{expiresAt:{lt:new Date(Date.now()-86400000)}}}); } catch (e) { console.error('Radar recovery failed', e); } finally { recovering = false; }
 }
+let delivering=false;
+async function deliver(){
+  if(delivering || closing)return;
+  delivering=true;
+  try{await deliverTelegramBatch();}catch(e){console.error('Telegram queue worker failed',e instanceof Error?e.name:'Unknown');}finally{delivering=false;}
+}
 const server=app.listen(PORT, () => {
+  void deliver();
+  setInterval(()=>void deliver(),5000).unref();
   void recover();
   setInterval(() => void recover(), 60_000).unref();
   console.log(`Server running on port ${PORT}`);
