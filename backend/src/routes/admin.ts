@@ -27,7 +27,7 @@ router.get('/users', async (req: AuthRequest, res) => {
   const skip = (pageNum - 1) * limitNum;
 
   const now=new Date();
-  const current={status:{in:['ACTIVE','TRIAL'] as const},startsAt:{lte:now},expiresAt:{gt:now}};
+  const current:Prisma.SubscriptionWhereInput={status:{in:['ACTIVE','TRIAL']},startsAt:{lte:now},expiresAt:{gt:now}};
   const eligible=(t:'PRO'|'ELITE'):Prisma.SubscriptionWhereInput=>({...current,status:{in:['ACTIVE','TRIAL']},tier:t});
   const where: Prisma.UserWhereInput = {};
   if(tier==='ELITE') where.subscriptions={some:eligible('ELITE')};
