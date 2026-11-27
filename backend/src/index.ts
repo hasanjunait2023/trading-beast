@@ -13,7 +13,7 @@ import { recoverExpiredRadarRuns } from './services/credits.js';
 import { prisma } from './services/db.js';
 import { authMiddleware } from './middleware/auth.js';
 
-const app = express();
+const app: express.Express = express();
 const PORT = process.env.PORT || 3000;
 
 // CORS: comma-separated allowlist, e.g. "https://app.vercel.app,https://admin.vercel.app"
