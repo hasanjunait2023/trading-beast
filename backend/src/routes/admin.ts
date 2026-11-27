@@ -1,6 +1,7 @@
 import { asyncRouter } from '../middleware/async-router.js';
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { AuthRequest, requireAdmin } from '../middleware/auth.js';
 
 import { prisma } from '../services/db.js';
@@ -13,13 +14,13 @@ const paymentVerifySchema = z.object({
   paymentId: z.string(),
   action: z.enum(['APPROVE', 'REJECT']),
   tier: z.enum(['PRO', 'ELITE']).optional(),
-  durationDays: z.number().int().positive().optional()
+  durationDays: z.number().int().min(1).max(366).optional()
 });
 
 router.get('/users', async (req: AuthRequest, res) => {
-  const { page = '1', limit = '20', tier, search } = req.query;
-  const pageNum = parseInt(page as string);
-  const limitNum = Math.min(parseInt(limit as string), 100);
+  const parsed=z.object({page:z.coerce.number().int().min(1).max(100000).default(1),limit:z.coerce.number().int().min(1).max(100).default(20),tier:z.enum(['FREE','PRO','ELITE']).optional(),search:z.string().max(100).optional()}).safeParse(req.query);
+  if(!parsed.success) return res.status(400).json({success:false,error:'Invalid pagination or filter'});
+  const {page:pageNum,limit:limitNum,tier,search}=parsed.data;
   const skip = (pageNum - 1) * limitNum;
 
   const where: any = {};
@@ -86,25 +87,21 @@ router.get('/users/:id', async (req: AuthRequest, res) => {
 });
 
 router.patch('/users/:id/tier', async (req: AuthRequest, res) => {
-  const { tier, expiresAt } = req.body;
-  if (!['FREE', 'PRO', 'ELITE'].includes(tier)) {
-    return res.status(400).json({ success: false, error: 'Invalid tier' });
-  }
-
-  const user = await prisma.user.update({
-    where: { id: req.params.id },
-    data: { tier }
-  });
-
-  if (expiresAt) {
-    await prisma.subscription.upsert({
-      where: { id: 'temp' }, // will be created
-      create: { userId: user.id, tier: tier as any, status: 'ACTIVE', expiresAt: new Date(expiresAt) },
-      update: { tier: tier as any, status: 'ACTIVE', expiresAt: new Date(expiresAt) }
-    });
-  }
-
-  res.json({ success: true, data: { id: user.id, tier: user.tier } });
+  const parsed=z.object({tier:z.enum(['FREE','PRO','ELITE']),expiresAt:z.string().datetime({offset:true}).optional()}).safeParse(req.body);
+  if(!parsed.success) return res.status(400).json({success:false,error:'Invalid tier or expiry'});
+  const {tier,expiresAt}=parsed.data;
+  const now=new Date();
+  if(tier!=='FREE' && (!expiresAt || new Date(expiresAt)<=now)) return res.status(400).json({success:false,error:'Paid tier requires a future expiry'});
+  const user=await prisma.$transaction(async tx=>{
+    const user=await tx.user.findUnique({where:{id:req.params.id}});
+    if(!user) return null;
+    await tx.user.update({where:{id:user.id},data:{tier,trialEndsAt:null}});
+    await tx.subscription.updateMany({where:{userId:user.id,status:{in:['ACTIVE','TRIAL']}},data:{status:'CANCELLED'}});
+    if(tier!=='FREE' && expiresAt) await tx.subscription.create({data:{userId:user.id,tier,status:'ACTIVE',startsAt:now,expiresAt:new Date(expiresAt)}});
+    return {id:user.id,tier};
+  },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
+  if(!user) return res.status(404).json({success:false,error:'User not found'});
+  res.json({success:true,data:user});
 });
 
 router.get('/payments/pending', async (_req: AuthRequest, res) => {
@@ -132,6 +129,7 @@ router.post('/payments/verify', async (req: AuthRequest, res) => {
     return res.status(400).json({ success: false, error: 'Payment already processed' });
   }
 
+  if (action === 'APPROVE' && process.env.ENABLE_LEGACY_PAYMENT_APPROVAL !== 'true') return res.status(503).json({success:false,error:'Payment approval disabled pending catalog verification'});
   if (action === 'APPROVE') {
     const subTier = tier || 'PRO';
     const days = durationDays || 30;
