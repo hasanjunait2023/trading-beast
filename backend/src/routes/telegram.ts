@@ -203,8 +203,8 @@ async function sendFocusList(chatId: number, user: any, key: string) {
   } catch (error) {
     if (error instanceof InsufficientCredits) { await sendMessage(chatId,'You need 10 credits to run Radar. Daily credits accumulate automatically.'); return; }
     if (error instanceof DuplicateTrigger) return;
-    console.error('Focus list error:', error);
-    await sendMessage(chatId, '❌ Failed to generate focus list. Please try again later.');
+    console.error('Focus list error:', error instanceof Error ? error.name : 'Unknown');
+    throw error;
   }
 }
 
