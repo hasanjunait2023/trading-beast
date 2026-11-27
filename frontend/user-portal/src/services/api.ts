@@ -119,6 +119,7 @@ export interface AnalyzedPair {
 export const authApi = {
   telegramLogin: (data: { initData: string; referralCode?: string }) =>
     api.post('/auth/telegram', data),
+  codeLogin: (code:string) => api.post('/auth/code',{code}),
   refresh: () => api.post('/auth/refresh')
 };
 
