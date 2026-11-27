@@ -229,3 +229,31 @@ docker stop sfr-mini-frontend
 ```
 Old containers/images stay on the VPS until pruned — do not `docker image
 prune` until the new deploy is verified.
+
+## 7. DEPLOY OUTCOME (2026-11-28 ~04:35 +06, Jafrul's explicit order)
+
+DEPLOYED AND VERIFIED LIVE:
+- Pre-steps done: DB backup (/opt/backups/tb-pre-deploy-2026-11-28.sql.gz),
+  .env keys added (webhook secret, mini app URL, admin IDs, TRUST_PROXY_HOPS=1),
+  JWT rotated on the VPS.
+- Schema: incremental diff reviewed additive-only (6 new tables), applied;
+  3 migrations resolved as applied — `prisma migrate status` reports
+  "Database schema is up to date!".
+- main = merge commit of master (unrelated histories; tree = master).
+  GitHub main a85095c / master 32f6ed8 (docker build fix).
+- Workflow run 1 failed at `git pull` (locally-edited tracked .env) — fixed
+  by restoring .env from the preserved copy after a manual pull.
+  Workflow run 2 pulled + built all 5 images, then stalled before `up -d`;
+  the final `up -d` + health gate were completed manually (runbook §3b).
+  FOLLOW-UP: simplify deploy.yml (drop the `compose run migrate` step —
+  migrations are applied per this runbook — and investigate the stall)
+  before relying on unattended deploys.
+- Live: backend healthy (/health, /ready), /api/telegram/config correct,
+  app.tradingbeast.ecomex.cloud serving the Mini App (Caddy vhost added,
+  Let's Encrypt cert issued), webhook set WITH secret (unsigned POST → 403),
+  chat menu button = Open App → app URL, admin 200, apex 200, zero 5xx in logs.
+- OPEN GAPS: (1) user portal (:5173) still has no public Caddy vhost —
+  FRONTEND_URL points at the apex, which serves the landing; give the portal
+  its own subdomain (owner pick). (2) BotFather "Main Mini App" profile
+  (short name/photo) is a manual owner step; the chat menu button is already
+  set via API.
