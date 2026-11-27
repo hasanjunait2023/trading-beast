@@ -1,3 +1,4 @@
+import { asyncRouter } from '../middleware/async-router.js';
 import { randomUUID, createHash } from 'node:crypto';
 import { withRadarCredits, InsufficientCredits, DuplicateTrigger, RadarRequestConflict, RadarRunExpired } from '../services/credits.js';
 import { Router, Request, Response, NextFunction } from 'express';
@@ -7,7 +8,7 @@ import { AuthRequest, requireAdmin } from '../middleware/auth.js';
 
 import { sessionOverview } from '../services/session-clock.js';
 import { MarketDataUnavailable } from '../services/market-data.js';
-const router: Router = Router();
+const router: Router = asyncRouter();
 
 // Read-only market clock: no credits charged.
 router.get('/sessions', (_req, res) => {
