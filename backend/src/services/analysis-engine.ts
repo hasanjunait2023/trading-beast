@@ -301,7 +301,7 @@ function analyzePair(
 ): AnalyzedPair | null {
   const cl15 = data15m.map(x => x.c);
   const cl1 = data1h.map(x => x.c);
-  const data4h = bucket(data1h, 14400);
+  const data4h = bucket(data1h, 14400).filter(b => b.ts + 14400 <= nowSec && data1h.filter(h => h.ts >= b.ts && h.ts < b.ts + 14400).length === 4);
   const cl4 = data4h.map(x => x.c);
 
   if (cl15.length < 220 || cl1.length < 210 || cl4.length < 205) return null;
@@ -322,6 +322,7 @@ function analyzePair(
   for (let i = data15m.length - 208; i < data15m.length; i++) trs.push(trOf(data15m, i));
   const act = avg(trs.slice(0, -8)) > 0 ? avg(trs.slice(-8)) / avg(trs.slice(0, -8)) : 1;
   const atr15 = avg(trs.slice(-14));
+  if (!Number.isFinite(atr15) || atr15 <= 0) return null;
 
   const ts4 = nz(e4 !== null ? cl4[cl4.length - 1] - e4 : null, atrS(data4h));
   const ts1 = nz(e1 !== null ? cl1[cl1.length - 1] - e1 : null, atrS(data1h));
@@ -360,7 +361,7 @@ function analyzePair(
   const adrPct = (adr && t) ? Math.round((t.h - t.l) / adr * 100) : null;
 
   const orC = data15m.filter(x => x.ts >= cfg.sessionStartTs && x.ts < cfg.sessionStartTs + 3600);
-  const orHave = orC.length >= 4;
+  const orHave = orC.length === 4 && orC.every((c, i) => c.ts === cfg.sessionStartTs + i * 900);
   const orHigh = orHave ? Math.max(...orC.map(x => x.h)) : null;
   const orLow = orHave ? Math.min(...orC.map(x => x.l)) : null;
 
@@ -399,7 +400,7 @@ function scorePairs(
   const s1: Record<string, number> = {}, s4: Record<string, number> = {}, s15: Record<string, number> = {};
   MAJORS.forEach(c => { s1[c] = 0; s4[c] = 0; s15[c] = 0; });
   for (const p of pairs) {
-    if (p.kind === 'asset') continue;
+    if (p.kind === 'asset' || p.stale) continue;
     s1[p.base!] += p.win1; s1[p.quote!] -= p.win1;
     s4[p.base!] += p.win4; s4[p.quote!] -= p.win4;
     s15[p.base!] += p.win15; s15[p.quote!] -= p.win15;
@@ -454,7 +455,7 @@ function scorePairs(
       return { ...p, d4, d1, d15, bias, cnt, score, orConfirmed, orLive, obstacle, roomATR, cramped, stretched, divAgainst, extended };
     });
 
-  const isFocus = (r: AnalyzedPair) => r.bias !== null && r.cnt === 3 && r.score >= 65 && !r.cramped && (orReady ? r.orConfirmed : true);
+  const isFocus = (r: AnalyzedPair) => !r.stale && r.bias !== null && r.cnt === 3 && r.score >= 65 && !r.cramped && (orReady ? r.orConfirmed : true);
   const keysOf = (r: AnalyzedPair) => r.kind === 'asset' ? [r.group!] : [r.base!, r.quote!];
   function pickDiverse(list: AnalyzedPair[], n: number) {
     const chosen: AnalyzedPair[] = []; const used = new Set<string>();
@@ -468,7 +469,7 @@ function scorePairs(
   }
 
   const focus = pickDiverse(evald.filter(isFocus).sort((a, b) => b.score - a.score), 3).sort((a, b) => b.score - a.score);
-  const watch = evald.filter((r): r is AnalyzedPair => !focus.includes(r) && r.bias !== null && r.cnt >= 2 && r.score >= 55).sort((a, b) => b.score - a.score).slice(0, 2);
+  const watch = evald.filter((r): r is AnalyzedPair => !focus.includes(r) && !r.stale && r.bias !== null && r.cnt >= 2 && r.score >= 55).sort((a, b) => b.score - a.score).slice(0, 2);
   const avoid = evald.filter((r): r is AnalyzedPair => !focus.includes(r) && !watch.includes(r)).sort((a, b) => a.score - b.score).slice(0, 3);
 
   return { focus, watch, avoid };
@@ -505,7 +506,7 @@ export async function runAnalysis(
 
   const { focus, watch, avoid } = scorePairs(analyzed, cfg, nowSec);
 
-  const time = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit' });
+  const time = new Date(nowSec * 1000).toLocaleString('en-GB', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit' });
   const scope = cfg.watchlist ? `${cfg.watchlist.length} item watchlist` : 'all pairs';
   const hasAsset = analyzed.some(r => r.kind === 'asset');
   const marketClosed = nowSec - lastTs > 10800;
