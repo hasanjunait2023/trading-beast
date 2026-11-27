@@ -1,0 +1,50 @@
+name: Backend verification
+on:
+  push:
+    branches: [master, 'backend/**']
+  pull_request:
+    branches: [master]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test-only-password
+          POSTGRES_DB: tradingbeast_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:test-only-password@localhost:5432/tradingbeast_test
+      RUN_DB_INTEGRATION: '1'
+      JWT_SECRET: test-only-secret-not-for-production-123456789
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: corepack enable
+      - name: Verify protected Radar core
+        run: |
+          test "$(git hash-object backend/src/services/analysis-engine.ts)" = 7b72dbd615c1dd31ab5b2ee7b99716fb198f363a
+          test "$(git hash-object backend/src/services/analysis.ts)" = 540c773578600cd4360518be51f8d1d00154bb0d
+      - working-directory: backend
+        run: corepack pnpm install --frozen-lockfile
+      - working-directory: backend
+        run: corepack pnpm exec prisma validate
+      - working-directory: backend
+        run: corepack pnpm db:generate
+      - working-directory: backend
+        run: corepack pnpm exec prisma migrate deploy
+      - working-directory: backend
+        run: corepack pnpm build
+      - working-directory: backend
+        run: corepack pnpm test
+      - run: docker build -f backend/Dockerfile.prod .
