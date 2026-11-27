@@ -17,7 +17,7 @@ export async function deliverTelegramBatch(limit=10){
       const result=await response.json() as {ok:boolean;parameters?:{retry_after?:number}};
       if(!response.ok||!result.ok){
         const retryAfter=Math.min(3600,Math.max(0,Number(result.parameters?.retry_after)||0));
-        if(response.status===429 && retryAfter) {
+        if(response.status===429 && retryAfter && row.attempts+1<8) {
           await prisma.telegramDelivery.updateMany({where:{id:row.id,leaseToken},data:{leaseToken:null,leaseUntil:null,nextAttemptAt:new Date(Date.now()+retryAfter*1000)}});
           continue;
         }
