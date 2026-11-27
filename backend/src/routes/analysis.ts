@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { runAnalysisForUser, getCachedAnalysis, runDailyPublishing } from '../services/analysis.js';
-import { AuthRequest } from '../middleware/auth.js';
+import { AuthRequest, requireAdmin } from '../middleware/auth.js';
 
 const router: Router = Router();
 
@@ -66,10 +66,7 @@ router.get('/pairs', (_req, res) => {
 });
 
 // Admin: trigger daily publishing
-router.post('/publish/daily', async (req: AuthRequest, res) => {
-  if (req.user!.tier !== 'ELITE' && req.user!.tier !== 'ADMIN') {
-    return res.status(403).json({ success: false, error: 'Admin only' });
-  }
+router.post('/publish/daily', requireAdmin, async (req: AuthRequest, res) => {
   try {
     const results = await runDailyPublishing();
     res.json({ success: true, data: results });
