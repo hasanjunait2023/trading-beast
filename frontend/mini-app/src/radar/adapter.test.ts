@@ -4,9 +4,12 @@ import {
   adaptRadarRun,
   adaptSessions,
   mapBias,
+  nextOpening,
   toEpochMs,
+  topShortlist,
   type RawAnalyzedPair,
   type RawFocusResult,
+  type RawSessionsOverview,
 } from '@shared/radar/adapter';
 
 function pair(overrides: Partial<RawAnalyzedPair>): RawAnalyzedPair {
@@ -242,5 +245,95 @@ describe('passthrough fields', () => {
     );
     expect(view.focus[0].displayName).toBe('EUR/USD');
     expect(view.focus[1].displayName).toBe('Gold');
+  });
+});
+
+describe('spark + currency passthrough', () => {
+  it('passes a valid spark series and base/quote through untouched', () => {
+    const view = adaptFocusResult(
+      result({ focus: [pair({ base: 'EUR', quote: 'USD', spark: [1.1, 1.2, 1.15] })] }),
+    );
+    expect(view.focus[0].spark).toEqual([1.1, 1.2, 1.15]);
+    expect(view.focus[0].base).toBe('EUR');
+    expect(view.focus[0].quote).toBe('USD');
+  });
+
+  it('nulls out missing, short or non-finite spark series', () => {
+    const view = adaptFocusResult(
+      result({
+        focus: [
+          pair({ pair: 'GBP/USD' }),
+          pair({ pair: 'USD/JPY', spark: [1.1] }),
+          pair({ pair: 'AUD/USD', spark: [1.1, Number.NaN] }),
+        ],
+      }),
+    );
+    expect(view.focus.map((p) => p.spark)).toEqual([null, null, null]);
+    expect(view.focus[0].base).toBeNull();
+  });
+});
+
+describe('nextOpening selector', () => {
+  const raw = (sessions: RawSessionsOverview['sessions']): RawSessionsOverview => ({
+    asOf: '2023-11-14T22:13:20.000Z', // 1_700_000_000s
+    fxWeekOpen: true,
+    selected: 'London',
+    active: ['London'],
+    overlap: false,
+    sessions,
+  });
+  const win = (over: Partial<RawSessionsOverview['sessions'][number]>): RawSessionsOverview['sessions'][number] => ({
+    session: 'London',
+    zone: 'Europe/London',
+    sessionStartTs: 1_699_948_800,
+    sessionEndTs: 1_699_981_200,
+    orEndTs: 1_699_952_400,
+    nextStartTs: 1_700_035_200,
+    orDone: true,
+    active: true,
+    ...over,
+  });
+
+  it('returns the earliest future opening, never the active session close', () => {
+    const view = adaptSessions(
+      raw([
+        win({}),
+        win({
+          session: 'New York',
+          zone: 'America/New_York',
+          active: false,
+          sessionStartTs: 1_699_970_400,
+          sessionEndTs: 1_700_002_800,
+          nextStartTs: 1_700_056_800,
+        }),
+      ]),
+    );
+    // London's next start (1_700_035_200) precedes New York's (1_700_056_800).
+    expect(nextOpening(view)).toEqual({
+      session: 'London',
+      zone: 'Europe/London',
+      startMs: 1_700_035_200_000,
+      endMs: 1_700_035_200_000 + (1_699_981_200_000 - 1_699_948_800_000),
+    });
+  });
+
+  it('returns null when no session opens after as-of', () => {
+    const view = adaptSessions(raw([win({ nextStartTs: 1_699_000_000 })]));
+    expect(nextOpening(view)).toBeNull();
+  });
+});
+
+describe('topShortlist', () => {
+  it('sorts by score descending, takes 3, and does not mutate the result', () => {
+    const view = adaptFocusResult(
+      result({
+        focus: [pair({ pair: 'EUR/USD', score: 78 })],
+        watch: [pair({ pair: 'GBP/USD', score: 64 }), pair({ pair: 'USD/JPY', score: 92 })],
+        avoid: [pair({ pair: 'AUD/USD', score: 12 })],
+      }),
+    );
+    const top = topShortlist(view);
+    expect(top.map((p) => p.pair)).toEqual(['USD/JPY', 'EUR/USD', 'GBP/USD']);
+    expect(view.all.map((p) => p.pair)).toEqual(['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD']);
   });
 });

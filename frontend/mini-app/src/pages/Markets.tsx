@@ -2,14 +2,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card } from '@shared/components/Card';
 import { Button } from '@shared/components/Button';
 import { CreditPill } from '@shared/components/CreditPill';
+import { PairFlags } from '@shared/components/PairFlags';
 import { PairRow } from '@shared/components/PairRow';
 import { DataFreshness } from '@shared/components/DataFreshness';
 import { ScoreEvidence, type EvidenceItem } from '@shared/components/ScoreEvidence';
 import { ChartPanel } from '@shared/components/ChartPanel';
+import { SessionHero } from '@shared/components/SessionHero';
 import { Skeleton } from '@shared/components/Skeleton';
 import { EmptyState } from '@shared/components/EmptyState';
 import {
   adaptSessions,
+  nextOpening,
   type RadarPairView,
   type RadarResultView,
   type SessionsOverviewView,
@@ -18,22 +21,27 @@ import { analysisApi, userApi, type CreditsData } from '../services/api';
 import { hydrateLatestRadar } from '../services/radarHydration';
 import { useAuth } from '../hooks/useAuth';
 import { useRadarStore, radarKey, type RadarScope } from '../store/radarStore';
+import { useMarketsUi, type StatusFilter } from '../store/marketsUi';
 import { RunRadarSheet } from '../components/RunRadarSheet';
+import { fmtSessionRange } from '../utils/sessionFormat';
 import { SessionClock } from './SessionClock';
 import { backButton } from '../telegram';
 
+/**
+ * Markets (formerly the combined Radar page). Session/scope/filter state
+ * lives in the shared marketsUi store so Home's "See Details" and shortlist
+ * taps land on the same scan, and state survives subview navigation.
+ * Behavior is unchanged from the Z1 Radar page: browsing never spends
+ * credits; only the RunRadarSheet confirmation posts.
+ */
+
 const SESSIONS = ['Asian', 'London', 'New York'] as const;
-type StatusFilter = 'all' | 'focus' | 'watch' | 'avoid';
 const FILTERS: { id: StatusFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'focus', label: 'Focus' },
   { id: 'watch', label: 'Watch' },
   { id: 'avoid', label: 'Avoid' },
 ];
-
-function fmtTime(ms: number): string {
-  return new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(ms));
-}
 
 function evidenceFor(p: RadarPairView): EvidenceItem[] {
   const items: EvidenceItem[] = [];
@@ -93,21 +101,23 @@ function PairDetail({ pair, result, onBack }: { pair: RadarPairView; result: Rad
   );
 }
 
-export default function Radar({ goToTab }: { goToTab: (tab: 'credits') => void }) {
+export default function Markets({ onOpenCredits }: { onOpenCredits: () => void }) {
   const { user } = useAuth();
   const userId = user?.id ?? '';
   const setResult = useRadarStore((s) => s.setResult);
   const resultsVersion = useRadarStore((s) => s.results);
   const lastKey = useRadarStore((s) => s.lastKey);
 
+  const session = useMarketsUi((s) => s.session);
+  const scope = useMarketsUi((s) => s.scope);
+  const filter = useMarketsUi((s) => s.filter);
+  const selectedPairCode = useMarketsUi((s) => s.selectedPairCode);
+  const { setSession, setScope, setFilter, adoptSession, setSelectedPairCode } = useMarketsUi.getState();
+
   const [overview, setOverview] = useState<SessionsOverviewView | null>(null);
   const [sessionsError, setSessionsError] = useState('');
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [credits, setCredits] = useState<CreditsData | null>(null);
-  const [session, setSession] = useState<string>('London');
-  const [sessionTouched, setSessionTouched] = useState(false);
-  const [scope, setScope] = useState<RadarScope>('watchlist');
-  const [filter, setFilter] = useState<StatusFilter>('all');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedPair, setSelectedPair] = useState<RadarPairView | null>(null);
   const [showClock, setShowClock] = useState(false);
@@ -119,14 +129,13 @@ export default function Radar({ goToTab }: { goToTab: (tab: 'credits') => void }
       const view = adaptSessions(res.data.data as Parameters<typeof adaptSessions>[0]);
       setOverview(view);
       setSessionsError('');
-      setSession((prev) => prev || view.selected);
-      if (!sessionTouched) setSession(view.selected);
+      adoptSession(view.selected);
     } catch {
       setSessionsError('Session clock unavailable right now.');
     } finally {
       setSessionsLoading(false);
     }
-  }, [sessionTouched]);
+  }, [adoptSession]);
 
   const loadCredits = useCallback(async () => {
     try {
@@ -142,29 +151,48 @@ export default function Radar({ goToTab }: { goToTab: (tab: 'credits') => void }
   // GET-only history hydration, once per account (see radarHydration).
   useEffect(() => { if (userId) void hydrateLatestRadar(userId); }, [userId]);
 
-  const stored: RadarResultView | undefined = resultsVersion[radarKey(userId, session, scope)];
+  const effectiveSession = session || overview?.selected || 'London';
+  const stored: RadarResultView | undefined = resultsVersion[radarKey(userId, effectiveSession, scope)];
   const lastResult: RadarResultView | undefined = lastKey ? resultsVersion[lastKey] : undefined;
   const lastParts = lastKey?.split('::') ?? [];
   const lastSession = lastParts[1];
   const lastScope = (lastParts[2] as RadarScope | undefined) ?? 'watchlist';
+
+  // Home shortlist taps arrive via selectedPairCode: open that pair's detail
+  // from the stored result once it is available.
+  useEffect(() => {
+    if (!selectedPairCode) return;
+    const hit = stored?.all.find((p) => p.pair === selectedPairCode) ?? lastResult?.all.find((p) => p.pair === selectedPairCode);
+    if (hit) {
+      setSelectedPair(hit);
+      setSelectedPairCode(null);
+    }
+  }, [selectedPairCode, stored, lastResult, setSelectedPairCode]);
 
   const visiblePairs = useMemo(() => {
     if (!stored) return [];
     return filter === 'all' ? stored.all : stored.all.filter((p) => p.status === filter);
   }, [stored, filter]);
 
-  const activeNames = overview?.active ?? [];
-  const heroSession = activeNames.length > 0 ? activeNames.join(' + ') : overview?.selected;
+  const heroWindow = overview?.sessions.find((s) => s.session === effectiveSession);
+  const heroActive = heroWindow?.active ?? false;
+  const next = overview ? nextOpening(overview) : null;
 
-  if (selectedPair && stored) {
-    return <PairDetail pair={selectedPair} result={stored} onBack={() => setSelectedPair(null)} />;
+  if (selectedPair && (stored ?? lastResult)) {
+    return (
+      <PairDetail
+        pair={selectedPair}
+        result={stored ?? (lastResult as RadarResultView)}
+        onBack={() => setSelectedPair(null)}
+      />
+    );
   }
 
   if (showClock) {
     return (
       <div className="space-y-4 px-4">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setShowClock(false)} ariaLabel="Back to Radar">← Back</Button>
+          <Button variant="ghost" size="sm" onClick={() => setShowClock(false)} ariaLabel="Back to Markets">← Back</Button>
           <h1 className="text-xl font-bold">Session Clock</h1>
         </div>
         <SessionClock overview={overview} loading={sessionsLoading} error={sessionsError} onRetry={() => void loadSessions()} />
@@ -176,43 +204,38 @@ export default function Radar({ goToTab }: { goToTab: (tab: 'credits') => void }
     <div className="space-y-4 px-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Session Focus Radar</h1>
+          <h1 className="text-2xl font-bold">Markets</h1>
           <p className="text-sm text-[var(--color-text-muted)]">Session-by-session FX focus, from real scans.</p>
         </div>
-        {credits && <CreditPill credits={credits.balance} onClick={() => goToTab('credits')} />}
+        {credits && <CreditPill credits={credits.balance} onClick={onOpenCredits} />}
       </div>
 
-      {/* Session hero (studies 03+04) — read-only data, zero paid calls. */}
-      <div className="rounded-[var(--radius-lg)] p-4 text-white shadow-[var(--shadow-md)]" style={{ background: 'var(--grad-hero)' }}>
-        {sessionsLoading && !overview ? (
-          <Skeleton height={72} />
-        ) : overview ? (
-          <>
-            <p className="text-sm opacity-80">{heroSession} Session{activeNames.length ? '' : ' (selected)'}</p>
-            <p className="mt-0.5 text-2xl font-bold">
-              {activeNames.length ? `${heroSession} · Live` : overview.fxWeekOpen ? 'No session live now' : 'Market week closed'}
-            </p>
-            {overview.nextTransition && (
-              <p className="tnum mt-1 text-sm opacity-90">
-                Next: {overview.nextTransition.session} {overview.nextTransition.kind} at {fmtTime(overview.nextTransition.atMs)}
-              </p>
-            )}
-            {overview.overlap && <p className="mt-1 text-sm opacity-90">Sessions overlap right now.</p>}
-          </>
-        ) : (
+      {/* Session hero — read-only data, zero paid calls. */}
+      {sessionsLoading && !overview ? (
+        <Skeleton height={150} className="rounded-[var(--radius-hero)]" />
+      ) : heroWindow ? (
+        <SessionHero
+          sessionName={heroWindow.session}
+          state={heroActive ? 'live' : overview && !overview.fxWeekOpen ? 'closed' : 'upcoming'}
+          stateLabel={overview && !overview.fxWeekOpen ? 'MARKET CLOSED' : undefined}
+          rangeLabel={fmtSessionRange(heroWindow.sessionStartMs, heroWindow.sessionEndMs, heroWindow.zone)}
+          nextLabel={next ? `${next.session} ${fmtSessionRange(next.startMs, next.endMs, next.zone)}` : undefined}
+        />
+      ) : (
+        <div className="rounded-[var(--radius-lg)] p-4 text-white shadow-[var(--shadow-md)]" style={{ background: 'var(--grad-hero)' }}>
           <p className="text-sm">Session information unavailable. <button type="button" className="underline" onClick={() => void loadSessions()}>Retry</button></p>
-        )}
-        <div className="mt-3">
-          <Button variant="secondary" size="sm" onClick={() => setShowClock(true)}>Session Clock</Button>
         </div>
+      )}
+      <div>
+        <Button variant="secondary" size="sm" onClick={() => setShowClock(true)}>Session Clock</Button>
       </div>
 
       {/* Session + scope selection — changing these NEVER runs a paid scan. */}
       <div className="flex flex-wrap gap-2" role="group" aria-label="Session">
         {SESSIONS.map((s) => (
-          <button key={s} type="button" aria-pressed={session === s}
-            onClick={() => { setSession(s); setSessionTouched(true); setSelectedPair(null); }}
-            className={`min-h-[44px] rounded-full px-4 text-sm font-semibold border ${session === s ? 'bg-[var(--color-accent)] text-[var(--color-accent-text)] border-transparent' : 'bg-[var(--color-surface)] text-[var(--color-text)] border-[var(--color-border)]'}`}>
+          <button key={s} type="button" aria-pressed={effectiveSession === s}
+            onClick={() => { setSession(s); setSelectedPair(null); }}
+            className={`min-h-[44px] rounded-full px-4 text-sm font-semibold border ${effectiveSession === s ? 'bg-[var(--color-accent)] text-[var(--color-accent-text)] border-transparent' : 'bg-[var(--color-surface)] text-[var(--color-text)] border-[var(--color-border)]'}`}>
             {s}
           </button>
         ))}
@@ -271,6 +294,7 @@ export default function Radar({ goToTab }: { goToTab: (tab: 'credits') => void }
             <div className="space-y-2">
               {visiblePairs.map((p) => (
                 <PairRow key={p.pair} pair={p.displayName} status={p.status} bias={p.bias} score={p.score}
+                  leading={<PairFlags pair={p.pair} base={p.base} quote={p.quote} kind={p.kind} name={p.displayName} size={38} />}
                   freshness={p.stale ? <span className="font-semibold text-[var(--color-warning)]">Stale data</span> : undefined}
                   onClick={() => setSelectedPair(p)} />
               ))}
@@ -283,7 +307,7 @@ export default function Radar({ goToTab }: { goToTab: (tab: 'credits') => void }
             title="No scan yet"
             message={
               lastResult
-                ? `No scan stored for ${session} · ${scope === 'watchlist' ? 'watchlist' : 'all markets'} yet. Your last scan was ${lastResult.session} (${new Date(lastResult.timestampMs).toLocaleString()}).`
+                ? `No scan stored for ${effectiveSession} · ${scope === 'watchlist' ? 'watchlist' : 'all markets'} yet. Your last scan was ${lastResult.session} (${new Date(lastResult.timestampMs).toLocaleString()}).`
                 : 'Run a scan to see this session’s focus, watch and avoid lists. Browsing is free — only a confirmed run spends credits.'
             }
             action={
@@ -299,15 +323,15 @@ export default function Radar({ goToTab }: { goToTab: (tab: 'credits') => void }
 
       <RunRadarSheet
         open={sheetOpen}
-        session={session}
+        session={effectiveSession}
         scope={scope}
         watchlist={user?.watchlist ?? []}
         onClose={() => setSheetOpen(false)}
         onSuccess={(view) => {
-          setResult(radarKey(userId, session, scope), view);
+          setResult(radarKey(userId, effectiveSession, scope), view);
           void loadCredits();
         }}
-        onOpenCredits={() => goToTab('credits')}
+        onOpenCredits={onOpenCredits}
       />
     </div>
   );

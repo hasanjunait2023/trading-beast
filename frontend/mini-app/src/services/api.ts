@@ -177,6 +177,7 @@ export const analysisApi = {
       'Idempotency-Key': idempotencyKey,
     }),
   getPairs: () => request<string[]>('GET', '/analysis/pairs'),
+  getInstruments: () => request<InstrumentEntry[]>('GET', '/analysis/instruments'),
   getSessions: () => request<unknown>('GET', '/analysis/sessions'),
   // Read-only run history (zero credits). Payloads are mapped RadarRuns:
   // { runId, session, scope, completedAt, startedAt, result } where result
@@ -186,6 +187,75 @@ export const analysisApi = {
     request<RadarRunPayload[]>('GET', `/analysis/runs?page=${page}&limit=${limit}`),
   getRun: (id: string) =>
     request<RadarRunPayload>('GET', `/analysis/runs/${encodeURIComponent(id)}`),
+};
+
+export interface InstrumentEntry {
+  pair: string;
+  code: string;
+  kind: 'fx' | 'asset';
+  name: string;
+  decimals: number;
+  base?: string;
+  quote?: string;
+}
+
+export interface PlanChecklistItem {
+  id: string;
+  label: string;
+  done: boolean;
+}
+
+export interface SessionPlanData {
+  id: string;
+  session: string;
+  planDate: string;
+  status: string;
+  pinnedRunId: string | null;
+  checklist: PlanChecklistItem[];
+  invalidation: string | null;
+  riskNotes: string | null;
+  version: number;
+}
+
+export interface JournalTradeData {
+  id: string;
+  symbol: string;
+  side: string;
+  openedAt: string;
+  closedAt: string | null;
+  isClosed: boolean;
+  quantity: string;
+  entryPrice: string;
+  exitPrice: string | null;
+  currency: string;
+  pnl: string | null;
+  rMultiple: string | null;
+}
+
+export interface JournalSummaryEntry {
+  currency: string;
+  totalPnl: string;
+  rSum: string;
+  rCount: number;
+}
+
+export const plansApi = {
+  current: (session: string) =>
+    request<SessionPlanData | null>(
+      'GET',
+      `/user/plans/current?session=${encodeURIComponent(session)}`,
+    ),
+  create: (session: string) =>
+    request<SessionPlanData>('POST', '/user/plans', { session }),
+  update: (
+    id: string,
+    patch: { checklist?: PlanChecklistItem[]; status?: string; version: number },
+  ) => request<SessionPlanData>('PATCH', `/user/plans/${encodeURIComponent(id)}`, patch),
+};
+
+export const journalApi = {
+  list: (page = 1, limit = 20) =>
+    request<JournalTradeData[]>('GET', `/user/journal?page=${page}&limit=${limit}`),
 };
 
 export const telegramApi = {

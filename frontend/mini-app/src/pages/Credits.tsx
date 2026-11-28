@@ -14,7 +14,7 @@ import { useAuth } from '../hooks/useAuth';
  * device clock. No transaction history or purchase UI: the API does not
  * support them here.
  */
-export default function Credits({ goToTab }: { goToTab: (tab: 'radar') => void }) {
+export default function Credits({ goToTab }: { goToTab: (tab: 'markets') => void }) {
   const { user } = useAuth();
   const [credits, setCredits] = useState<CreditsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,7 +79,7 @@ export default function Credits({ goToTab }: { goToTab: (tab: 'radar') => void }
             </Card>
           </div>
 
-          <Button className="w-full" size="lg" onClick={() => goToTab('radar')}>
+          <Button className="w-full" size="lg" onClick={() => goToTab('markets')}>
             Open Radar
           </Button>
 

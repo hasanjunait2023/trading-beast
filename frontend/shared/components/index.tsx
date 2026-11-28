@@ -32,3 +32,10 @@ export * from './UnavailableState';
 export * from './Sidebar';
 export * from './BottomNav';
 export * from './AppShell';
+// Reference-match layer (R0): brand, icons, flag pairs, sparklines, heroes.
+export * from './Brand';
+export * from './icons';
+export * from './PairFlags';
+export * from './Sparkline';
+export * from './SessionHeroArt';
+export * from './SessionHero';
