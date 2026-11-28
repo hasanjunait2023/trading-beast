@@ -184,6 +184,67 @@ export interface TelegramConfig {
   webhookPath?: string;
 }
 
+export interface JournalTrade {
+  id: string;
+  symbol: string;
+  side: 'LONG' | 'SHORT';
+  openedAt: string;
+  closedAt: string | null;
+  isClosed: boolean;
+  /** Decimal strings from the API — precision preserved; parse only to display. */
+  quantity: string;
+  entryPrice: string;
+  exitPrice: string | null;
+  stopPrice: string | null;
+  fees: string;
+  currency: string;
+  initialRiskAmount: string | null;
+  notes: string | null;
+  tags: string[];
+  /** Decimal string for closed trades, else null. */
+  pnl: string | null;
+  /** Decimal string when P&L and initial risk are defined, else null. */
+  rMultiple: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface JournalSummaryByCurrency {
+  currency: string;
+  totalPnl: string;
+  rSum: string;
+  rCount: number;
+}
+
+export interface JournalSummary {
+  closedCount: number;
+  openCount: number;
+  byCurrency: JournalSummaryByCurrency[];
+}
+
+export interface JournalListResult {
+  trades: JournalTrade[];
+  total: number;
+  summary: JournalSummary | null;
+}
+
+/** Decimal fields are strings so precision survives until the server. */
+export interface JournalTradeInput {
+  symbol: string;
+  side: 'LONG' | 'SHORT';
+  openedAt: string;
+  closedAt?: string | null;
+  quantity: string;
+  entryPrice: string;
+  exitPrice?: string | null;
+  stopPrice?: string | null;
+  fees?: string;
+  currency?: string;
+  initialRiskAmount?: string | null;
+  notes?: string | null;
+  tags?: string[];
+}
+
 export type PaymentMethod = 'BKASH' | 'NAGAD' | 'USDT';
 
 export const authApi = {
@@ -233,6 +294,28 @@ export const userApi = {
     request<SessionPlan>('POST', '/user/plans', { session, planDate }),
   updatePlan: (id: string, patch: PlanPatch) =>
     request<SessionPlan>('PATCH', `/user/plans/${encodeURIComponent(id)}`, patch),
+  // Trade journal (owner-scoped; summary arrives in meta.summary).
+  getJournal: async (params: { page?: number; limit?: number; from?: string; to?: string } = {}): Promise<JournalListResult> => {
+    const q = new URLSearchParams();
+    q.set('page', String(params.page ?? 1));
+    q.set('limit', String(params.limit ?? 20));
+    if (params.from) q.set('from', params.from);
+    if (params.to) q.set('to', params.to);
+    const res = await request<JournalTrade[]>('GET', `/user/journal?${q.toString()}`);
+    return {
+      trades: res.data.data ?? [],
+      total: typeof res.data.meta?.total === 'number' ? res.data.meta.total : (res.data.data ?? []).length,
+      summary: (res.data.meta?.summary as JournalSummary | undefined) ?? null,
+    };
+  },
+  getJournalTrade: (id: string) =>
+    request<JournalTrade>('GET', `/user/journal/${encodeURIComponent(id)}`),
+  createJournalTrade: (data: JournalTradeInput) =>
+    request<JournalTrade>('POST', '/user/journal', data),
+  updateJournalTrade: (id: string, patch: Partial<JournalTradeInput>) =>
+    request<JournalTrade>('PATCH', `/user/journal/${encodeURIComponent(id)}`, patch),
+  deleteJournalTrade: (id: string) =>
+    request<{ deleted: boolean }>('DELETE', `/user/journal/${encodeURIComponent(id)}`),
 };
 
 export const analysisApi = {

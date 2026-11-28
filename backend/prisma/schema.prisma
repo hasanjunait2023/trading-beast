@@ -27,6 +27,7 @@ model User {
   creditWallet    CreditWallet?
   creditEntries   CreditEntry[]
   radarRuns       RadarRun[]
+  journalTrades   JournalTrade[]
   preference      UserPreference?
   sessionPlans    SessionPlan[]
   subscriptions   Subscription[]
@@ -231,6 +232,28 @@ model UserPreference {
   timezone String?
   preferredSessions String[] @default([])
   updatedAt DateTime @updatedAt
+}
+
+model JournalTrade {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  symbol String
+  side String // 'LONG' | 'SHORT' (app-validated)
+  openedAt DateTime
+  closedAt DateTime?
+  quantity Decimal @db.Decimal(20, 8)
+  entryPrice Decimal @db.Decimal(20, 8)
+  exitPrice Decimal? @db.Decimal(20, 8)
+  stopPrice Decimal? @db.Decimal(20, 8)
+  fees Decimal @default(0) @db.Decimal(20, 8)
+  currency String @default("USD")
+  initialRiskAmount Decimal? @db.Decimal(20, 8)
+  notes String?
+  tags String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId, openedAt])
 }
 
 model SessionPlan {

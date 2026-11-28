@@ -13,6 +13,11 @@ import {
   listPlansForDate, getPlan, createPlan, updatePlan, parsePlanDate, todayUtc,
   PlanAlreadyExistsError, PlanNotFoundError, VersionConflictError, InvalidPinnedRunError,
 } from '../services/plans.js';
+import {
+  listJournalTrades, getJournalTrade, createJournalTrade, updateJournalTrade,
+  deleteJournalTrade, parseRangeBound,
+  JournalNotFoundError, JournalValidationError,
+} from '../services/journal.js';
 const router: Router = asyncRouter();
 
 const watchlistSchema = z.object({
@@ -243,6 +248,140 @@ router.patch('/plans/:id', async (req: AuthRequest, res) => {
       return res.status(400).json({ success: false, error: err.message });
     }
     throw err;
+  }
+});
+
+// --- Trade journal (handoff §3 rows 11 + 18): owner-scoped trades CRUD ---
+// Decimal fields travel as strings (number also accepted) to preserve
+// precision; the service re-validates the (merged) trade state and computes
+// P&L / R. Field-level failures surface via zod `details` or, for service
+// validation, details:[{field, message}].
+
+const decimalValue = z.union([
+  z.string().trim().min(1).max(64),
+  z.number().finite()
+]);
+
+const journalBase = {
+  symbol: z.string().trim().min(1).max(32),
+  side: z.enum(['LONG', 'SHORT']),
+  openedAt: z.string().min(1).max(64),
+  closedAt: z.string().min(1).max(64).nullable(),
+  quantity: decimalValue,
+  entryPrice: decimalValue,
+  exitPrice: decimalValue.nullable(),
+  stopPrice: decimalValue.nullable(),
+  fees: decimalValue,
+  currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3,4}$/),
+  initialRiskAmount: decimalValue.nullable(),
+  notes: z.string().max(5000).nullable(),
+  tags: z.array(z.string().trim().min(1).max(32)).max(20)
+};
+
+const createJournalSchema = z.object({
+  symbol: journalBase.symbol,
+  side: journalBase.side,
+  openedAt: journalBase.openedAt,
+  closedAt: journalBase.closedAt.optional(),
+  quantity: journalBase.quantity,
+  entryPrice: journalBase.entryPrice,
+  exitPrice: journalBase.exitPrice.optional(),
+  stopPrice: journalBase.stopPrice.optional(),
+  fees: journalBase.fees.optional(),
+  currency: journalBase.currency.optional(),
+  initialRiskAmount: journalBase.initialRiskAmount.optional(),
+  notes: journalBase.notes.optional(),
+  tags: journalBase.tags.optional()
+});
+
+const patchJournalSchema = z.object({
+  symbol: journalBase.symbol.optional(),
+  side: journalBase.side.optional(),
+  openedAt: journalBase.openedAt.optional(),
+  closedAt: journalBase.closedAt.optional(),
+  quantity: journalBase.quantity.optional(),
+  entryPrice: journalBase.entryPrice.optional(),
+  exitPrice: journalBase.exitPrice.optional(),
+  stopPrice: journalBase.stopPrice.optional(),
+  fees: journalBase.fees.optional(),
+  currency: journalBase.currency.optional(),
+  initialRiskAmount: journalBase.initialRiskAmount.optional(),
+  notes: journalBase.notes.optional(),
+  tags: journalBase.tags.optional()
+});
+
+function journalError(res: Response, err: unknown): boolean {
+  if (err instanceof JournalNotFoundError) {
+    res.status(404).json({ success: false, error: 'Trade not found' });
+    return true;
+  }
+  if (err instanceof JournalValidationError) {
+    res.status(400).json({
+      success: false,
+      error: err.message,
+      details: err.field ? [{ field: err.field, message: err.message }] : undefined
+    });
+    return true;
+  }
+  return false;
+}
+
+router.get('/journal', async (req: AuthRequest, res) => {
+  const p = pagination(req.query);
+  const fromRaw = typeof req.query.from === 'string' ? req.query.from : undefined;
+  const toRaw = typeof req.query.to === 'string' ? req.query.to : undefined;
+  const from = fromRaw === undefined ? null : parseRangeBound(fromRaw, 'from');
+  const to = toRaw === undefined ? null : parseRangeBound(toRaw, 'to');
+  if ((fromRaw !== undefined && from === null) || (toRaw !== undefined && to === null)) {
+    return res.status(400).json({ success: false, error: 'Invalid date range: expected ISO dates for from/to' });
+  }
+  if (from && to && from.getTime() > to.getTime()) {
+    return res.status(400).json({ success: false, error: 'Invalid date range: from must not be after to' });
+  }
+  const { trades, total, summary } = await listJournalTrades(req.user!.id, { skip: p.skip, take: p.take, from, to });
+  res.json({ success: true, data: trades, meta: { page: p.page, limit: p.limit, total, summary } });
+});
+
+router.get('/journal/:id', async (req: AuthRequest, res) => {
+  const trade = await getJournalTrade(req.user!.id, req.params.id);
+  if (!trade) {
+    return res.status(404).json({ success: false, error: 'Trade not found' });
+  }
+  res.json({ success: true, data: trade });
+});
+
+router.post('/journal', async (req: AuthRequest, res) => {
+  const parsed = createJournalSchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: 'Invalid trade', details: parsed.error.errors });
+  }
+  try {
+    const trade = await createJournalTrade(req.user!.id, parsed.data);
+    res.status(201).json({ success: true, data: trade });
+  } catch (err) {
+    if (!journalError(res, err)) throw err;
+  }
+});
+
+router.patch('/journal/:id', async (req: AuthRequest, res) => {
+  const parsed = patchJournalSchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: 'Invalid trade update', details: parsed.error.errors });
+  }
+  try {
+    const trade = await updateJournalTrade(req.user!.id, req.params.id, parsed.data);
+    res.json({ success: true, data: trade });
+  } catch (err) {
+    if (!journalError(res, err)) throw err;
+  }
+});
+
+router.delete('/journal/:id', async (req: AuthRequest, res) => {
+  try {
+    await deleteJournalTrade(req.user!.id, req.params.id);
+    res.json({ success: true, data: { deleted: true } });
+  } catch (err) {
+    if (!journalError(res, err)) throw err;
   }
 });
 

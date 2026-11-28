@@ -10,6 +10,8 @@ const Setup = lazy(() => import('./pages/Setup'));
 const Home = lazy(() => import('./pages/Home'));
 const Markets = lazy(() => import('./pages/Markets'));
 const Plan = lazy(() => import('./pages/Plan'));
+const Journal = lazy(() => import('./pages/Journal'));
+const TradeEditor = lazy(() => import('./pages/TradeEditor'));
 const PairDetail = lazy(() => import('./pages/PairDetail'));
 const SessionsPage = lazy(() => import('./pages/SessionsPage'));
 const WatchlistPage = lazy(() => import('./pages/WatchlistPage'));
@@ -48,8 +50,9 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
  * Route map (handoff §3). Canonical routes live under /app; every legacy
  * alias mounts the SAME component so its intent is preserved (Membership
  * aliases select their section via initialSection) rather than blind
- * redirects. No route exists for Expansion A/B/C screens — their backend
- * contracts do not exist, and navigation never links to them.
+ * redirects. Screens whose backend contracts do not exist yet have no
+ * route and navigation never links to them (Journal shipped once its
+ * owner-scoped API landed).
  */
 function App() {
   return (
@@ -75,6 +78,10 @@ function App() {
           <Route path="/app/markets/:symbol" element={<PairDetail />} />
           {/* Session Plan (09) — canonical only; no legacy alias exists */}
           <Route path="/app/plan" element={<Plan />} />
+          {/* Journal (11) + Trade Editor (18) — canonical only */}
+          <Route path="/app/journal" element={<Journal />} />
+          <Route path="/app/journal/new" element={<TradeEditor />} />
+          <Route path="/app/journal/:id/edit" element={<TradeEditor />} />
           {/* Session Clock (06) */}
           <Route path="/app/sessions" element={<SessionsPage />} />
           {/* Watchlist (08) */}
