@@ -2,8 +2,24 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Sidebar, type NavItem } from '@shared/components/Sidebar';
 import { BottomNav } from '@shared/components/BottomNav';
+import { Brand } from '@shared/components/Brand';
 import { CreditPill } from '@shared/components/CreditPill';
 import { SessionBadge } from '@shared/components/SessionBadge';
+import {
+  BellIcon,
+  CardIcon,
+  ClockIcon,
+  CoinsIcon,
+  GearIcon,
+  HelpCircleIcon,
+  HomeIcon,
+  JournalIcon,
+  ListIcon,
+  MarketsIcon,
+  PlanIcon,
+  SlidersIcon,
+  UsersIcon,
+} from '@shared/components/icons';
 import { useTheme } from '@shared/theme';
 import { useAuth } from '../hooks/useAuth';
 import { useSessions } from '../hooks/useSessions';
@@ -11,67 +27,61 @@ import { userApi } from '../services/api';
 import { isTelegram } from '../telegram';
 
 /**
- * Responsive shell (handoff §2): ≥1024px left sidebar (~224px) + sticky top
- * bar; below that a compact top bar + bottom nav with the primary enabled
+ * Responsive shell (handoff §2 + study 28): ≥1024px left sidebar (~224px,
+ * white, shared Brand, icon nav with a mint active pill) + sticky top bar;
+ * below that a compact top bar + bottom nav with the primary enabled
  * destinations only. Built from the shared Sidebar/BottomNav primitives —
  * composed directly (rather than via AppShell) because the desktop sidebar
- * carries nine destinations while the mobile bottom nav carries five, and
- * AppShell drives both from a single list. Inside Telegram the sidebar is
- * hidden (compact chrome, as the previous Layout did).
+ * carries more destinations than the mobile bottom nav, and AppShell drives
+ * both from a single list. Inside Telegram the sidebar is hidden (compact
+ * chrome). Markets + Pair Detail use the wide layout (study 28/29: ~1600px
+ * canvas with room for the 320px contextual rail); on those routes the page
+ * renders its own title row with the credits pill, so the header omits its
+ * session badge and pill there to avoid a second competing header.
  */
 
 interface Dest {
   id: string;
   label: string;
   path: string;
+  icon: React.ReactNode;
   match: (pathname: string) => boolean;
   mobile?: boolean;
 }
 
+const ICON = 20;
+
 const DESTINATIONS: Dest[] = [
-  { id: 'home', label: 'Home', path: '/app', mobile: true, match: (p) => p === '/app' || p === '/dashboard' || p === '/' },
-  { id: 'markets', label: 'Markets', path: '/app/markets', mobile: true, match: (p) => p.startsWith('/app/markets') || p === '/focus' },
+  { id: 'home', label: 'Home', path: '/app', icon: <HomeIcon size={ICON} />, mobile: true, match: (p) => p === '/app' || p === '/dashboard' || p === '/' },
+  { id: 'markets', label: 'Markets', path: '/app/markets', icon: <MarketsIcon size={ICON} />, mobile: true, match: (p) => p.startsWith('/app/markets') || p === '/focus' },
   // Plan is sidebar-only: the mobile bottom nav stays at its five slots.
-  { id: 'plan', label: 'Plan', path: '/app/plan', match: (p) => p.startsWith('/app/plan') },
+  { id: 'plan', label: 'Plan', path: '/app/plan', icon: <PlanIcon size={ICON} />, match: (p) => p.startsWith('/app/plan') },
   // Journal is sidebar-only: the mobile bottom nav stays at its five slots.
-  { id: 'journal', label: 'Journal', path: '/app/journal', match: (p) => p.startsWith('/app/journal') },
+  { id: 'journal', label: 'Journal', path: '/app/journal', icon: <JournalIcon size={ICON} />, match: (p) => p.startsWith('/app/journal') },
   // Alerts is sidebar-only: the mobile bottom nav stays at its five slots.
-  { id: 'alerts', label: 'Alerts', path: '/app/alerts', match: (p) => p.startsWith('/app/alerts') },
+  { id: 'alerts', label: 'Alerts', path: '/app/alerts', icon: <BellIcon size={ICON} />, match: (p) => p.startsWith('/app/alerts') },
   // Risk Tools is sidebar-only: the mobile bottom nav stays at its five slots.
-  { id: 'tools', label: 'Risk Tools', path: '/app/tools', match: (p) => p.startsWith('/app/tools') },
-  { id: 'watchlist', label: 'Watchlist', path: '/app/watchlist', mobile: true, match: (p) => p.startsWith('/app/watchlist') || p === '/watchlist' },
-  { id: 'sessions', label: 'Sessions', path: '/app/sessions', match: (p) => p.startsWith('/app/sessions') },
-  { id: 'credits', label: 'Credits', path: '/app/credits', mobile: true, match: (p) => p.startsWith('/app/credits') },
+  { id: 'tools', label: 'Risk Tools', path: '/app/tools', icon: <SlidersIcon size={ICON} />, match: (p) => p.startsWith('/app/tools') },
+  { id: 'watchlist', label: 'Watchlist', path: '/app/watchlist', icon: <ListIcon size={ICON} />, mobile: true, match: (p) => p.startsWith('/app/watchlist') || p === '/watchlist' },
+  { id: 'sessions', label: 'Sessions', path: '/app/sessions', icon: <ClockIcon size={ICON} />, match: (p) => p.startsWith('/app/sessions') },
+  { id: 'credits', label: 'Credits', path: '/app/credits', icon: <CoinsIcon size={ICON} />, mobile: true, match: (p) => p.startsWith('/app/credits') },
   {
     id: 'membership',
     label: 'Membership',
     path: '/app/membership',
+    icon: <CardIcon size={ICON} />,
     match: (p) =>
       p.startsWith('/app/membership') ||
       ['/plans', '/subscription', '/payments', '/billing', '/payment/success'].includes(p),
   },
-  { id: 'referrals', label: 'Referrals', path: '/app/referrals', match: (p) => p.startsWith('/app/referrals') || p === '/referral' },
-  { id: 'settings', label: 'Settings', path: '/app/settings', mobile: true, match: (p) => p.startsWith('/app/settings') || p === '/settings' || p.startsWith('/app/setup') },
-  { id: 'help', label: 'Help', path: '/app/help', match: (p) => p.startsWith('/app/help') || p === '/help' },
+  { id: 'referrals', label: 'Referrals', path: '/app/referrals', icon: <UsersIcon size={ICON} />, match: (p) => p.startsWith('/app/referrals') || p === '/referral' },
+  { id: 'settings', label: 'Settings', path: '/app/settings', icon: <GearIcon size={ICON} />, mobile: true, match: (p) => p.startsWith('/app/settings') || p === '/settings' || p.startsWith('/app/setup') },
+  { id: 'help', label: 'Help', path: '/app/help', icon: <HelpCircleIcon size={ICON} />, match: (p) => p.startsWith('/app/help') || p === '/help' },
 ];
 
-function Brand() {
-  return (
-    <span className="flex items-center gap-2">
-      <span
-        aria-hidden="true"
-        className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] text-white"
-        style={{ background: 'var(--grad-hero)' }}
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-        </svg>
-      </span>
-      <span className="text-[17px] font-bold tracking-tight">
-        Trading<span className="text-[var(--color-accent)]">Beast</span>
-      </span>
-    </span>
-  );
+/** Routes rendered on the wide study-28/29 canvas with their own title row. */
+function isWideRoute(pathname: string): boolean {
+  return pathname.startsWith('/app/markets') || pathname === '/focus';
 }
 
 export default function AppLayout() {
@@ -82,6 +92,7 @@ export default function AppLayout() {
   const inTelegramHost = isTelegram();
   const { overview } = useSessions();
   const [balance, setBalance] = useState<number | null>(null);
+  const wide = isWideRoute(location.pathname);
 
   const loadBalance = useCallback(async () => {
     try {
@@ -103,6 +114,7 @@ export default function AppLayout() {
       dests.map((d) => ({
         id: d.id,
         label: d.label,
+        icon: d.icon,
         active: d.match(location.pathname),
         onSelect: () => navigate(d.path),
       })),
@@ -124,7 +136,7 @@ export default function AppLayout() {
         <div className="sticky top-0 hidden h-screen lg:flex">
           <Sidebar
             items={sidebarItems}
-            brand={<Brand />}
+            brand={<Brand size={34} />}
             footer={
               user ? (
                 <div className="rounded-[var(--radius-md)] bg-[var(--color-surface-elevated)] px-3 py-2">
@@ -144,20 +156,21 @@ export default function AppLayout() {
         <header className="sticky top-0 z-30 flex min-h-[56px] items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <span className="lg:hidden">
-              <Brand />
+              <Brand size={30} />
             </span>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {activeWindow ? (
-              <span className="hidden sm:block">
-                <SessionBadge name={activeWindow.session} state="live" />
-              </span>
-            ) : overview ? (
-              <span className="hidden text-sm text-[var(--color-text-muted)] sm:block">
-                No session live
-              </span>
-            ) : null}
-            {balance !== null && (
+            {!wide &&
+              (activeWindow ? (
+                <span className="hidden sm:block">
+                  <SessionBadge name={activeWindow.session} state="live" />
+                </span>
+              ) : overview ? (
+                <span className="hidden text-sm text-[var(--color-text-muted)] sm:block">
+                  No session live
+                </span>
+              ) : null)}
+            {!wide && balance !== null && (
               <CreditPill credits={balance} onClick={() => navigate('/app/credits')} />
             )}
             <button
@@ -179,7 +192,11 @@ export default function AppLayout() {
             </button>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-4 pb-24 sm:px-6 lg:pb-8">
+        <main
+          className={`mx-auto w-full flex-1 px-4 pt-4 pb-24 sm:px-6 lg:pb-8 ${
+            wide ? 'max-w-[1600px] lg:px-8' : 'max-w-6xl'
+          }`}
+        >
           <div key={location.pathname} className="tb-page-enter">
             <Outlet />
           </div>

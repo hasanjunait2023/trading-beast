@@ -6,6 +6,81 @@ import type { EvidenceItem } from '@shared/components/ScoreEvidence';
  * carries (handoff §4: no invented breakdown point values). Shared by the
  * Markets and Pair Detail screens; mirrors the Mini App's list (Z1).
  */
+
+function dirWord(v: number | null): 'Bullish' | 'Bearish' | 'Neutral' | null {
+  if (v === null) return null;
+  return v > 0 ? 'Bullish' : v < 0 ? 'Bearish' : 'Neutral';
+}
+
+function dirSign(v: number | null): number {
+  return v === null ? 0 : Math.sign(v);
+}
+
+/**
+ * Narrative evidence rows for the reference Score Evidence panel, mapped
+ * factually from payload fields only (same mapping as the Mini App's Pair
+ * Detail — no invented structure/momentum claims, no breakdown points).
+ */
+export function narrativeEvidence(p: RadarPairView): EvidenceItem[] {
+  const items: EvidenceItem[] = [];
+  const biasSign = p.bias === 'bullish' ? 1 : p.bias === 'bearish' ? -1 : 0;
+
+  const trend = dirWord(p.d4);
+  if (trend) items.push({ label: 'Trend', value: `${trend} (4H direction)` });
+
+  if (p.orConfirmed) {
+    items.push({
+      label: 'Structure',
+      value:
+        p.bias === 'bearish'
+          ? 'Break below OR confirmed'
+          : p.bias === 'bullish'
+            ? 'Break above OR confirmed'
+            : 'OR break confirmed',
+    });
+  } else if (p.orLive) {
+    items.push({ label: 'Structure', value: 'Price beyond OR — not confirmed', tone: 'neutral' });
+  } else if (p.orHave) {
+    items.push({ label: 'Structure', value: 'No OR break yet', tone: 'neutral' });
+  }
+
+  const momentum = dirWord(p.d15);
+  if (momentum) {
+    const conflicts = biasSign !== 0 && dirSign(p.d15) !== 0 && dirSign(p.d15) !== biasSign;
+    items.push({
+      label: 'Momentum',
+      value: `${momentum} (15m)${p.rsi !== null ? ` · RSI ${p.rsi.toFixed(0)}` : ''}`,
+      tone: conflicts ? 'warning' : 'positive',
+    });
+  }
+
+  if (p.d1 !== null) {
+    if (biasSign === 0) {
+      items.push({ label: 'Context', value: 'No directional bias for the 1H to align with', tone: 'neutral' });
+    } else if (dirSign(p.d1) === biasSign) {
+      items.push({ label: 'Context', value: '1H direction aligns with bias' });
+    } else if (dirSign(p.d1) === 0) {
+      items.push({ label: 'Context', value: 'No clear 1H direction', tone: 'neutral' });
+    } else {
+      items.push({ label: 'Context', value: '1H direction conflicts with bias', tone: 'warning' });
+    }
+  }
+
+  if (p.divAgainst) {
+    items.push({ label: 'Divergence', value: 'RSI divergence against the bias', tone: 'warning' });
+  } else if (p.div) {
+    items.push({
+      label: 'Divergence',
+      value: `RSI divergence: ${p.div === 'BULLISH' ? 'Bullish' : 'Bearish'}`,
+      tone: 'neutral',
+    });
+  }
+  if (p.extended) items.push({ label: 'Extension', value: 'Move is extended versus the 50 EMA', tone: 'warning' });
+  if (p.cramped) items.push({ label: 'Range', value: 'Price is cramped against the obstacle', tone: 'warning' });
+  if (p.stretched) items.push({ label: 'Range', value: 'Price is stretched', tone: 'warning' });
+
+  return items.slice(0, 6);
+}
 export function evidenceFor(p: RadarPairView): EvidenceItem[] {
   const items: EvidenceItem[] = [];
   const num = (v: number, dec = p.dec) => v.toFixed(dec);
