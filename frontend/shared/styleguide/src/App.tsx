@@ -45,6 +45,7 @@ const NAV: NavItem[] = [
   { id: 'market', label: 'Market primitives', href: '#market' },
   { id: 'reference-home', label: 'Reference 03 Home', href: '#reference-home' },
   { id: 'states', label: 'States', href: '#states' },
+  { id: 'type-motion', label: 'Type & motion', href: '#type-motion' },
 ];;
 
 // Reference-03 visual-gate samples (style guide ONLY — never product data):
@@ -91,6 +92,7 @@ export default function App() {
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState<string | undefined>(undefined);
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
+  const [motionKey, setMotionKey] = useState(0);
 
   const now = Date.now();
 
@@ -424,6 +426,108 @@ export default function App() {
             <UnavailableState
               reason="Currency strength needs its data contract before it can be shown."
             />
+          </Card>
+        </div>
+      </Section>
+
+      <Section id="type-motion" title="Typography & motion (self-hosted fonts, shared utilities)">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <p className="mb-3 text-sm font-semibold text-[var(--color-text)]">
+              Type — Sora display / Manrope UI
+            </p>
+            <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
+              Both families are self-hosted from <code>shared/fonts/</code> via{' '}
+              <code>shared/fonts.css</code> (font-display: swap, ~14 KB per weight, no
+              runtime CDN). Headings take <code>--font-display</code> automatically; body
+              text uses <code>--font-sans</code>. Use <code>.tb-font-display</code> for
+              display type on non-heading elements and <code>.tnum</code> for tabular
+              numerals (scores, prices, credits).
+            </p>
+            <div className="mt-4 space-y-2">
+              <p className="tb-font-display text-3xl font-bold text-[var(--color-text)]">
+                Session Focus Radar
+              </p>
+              <p className="tb-font-display text-xl font-semibold text-[var(--color-text)]">
+                London session is live
+              </p>
+              <p className="text-sm text-[var(--color-text)]">
+                Manrope carries body copy, labels and controls across every app.
+              </p>
+              <p className="tnum text-sm text-[var(--color-text-muted)]">
+                EUR/USD 1.0864 · Score 78/100 · Balance 1,240 credits
+              </p>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold text-[var(--color-text)]">
+                Motion utilities (theme.css)
+              </p>
+              <Button onClick={() => setMotionKey((k) => k + 1)}>Replay</Button>
+            </div>
+            <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
+              Transform + opacity only; every utility is neutralised under
+              prefers-reduced-motion. <code>.tb-enter</code> screen entrance,{' '}
+              <code>.tb-stagger</code> card sequence, <code>.tb-press</code> button press,{' '}
+              <code>.tb-lift</code> hover lift, <code>.tb-sheet-in</code> /{' '}
+              <code>.tb-modal-in</code> / <code>.tb-backdrop-in</code> overlay entrances,{' '}
+              <code>.tb-skeleton</code> shimmer loaders, <code>.tb-success-check</code>{' '}
+              drawn confirmation.
+            </p>
+            <div key={motionKey} className="mt-4 space-y-4">
+              <div className="tb-stagger grid grid-cols-3 gap-3">
+                {[1, 2, 3].map((n) => (
+                  <div
+                    key={n}
+                    className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3 text-center text-sm font-semibold text-[var(--color-text)]"
+                  >
+                    Card {n}
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  className="tb-press rounded-full px-5 py-2.5 text-sm font-semibold text-white"
+                  style={{ background: 'var(--gradient-primary-action)' }}
+                >
+                  Press me
+                </button>
+                <svg
+                  className="tb-success-check"
+                  width="52"
+                  height="52"
+                  viewBox="0 0 52 52"
+                  fill="none"
+                  role="img"
+                  aria-label="Success check animation demo"
+                >
+                  <circle
+                    className="tb-check-circle"
+                    cx="26"
+                    cy="26"
+                    r="24"
+                    pathLength={1}
+                    stroke="var(--color-success)"
+                    strokeWidth="2.5"
+                  />
+                  <path
+                    className="tb-check-mark"
+                    d="M15 27l7.5 7.5L37 19"
+                    pathLength={1}
+                    stroke="var(--color-success)"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span className="text-xs text-[var(--color-text-muted)]">
+                  Success check (pathLength=1 contract)
+                </span>
+              </div>
+            </div>
           </Card>
         </div>
       </Section>
