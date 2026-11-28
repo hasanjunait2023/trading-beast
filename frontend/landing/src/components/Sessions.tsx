@@ -26,7 +26,7 @@ export default function Sessions() {
   return (
     <section
       id="sessions"
-      className="py-20 sm:py-24"
+      className="py-16 sm:py-20"
       style={{ background: 'var(--color-accent-soft)' }}
       aria-labelledby="sessions-heading"
     >

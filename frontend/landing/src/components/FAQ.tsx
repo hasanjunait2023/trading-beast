@@ -89,7 +89,7 @@ export default function FAQ() {
   const [openIndex, setOpenIndex] = useState<number>(0);
 
   return (
-    <section id="faq" className="py-20 sm:py-24" aria-labelledby="faq-heading">
+    <section id="faq" className="py-16 sm:py-20" aria-labelledby="faq-heading">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <Reveal className="mb-14 text-center">
           <p

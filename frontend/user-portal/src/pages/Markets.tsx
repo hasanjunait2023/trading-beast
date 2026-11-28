@@ -226,7 +226,7 @@ export default function Markets() {
               filters + the one paid action. */}
           <section
             aria-label="Radar controls"
-            className="space-y-4 rounded-[18px] bg-[var(--color-mint-panel)] p-4 sm:p-5 lg:p-6"
+            className="space-y-4 rounded-[18px] bg-[var(--color-mint-panel)] p-4 sm:p-5 lg:p-5"
           >
             {/* Session — desktop: white outline pills (study 28). */}
             <div className="hidden flex-wrap gap-2 lg:flex" role="group" aria-label="Session">
@@ -491,7 +491,7 @@ export default function Markets() {
 
         {/* Contextual rail (study 28): Session Clock + Watchlist + Scan status. */}
         <aside className="hidden space-y-4 xl:block" aria-label="Context">
-          <section className="rounded-[16px] border border-[var(--color-border-soft)] bg-[var(--color-mint-panel)] p-6">
+          <section className="rounded-[16px] border border-[var(--color-border-soft)] bg-[var(--color-mint-panel)] p-5">
             <h2 className="text-2xl font-extrabold tracking-tight">Session Clock</h2>
             {overview ? (
               <div className="mt-4 space-y-3 text-[15px]">
@@ -524,7 +524,7 @@ export default function Markets() {
             )}
           </section>
 
-          <section className="rounded-[16px] border border-[var(--color-border-soft)] bg-[var(--color-mint-panel)] p-6">
+          <section className="rounded-[16px] border border-[var(--color-border-soft)] bg-[var(--color-mint-panel)] p-5">
             <h2 className="text-2xl font-extrabold tracking-tight">Watchlist</h2>
             {watchlist.length > 0 ? (
               <div className="mt-4 space-y-2">
@@ -557,7 +557,7 @@ export default function Markets() {
             }) && (
               <section
                 aria-label="About the Pro plan"
-                className="relative rounded-[16px] p-6 text-white shadow-[var(--shadow-hero)]"
+                className="relative rounded-[16px] p-5 text-white shadow-[var(--shadow-hero)]"
                 style={{ background: 'var(--gradient-session-hero)' }}
               >
                 <button
@@ -590,7 +590,7 @@ export default function Markets() {
             )}
 
           {scanStatus && (
-            <section className="rounded-[16px] border border-[var(--color-border-soft)] bg-[var(--color-mint-panel)] p-6">
+            <section className="rounded-[16px] border border-[var(--color-border-soft)] bg-[var(--color-mint-panel)] p-5">
               <h2 className="text-2xl font-extrabold tracking-tight">Scan status</h2>
               <p className="tnum mt-4 rounded-[10px] bg-[var(--color-mint-wash)] px-3.5 py-2.5 text-[15px]">
                 Last result: {scanStatus.session} · {fmtTime(scanStatus.timestampMs)}

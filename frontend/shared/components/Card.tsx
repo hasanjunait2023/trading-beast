@@ -19,7 +19,7 @@ export function Card({
         elevated
           ? 'bg-[var(--color-surface-elevated)] shadow-[var(--shadow-md)]'
           : 'bg-[var(--color-surface)] shadow-[var(--shadow-sm)]'
-      } ${padded ? 'p-4' : ''} ${className}`}
+      } ${padded ? 'p-[14px]' : ''} ${className}`}
       {...rest}
     >
       {children}
