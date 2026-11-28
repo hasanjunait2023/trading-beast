@@ -7,6 +7,7 @@ import {
   ReactNode,
 } from 'react';
 import { User, authApi, userApi, UNAUTHORIZED_EVENT } from '../services/api';
+import { useRadarStore } from '../store/radarStore';
 import {
   getInitData,
   getReferralCodeFromStartParam,
@@ -26,6 +27,7 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   setWatchlistLocal: (watchlist: string[]) => void;
   logout: () => void;
+  logoutAll: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,6 +51,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }) => {
     if (!res.data.success || !res.data.data) {
       throw new Error(res.data.error || 'Login failed');
+    }
+    // Identity change: drop any Radar results stored for the previous account.
+    try {
+      const prev = localStorage.getItem('user');
+      const prevId = prev ? (JSON.parse(prev) as User).id : null;
+      if (prevId && prevId !== res.data.data.user.id) {
+        useRadarStore.getState().clearAll();
+      }
+    } catch {
+      /* cached user unreadable — nothing to reconcile */
     }
     persist(res.data.data.token, res.data.data.user);
     setToken(res.data.data.token);
@@ -114,6 +126,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const onUnauthorized = () => {
+      // 401: account-scoped state (incl. stored Radar results) is cleared.
+      useRadarStore.getState().clearAll();
       setToken(null);
       setUser(null);
     };
@@ -165,12 +179,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const logout = useCallback(() => {
+  const clearSession = useCallback(() => {
+    // Clear ALL account-scoped state on logout / identity change.
+    useRadarStore.getState().clearAll();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
   }, []);
+
+  const logout = useCallback(() => {
+    // Best-effort server sign-out; local state is cleared regardless.
+    void authApi.logout().catch(() => undefined);
+    clearSession();
+  }, [clearSession]);
+
+  const logoutAll = useCallback(() => {
+    void authApi.logoutAll().catch(() => undefined);
+    clearSession();
+  }, [clearSession]);
 
   return (
     <AuthContext.Provider
@@ -185,6 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshUser,
         setWatchlistLocal,
         logout,
+        logoutAll,
       }}
     >
       {children}

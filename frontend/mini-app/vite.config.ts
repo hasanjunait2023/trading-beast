@@ -9,6 +9,9 @@ export default defineConfig({
     alias: {
       '@shared': path.resolve(__dirname, '../shared'),
     },
+    // Shared TSX imports React from the shared tree — dedupe to this app's
+    // single React copy to avoid duplicate-React hook errors.
+    dedupe: ['react', 'react-dom'],
   },
   server: {
     port: 5175,

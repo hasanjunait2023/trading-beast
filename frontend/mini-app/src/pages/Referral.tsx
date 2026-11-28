@@ -1,31 +1,42 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Users, Copy, Check, Share2, Link as LinkIcon, UserPlus } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Card } from '@shared/components/Card';
+import { Button } from '@shared/components/Button';
+import { Skeleton } from '@shared/components/Skeleton';
+import { EmptyState } from '@shared/components/EmptyState';
+import { ErrorState } from '@shared/components/ErrorState';
+import { useToast } from '@shared/components/Toast';
+import { userApi, telegramApi, type ReferralEntry, type TelegramConfig } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
-import { userApi, telegramApi, ReferralEntry, TelegramConfig } from '../services/api';
 import { haptics, shareViaTelegram } from '../telegram';
-import { EmptyState, ReferralListSkeleton } from '../components/ui';
 
 const ENV_BOT_USERNAME =
-  import.meta.env.VITE_BOT_USERNAME ||
-  import.meta.env.VITE_TELEGRAM_BOT_USERNAME ||
-  '';
+  import.meta.env.VITE_BOT_USERNAME || import.meta.env.VITE_TELEGRAM_BOT_USERNAME || '';
+const PAGE_SIZE = 20;
 
+/**
+ * Referrals (study 26, handoff §3 row 26). Code + identity come from
+ * GET /user/me; the list is paginated via GET /user/referrals using the
+ * response envelope's meta.page / meta.limit. The bot link prefers the
+ * configured bot username from telegramApi.config, falling back to the
+ * build-time VITE_BOT_USERNAME. Reward terms shown are the approved product
+ * truth only: 7 days of Pro for BOTH sides per credited referral.
+ */
 export default function Referral() {
   const { user } = useAuth();
-  const [referrals, setReferrals] = useState<ReferralEntry[]>([]);
-  const [totalCount, setTotalCount] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState<'code' | 'link' | null>(null);
+  const toast = useToast();
   const [botUsername, setBotUsername] = useState(ENV_BOT_USERNAME);
+  const [entries, setEntries] = useState<ReferralEntry[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState('');
 
-  // Prefer the backend's public config (Phase B: GET /api/telegram/config);
-  // fall back to the build-time env username when it is unavailable.
   useEffect(() => {
     telegramApi
       .config()
       .then((r) => {
-        const cfg: TelegramConfig = (r.data?.data ?? r.data) as TelegramConfig;
+        const cfg = r.data.data as TelegramConfig | undefined;
         if (cfg?.botUsername) setBotUsername(cfg.botUsername);
       })
       .catch(() => {
@@ -33,186 +44,141 @@ export default function Referral() {
       });
   }, []);
 
-  useEffect(() => {
-    userApi
-      .getReferrals()
-      .then((r) => {
-        if (r.data.success) {
-          const data = r.data.data as ReferralEntry[] | { referrals?: ReferralEntry[]; count?: number; total?: number };
-          if (Array.isArray(data)) {
-            setReferrals(data);
-            setTotalCount(data.length);
-          } else if (data && typeof data === 'object') {
-            const list = data.referrals ?? [];
-            setReferrals(list);
-            setTotalCount(data.count ?? data.total ?? list.length);
-          }
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const loadPage = useCallback(async (targetPage: number, append: boolean) => {
+    if (append) setLoadingMore(true);
+    else setLoading(true);
+    try {
+      const res = await userApi.getReferrals(targetPage, PAGE_SIZE);
+      const list = (res.data.data ?? []) as ReferralEntry[];
+      const limit = res.data.meta?.limit ?? PAGE_SIZE;
+      setEntries((prev) => (append ? [...prev, ...list] : list));
+      setPage(res.data.meta?.page ?? targetPage);
+      // A full page suggests there may be more; an empty/short page ends it.
+      setHasMore(list.length >= limit && list.length > 0);
+      setError('');
+    } catch {
+      if (!append) setError('Could not load your referrals. Check your connection and try again.');
+      else toast.error('Could not load more referrals.');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [toast]);
+
+  useEffect(() => { void loadPage(1, false); }, [loadPage]);
 
   const code = user?.referralCode ?? '';
-  const referralLink = botUsername
-    ? `https://t.me/${botUsername}?start=ref_${code}`
-    : '';
+  const referralLink = botUsername && code ? `https://t.me/${botUsername}?start=ref_${code}` : '';
 
-  const copy = async (text: string, which: 'code' | 'link') => {
+  const copy = async (text: string, label: string) => {
     if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(which);
+      toast.success(`${label} copied`);
       haptics.notification('success');
-      setTimeout(() => setCopied(null), 2000);
     } catch {
+      toast.error('Copy failed — long-press to copy manually.');
       haptics.notification('error');
     }
   };
 
-  const credited = referrals.filter((r) => r.status === 'CREDITED').length;
-  const pending = referrals.filter((r) => r.status === 'PENDING').length;
-  const displayTotal = totalCount ?? user?.referralCount ?? referrals.length;
+  const credited = entries.filter((r) => r.status === 'CREDITED').length;
+  const pending = entries.filter((r) => r.status !== 'CREDITED').length;
 
   return (
     <div className="space-y-4 px-4">
       <div>
-        <h1 className="text-xl">Referral Program</h1>
-        <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-          Invite friends — you both get rewarded
+        <h1 className="text-2xl font-bold">Referrals</h1>
+        <p className="text-sm text-[var(--color-text-muted)]">Invite traders to TradingBeast and grow together.</p>
+      </div>
+
+      <div className="rounded-[var(--radius-lg)] p-5 text-white shadow-[var(--shadow-md)]" style={{ background: 'var(--grad-hero)' }}>
+        <p className="text-sm opacity-80">Your referral code</p>
+        <p className="mt-1 font-mono text-2xl font-bold break-all">{code || '—'}</p>
+        {referralLink ? (
+          <p className="mt-1 text-sm break-all opacity-90">{referralLink}</p>
+        ) : (
+          <p className="mt-1 text-sm opacity-90">
+            Bot link is not configured yet — share your code above, or open /referral in the bot for a ready-made link.
+          </p>
+        )}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button variant="secondary" size="sm" disabled={!code} onClick={() => void copy(code, 'Code')}>Copy code</Button>
+          <Button variant="secondary" size="sm" disabled={!referralLink} onClick={() => void copy(referralLink, 'Link')}>Copy link</Button>
+        </div>
+      </div>
+
+      <Card>
+        <h2 className="text-base font-bold">How it works</h2>
+        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+          When a friend joins with your link and their referral is credited,{' '}
+          <strong className="text-[var(--color-text)]">you both get 7 days of Pro</strong> — 7 days
+          for you and 7 days for them, for every credited referral.
         </p>
+      </Card>
+
+      <Button
+        className="w-full"
+        size="lg"
+        disabled={!referralLink}
+        onClick={() => {
+          haptics.impact('light');
+          shareViaTelegram(referralLink, 'Join me on TradingBeast — Session Focus Radar. We both get 7 days of Pro when you join with my link!');
+        }}
+      >
+        Share in Telegram
+      </Button>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="text-center">
+          <p className="tnum text-2xl font-bold">{loading ? '—' : credited}</p>
+          <p className="text-[13px] text-[var(--color-text-muted)]">Credited (loaded)</p>
+        </Card>
+        <Card className="text-center">
+          <p className="tnum text-2xl font-bold">{loading ? '—' : pending}</p>
+          <p className="text-[13px] text-[var(--color-text-muted)]">Pending (loaded)</p>
+        </Card>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <div className="card text-center" style={{ padding: 12 }}>
-          <Users className="w-6 h-6 mx-auto mb-1" style={{ color: 'var(--color-link)' }} />
-          <p className="font-display font-bold text-2xl">{loading ? '—' : displayTotal}</p>
-          <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>Total</p>
-        </div>
-        <div className="card text-center" style={{ padding: 12 }}>
-          <Check className="w-6 h-6 mx-auto mb-1" style={{ color: 'var(--color-success)' }} />
-          <p className="font-display font-bold text-2xl">{loading ? '—' : credited}</p>
-          <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>Credited</p>
-        </div>
-        <div className="card text-center" style={{ padding: 12 }}>
-          <Users className="w-6 h-6 mx-auto mb-1" style={{ color: 'var(--color-warning)' }} />
-          <p className="font-display font-bold text-2xl">{loading ? '—' : pending}</p>
-          <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>Pending</p>
-        </div>
-      </div>
-
-      <div className="card-elevated space-y-4">
-        <h2 className="flex items-center gap-2 text-base">
-          <LinkIcon className="w-5 h-5" /> Your referral link
-        </h2>
-        <div>
-          <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Code</p>
-          <div className="flex items-center gap-2">
-            <code className="font-display font-bold text-xl flex-1 break-all" style={{ color: 'var(--color-link)' }}>
-              {code || '—'}
-            </code>
-            <button
-              className="btn-secondary"
-              onClick={() => void copy(code, 'code')}
-              disabled={!code}
-            >
-              {copied === 'code' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              {copied === 'code' ? 'Copied' : 'Copy'}
-            </button>
+      <section aria-label="Your referrals" className="space-y-2">
+        <h2 className="text-lg font-bold">Your referrals</h2>
+        {loading ? (
+          <div className="space-y-2" role="status" aria-label="Loading referrals">
+            <Skeleton height={56} /><Skeleton height={56} />
           </div>
-        </div>
-        <div>
-          <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Link</p>
-          {referralLink ? (
-            <p className="text-sm break-all" style={{ color: 'var(--color-text-muted)' }}>
-              {referralLink}
-            </p>
-          ) : (
-            <p className="text-sm" style={{ color: 'var(--color-warning)' }}>
-              Bot username not configured yet — share your code above, or open
-              /referral in the bot for a ready-made link.
-            </p>
-          )}
-        </div>
-        <div className="flex gap-2">
-          <button
-            className="btn-primary"
-            style={{ flex: 1 }}
-            disabled={!referralLink}
-            onClick={() => {
-              haptics.impact('light');
-              shareViaTelegram(
-                referralLink,
-                'Join me on TradingBeast — session-aware forex focus radar. Get 10 free credits every day!'
+        ) : error ? (
+          <ErrorState message={error} onRetry={() => void loadPage(1, false)} />
+        ) : entries.length === 0 ? (
+          <Card>
+            <EmptyState title="No referrals yet" message="Share your link above — when friends join and get credited, they will appear here." />
+          </Card>
+        ) : (
+          <>
+            {entries.map((r) => {
+              const name = r.referred?.firstName || (r.referred?.username ? `@${r.referred.username}` : 'Telegram user');
+              const isCredited = r.status === 'CREDITED';
+              return (
+                <Card key={r.id} className="flex items-center gap-3 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold">{name}</p>
+                    <p className="text-[13px] text-[var(--color-text-muted)]">
+                      Joined {new Date(r.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${isCredited ? 'bg-[var(--color-success-bg)] text-[var(--color-success)]' : 'bg-[var(--color-warning-bg)] text-[var(--color-warning)]'}`}>
+                    {isCredited ? 'Credited' : 'Pending'}
+                  </span>
+                </Card>
               );
-            }}
-          >
-            <Share2 className="w-4 h-4" /> Share in Telegram
-          </button>
-          <button
-            className="btn-secondary"
-            disabled={!referralLink}
-            onClick={() => void copy(referralLink, 'link')}
-          >
-            {copied === 'link' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-            {copied === 'link' ? 'Copied' : 'Copy link'}
-          </button>
-        </div>
-      </div>
-
-      <div className="card space-y-2">
-        <h2 className="text-base">How it works</h2>
-        <ol className="text-sm space-y-1.5" style={{ color: 'var(--color-text-muted)' }}>
-          <li>1. Share your code or link with a friend.</li>
-          <li>2. They open the bot with your link (the referral is captured automatically).</li>
-          <li>3. You earn free Pro time for every successful referral.</li>
-        </ol>
-      </div>
-
-      {loading && <ReferralListSkeleton />}
-
-      {!loading && referrals.length === 0 && (
-        <EmptyState
-          Icon={UserPlus}
-          title="No referrals yet"
-          body="Share your link above — friends who join with it will appear here."
-        />
-      )}
-
-      {referrals.length > 0 && (
-        <div className="card space-y-2">
-          <h2 className="text-base">Recent referrals</h2>
-          {referrals.slice(0, 10).map((ref, i) => (
-            <motion.div
-              key={ref.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.22, ease: 'easeOut', delay: Math.min(i, 6) * 0.04 }}
-              className="flex items-center justify-between p-2.5 rounded-lg"
-              style={{ background: 'var(--color-bg)' }}
-            >
-              <div>
-                <p className="text-sm font-medium">
-                  {ref.referred?.firstName || 'Trader'}
-                </p>
-                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                  {ref.referred?.username
-                    ? `@${ref.referred.username}`
-                    : ref.referred?.telegramId ?? ''}{' '}
-                  · {new Date(ref.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              <span
-                className={`badge ${
-                  ref.status === 'CREDITED' ? 'badge-trial' : 'badge-free'
-                }`}
-              >
-                {ref.status}
-              </span>
-            </motion.div>
-          ))}
-        </div>
-      )}
+            })}
+            {hasMore && (
+              <Button variant="secondary" className="w-full" loading={loadingMore} onClick={() => void loadPage(page + 1, true)}>
+                Load more
+              </Button>
+            )}
+          </>
+        )}
+      </section>
     </div>
   );
 }
