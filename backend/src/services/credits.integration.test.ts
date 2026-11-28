@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { describe, it, expect, afterEach, afterAll } from 'vitest';
 import { prisma } from './db.js';
 import { registerUser } from './users.js';
-import { creditBalance, withRadarCredits, reserveRadar, recoverExpiredRadarRuns, utcDay, CREDIT_EPOCH_DAY, InsufficientCredits } from './credits.js';
+import { creditBalance, withRadarCredits, reserveRadar, recoverExpiredRadarRuns, utcDay, CREDIT_EPOCH_DAY, DAILY_CREDITS, WELCOME_CREDITS, InsufficientCredits } from './credits.js';
 
 const enabled=process.env.RUN_DB_INTEGRATION==='1';
 const ids:string[]=[];
@@ -24,7 +24,7 @@ describe.skipIf(!enabled)('PostgreSQL credit invariants',()=>{
     const users=await Promise.all([registerUser({telegramId}),registerUser({telegramId})]);
     expect(users[0].id).toBe(users[1].id);
     expect(await prisma.creditWallet.count({where:{userId:users[0].id}})).toBe(1);
-    expect(await creditBalance(users[0].id)).toBe(utcDay()>=CREDIT_EPOCH_DAY?10:0);
+    expect(await creditBalance(users[0].id)).toBe(WELCOME_CREDITS+(utcDay()>=CREDIT_EPOCH_DAY?DAILY_CREDITS:0));
   });
   it('allows only one concurrent spend when balance is 10',async()=>{
     const u=await create();
