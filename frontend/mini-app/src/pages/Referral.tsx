@@ -5,6 +5,15 @@ import { Skeleton } from '@shared/components/Skeleton';
 import { EmptyState } from '@shared/components/EmptyState';
 import { ErrorState } from '@shared/components/ErrorState';
 import { useToast } from '@shared/components/Toast';
+import { MarketsHeroArt } from '@shared/components/MarketsHeroArt';
+import {
+  ArrowRightIcon,
+  CheckIcon,
+  ClockIcon,
+  CopyIcon,
+  SendIcon,
+  UsersIcon,
+} from '@shared/components/icons';
 import { userApi, telegramApi, type ReferralEntry, type TelegramConfig } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { haptics, shareViaTelegram } from '../telegram';
@@ -20,7 +29,24 @@ const PAGE_SIZE = 20;
  * configured bot username from telegramApi.config, falling back to the
  * build-time VITE_BOT_USERNAME. Reward terms shown are the approved product
  * truth only: 7 days of Pro for BOTH sides per credited referral.
+ * R3b: presentation rebuilt to the study — code in a bordered box on the
+ * gradient card with a Copy link pill, icon-chip Pending/Credited stat
+ * cards (counts cover the loaded entries and are labelled as such — the
+ * API exposes no global pending total), initials-avatar rows and a
+ * gradient Invite action (Telegram share, as before).
  */
+
+function initialsOf(entry: ReferralEntry): string {
+  const name =
+    entry.referred?.firstName ||
+    (entry.referred?.username ? entry.referred.username : '') ||
+    'Telegram user';
+  const parts = name.replace(/^@/, '').split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
 export default function Referral() {
   const { user } = useAuth();
   const toast = useToast();
@@ -88,63 +114,93 @@ export default function Referral() {
   return (
     <div className="space-y-4 px-4">
       <div>
-        <h1 className="text-2xl font-bold">Referrals</h1>
-        <p className="text-sm text-[var(--color-text-muted)]">Invite traders to TradingBeast and grow together.</p>
+        <h1 className="text-[28px] leading-tight font-extrabold tracking-tight">Referrals</h1>
+        <p className="mt-1 text-sm text-[var(--color-text-muted)]">Invite traders to TradingBeast and grow together.</p>
       </div>
 
-      <div className="rounded-[var(--radius-lg)] p-5 text-white shadow-[var(--shadow-md)]" style={{ background: 'var(--grad-hero)' }}>
-        <p className="text-sm opacity-80">Your referral code</p>
-        <p className="mt-1 font-mono text-2xl font-bold break-all">{code || '—'}</p>
-        {referralLink ? (
-          <p className="mt-1 text-sm break-all opacity-90">{referralLink}</p>
-        ) : (
-          <p className="mt-1 text-sm opacity-90">
-            Bot link is not configured yet — share your code above, or open /referral in the bot for a ready-made link.
-          </p>
-        )}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button variant="secondary" size="sm" disabled={!code} onClick={() => void copy(code, 'Code')}>Copy code</Button>
-          <Button variant="secondary" size="sm" disabled={!referralLink} onClick={() => void copy(referralLink, 'Link')}>Copy link</Button>
+      {/* Referral code card (study 26). */}
+      <section
+        aria-label="Your referral code"
+        className="relative overflow-hidden rounded-[var(--radius-hero)] p-5 text-white shadow-[var(--shadow-hero)]"
+        style={{ background: 'var(--gradient-session-hero)' }}
+      >
+        <MarketsHeroArt />
+        <div className="relative">
+          <p className="text-[15px] font-semibold text-white/90">Your Referral Code</p>
+          <div className="mt-3 flex flex-wrap items-center gap-3 rounded-[var(--radius-row)] border-2 border-white/35 bg-white/10 px-4 py-3">
+            <p className="flex-1 font-mono text-[24px] font-extrabold tracking-wide break-all">{code || '—'}</p>
+            {referralLink ? (
+              <button
+                type="button"
+                onClick={() => void copy(referralLink, 'Link')}
+                className="inline-flex min-h-[40px] items-center gap-2 rounded-full bg-white/20 px-4 text-sm font-bold text-white transition-colors hover:bg-white/30"
+              >
+                <CopyIcon size={16} /> Copy link
+              </button>
+            ) : code ? (
+              <button
+                type="button"
+                onClick={() => void copy(code, 'Code')}
+                className="inline-flex min-h-[40px] items-center gap-2 rounded-full bg-white/20 px-4 text-sm font-bold text-white transition-colors hover:bg-white/30"
+              >
+                <CopyIcon size={16} /> Copy code
+              </button>
+            ) : null}
+          </div>
+          {referralLink ? (
+            <p className="mt-2.5 text-sm break-all text-white/85">{referralLink}</p>
+          ) : (
+            <p className="mt-2.5 text-sm text-white/85">
+              Bot link is not configured yet — share your code above, or open /referral in the bot for a ready-made link.
+            </p>
+          )}
         </div>
-      </div>
+      </section>
 
-      <Card>
+      <div className="rounded-[var(--radius-card-xl)] bg-[var(--color-mint-panel)] p-4 shadow-[var(--shadow-card-soft)]">
         <h2 className="text-base font-bold">How it works</h2>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
           When a friend joins with your link and their referral is credited,{' '}
           <strong className="text-[var(--color-text)]">you both get 7 days of Pro</strong> — 7 days
           for you and 7 days for them, for every credited referral.
         </p>
-      </Card>
+      </div>
 
-      <Button
-        className="w-full"
-        size="lg"
-        disabled={!referralLink}
-        onClick={() => {
-          haptics.impact('light');
-          shareViaTelegram(referralLink, 'Join me on TradingBeast — Session Focus Radar. We both get 7 days of Pro when you join with my link!');
-        }}
-      >
-        Share in Telegram
-      </Button>
-
+      {/* Stats (study 26 order: Pending, then Credited). */}
       <div className="grid grid-cols-2 gap-3">
-        <Card className="text-center">
-          <p className="tnum text-2xl font-bold">{loading ? '—' : credited}</p>
-          <p className="text-[13px] text-[var(--color-text-muted)]">Credited (loaded)</p>
+        <Card className="flex items-center gap-3">
+          <span
+            aria-hidden="true"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-mint-wash)] text-[var(--color-accent)]"
+          >
+            <ClockIcon size={22} />
+          </span>
+          <div>
+            <p className="text-[13px] font-semibold text-[var(--color-text-muted)]">Pending</p>
+            <p className="tnum text-[24px] leading-tight font-extrabold">{loading ? '—' : pending}</p>
+            <p className="text-[10.5px] text-[var(--color-text-faint)]">loaded entries</p>
+          </div>
         </Card>
-        <Card className="text-center">
-          <p className="tnum text-2xl font-bold">{loading ? '—' : pending}</p>
-          <p className="text-[13px] text-[var(--color-text-muted)]">Pending (loaded)</p>
+        <Card className="flex items-center gap-3">
+          <span
+            aria-hidden="true"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-mint-wash)] text-[var(--color-accent)]"
+          >
+            <UsersIcon size={22} />
+          </span>
+          <div>
+            <p className="text-[13px] font-semibold text-[var(--color-text-muted)]">Credited</p>
+            <p className="tnum text-[24px] leading-tight font-extrabold">{loading ? '—' : credited}</p>
+            <p className="text-[10.5px] text-[var(--color-text-faint)]">loaded entries</p>
+          </div>
         </Card>
       </div>
 
-      <section aria-label="Your referrals" className="space-y-2">
-        <h2 className="text-lg font-bold">Your referrals</h2>
+      <section aria-label="Your referrals" className="space-y-2.5">
+        <h2 className="text-[20px] font-extrabold tracking-tight">Recent Referrals</h2>
         {loading ? (
           <div className="space-y-2" role="status" aria-label="Loading referrals">
-            <Skeleton height={56} /><Skeleton height={56} />
+            <Skeleton height={60} /><Skeleton height={60} />
           </div>
         ) : error ? (
           <ErrorState message={error} onRetry={() => void loadPage(1, false)} />
@@ -154,23 +210,36 @@ export default function Referral() {
           </Card>
         ) : (
           <>
-            {entries.map((r) => {
-              const name = r.referred?.firstName || (r.referred?.username ? `@${r.referred.username}` : 'Telegram user');
-              const isCredited = r.status === 'CREDITED';
-              return (
-                <Card key={r.id} className="flex items-center gap-3 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">{name}</p>
-                    <p className="text-[13px] text-[var(--color-text-muted)]">
-                      Joined {new Date(r.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${isCredited ? 'bg-[var(--color-success-bg)] text-[var(--color-success)]' : 'bg-[var(--color-warning-bg)] text-[var(--color-warning)]'}`}>
-                    {isCredited ? 'Credited' : 'Pending'}
-                  </span>
-                </Card>
-              );
-            })}
+            <Card className="py-1">
+              <ul className="divide-y divide-[var(--color-border-soft)]">
+                {entries.map((r) => {
+                  const name = r.referred?.firstName || (r.referred?.username ? `@${r.referred.username}` : 'Telegram user');
+                  const isCredited = r.status === 'CREDITED';
+                  return (
+                    <li key={r.id} className="flex items-center gap-3 py-3">
+                      <span
+                        aria-hidden="true"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--color-mint-wash)] text-[14px] font-extrabold text-[var(--color-accent)]"
+                      >
+                        {initialsOf(r)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[15px] font-bold">{name}</p>
+                        <p className="text-xs text-[var(--color-text-muted)]">
+                          Joined {new Date(r.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <span
+                        className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${isCredited ? 'bg-[var(--color-success-bg)] text-[var(--color-success)]' : 'bg-[var(--color-warning-bg)] text-[var(--color-warning)]'}`}
+                      >
+                        {isCredited ? <CheckIcon size={13} /> : <ClockIcon size={13} />}
+                        {isCredited ? 'Credited' : 'Pending'}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </Card>
             {hasMore && (
               <Button variant="secondary" className="w-full" loading={loadingMore} onClick={() => void loadPage(page + 1, true)}>
                 Load more
@@ -179,6 +248,19 @@ export default function Referral() {
           </>
         )}
       </section>
+
+      <Button
+        size="lg"
+        className="w-full rounded-full text-white"
+        style={{ background: 'var(--gradient-primary-action)' }}
+        disabled={!referralLink}
+        onClick={() => {
+          haptics.impact('light');
+          shareViaTelegram(referralLink, 'Join me on TradingBeast — Session Focus Radar. We both get 7 days of Pro when you join with my link!');
+        }}
+      >
+        <SendIcon size={19} /> Invite Friends <ArrowRightIcon size={19} />
+      </Button>
     </div>
   );
 }

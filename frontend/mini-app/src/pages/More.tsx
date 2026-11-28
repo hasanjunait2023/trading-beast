@@ -1,9 +1,15 @@
-import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useState, type ComponentType } from 'react';
 import { Brand } from '@shared/components/Brand';
 import { Button } from '@shared/components/Button';
-import { Card } from '@shared/components/Card';
 import { Skeleton } from '@shared/components/Skeleton';
-import { ChevronRightIcon } from '@shared/components/icons';
+import {
+  BookmarkIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  CoinsIcon,
+  GearIcon,
+  UsersIcon,
+} from '@shared/components/icons';
 import { adaptSessions, type SessionsOverviewView } from '@shared/radar/adapter';
 import { analysisApi } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
@@ -17,13 +23,23 @@ const Profile = lazy(() => import('./Profile'));
 
 type MoreView = 'menu' | 'watchlist' | 'clock' | 'credits' | 'referral' | 'profile';
 
-const ITEMS: { id: Exclude<MoreView, 'menu'>; label: string; hint: string }[] = [
-  { id: 'watchlist', label: 'Watchlist', hint: 'Pairs you follow' },
-  { id: 'clock', label: 'Session Clock', hint: 'Session windows and overlaps' },
-  { id: 'credits', label: 'Credits', hint: 'Balance, daily grant and scan cost' },
-  { id: 'referral', label: 'Referrals', hint: 'Invite traders, earn Pro days' },
-  { id: 'profile', label: 'Profile & Settings', hint: 'Account, theme and sign-out' },
+type MoreItem = {
+  id: Exclude<MoreView, 'menu'>;
+  label: string;
+  hint: string;
+  icon: ComponentType<{ size?: number }>;
+  group: 'Workspace' | 'Account';
+};
+
+const ITEMS: MoreItem[] = [
+  { id: 'watchlist', label: 'Watchlist', hint: 'Pairs you follow', icon: BookmarkIcon, group: 'Workspace' },
+  { id: 'clock', label: 'Session Clock', hint: 'Session windows and overlaps', icon: ClockIcon, group: 'Workspace' },
+  { id: 'credits', label: 'Credits', hint: 'Balance, daily grant and scan cost', icon: CoinsIcon, group: 'Workspace' },
+  { id: 'referral', label: 'Referrals', hint: 'Invite traders, earn Pro days', icon: UsersIcon, group: 'Account' },
+  { id: 'profile', label: 'Profile & Settings', hint: 'Account, theme and sign-out', icon: GearIcon, group: 'Account' },
 ];
+
+const GROUPS: MoreItem['group'][] = ['Workspace', 'Account'];
 
 function ClockView() {
   const [overview, setOverview] = useState<SessionsOverviewView | null>(null);
@@ -58,10 +74,15 @@ function SubviewFallback() {
 }
 
 /**
- * More tab (reference 03/04 tab bar; study 14). Account header plus grouped
- * links to the destinations that are not primary tabs: Watchlist, Session
- * Clock, Credits, Referrals and Profile/Settings — all existing pages,
- * rendered as subviews with an in-page back row.
+ * More tab (reference 03/04 tab bar; study 14). Brand card with the real
+ * plan pill plus grouped links to the destinations that are not primary
+ * tabs: Watchlist, Session Clock, Credits, Referrals and Profile/Settings
+ * — all existing pages, rendered as subviews with an in-page back row.
+ * R3b: the menu is composed as the study's mint group panels (Workspace /
+ * Account) with icon rows. The study also lists Risk Tools, Economic
+ * Calendar, Alerts, Membership and Help rows — the Mini App has no such
+ * destinations (they exist only in the web portal), so no dead rows are
+ * rendered here.
  */
 export default function More({
   goToTab,
@@ -98,41 +119,60 @@ export default function More({
     );
   }
 
+  const planLabel = user?.isTrialActive
+    ? 'Pro trial'
+    : `${(user?.tier ?? 'FREE').charAt(0)}${(user?.tier ?? 'FREE').slice(1).toLowerCase()} plan`;
+
   return (
     <div className="space-y-4 px-4">
-      <Brand size={32} />
-      <Card className="flex items-center gap-3">
-        <span
-          aria-hidden="true"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-extrabold text-white"
-          style={{ background: 'var(--gradient-primary-action)' }}
-        >
-          {(user?.firstName ?? user?.username ?? 'T').slice(0, 1).toUpperCase()}
-        </span>
-        <div className="min-w-0">
-          <p className="truncate text-[17px] font-bold">
-            {user?.firstName ?? user?.username ?? 'TradingBeast account'}
-          </p>
-          <p className="text-[13px] text-[var(--color-text-muted)]">
-            {user?.tier ?? 'FREE'} tier{user?.isTrialActive ? ' · Pro trial active' : ''}
-          </p>
-        </div>
-      </Card>
+      <h1 className="text-[30px] leading-tight font-extrabold tracking-tight">More</h1>
 
-      <nav aria-label="More destinations" className="space-y-2.5">
-        {ITEMS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => setView(item.id)}
-            className="flex min-h-[60px] w-full items-center gap-3 rounded-[var(--radius-row)] border border-[var(--color-border-soft)] bg-[var(--color-surface)] px-4 py-3 text-left shadow-[var(--shadow-row)] transition-transform active:scale-[0.99]"
+      {/* Brand card (study 14): checked-in bars tile + real plan pill. */}
+      <div className="flex items-center gap-3.5 rounded-[var(--radius-card-xl)] bg-[var(--color-mint-panel)] p-4 shadow-[var(--shadow-card-soft)]">
+        <Brand variant="tile" size={54} markOnly />
+        <div className="min-w-0">
+          <p className="truncate text-[20px] font-extrabold tracking-tight">TradingBeast</p>
+          <span className="mt-1 inline-flex rounded-full bg-[var(--color-mint-wash)] px-3 py-1 text-[13px] font-bold text-[var(--color-accent)]">
+            {planLabel}
+          </span>
+          {(user?.firstName || user?.username) && (
+            <p className="mt-1 truncate text-[12.5px] text-[var(--color-text-muted)]">
+              Signed in as {user?.firstName ?? ''}
+              {user?.username ? ` @${user.username}` : ''}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <nav aria-label="More destinations" className="space-y-4">
+        {GROUPS.map((group) => (
+          <section
+            key={group}
+            aria-label={group}
+            className="rounded-[var(--radius-card-xl)] bg-[var(--color-mint-panel)] p-3 shadow-[var(--shadow-card-soft)]"
           >
-            <span className="min-w-0 flex-1">
-              <span className="block text-[16px] font-bold">{item.label}</span>
-              <span className="block text-[13px] text-[var(--color-text-muted)]">{item.hint}</span>
-            </span>
-            <ChevronRightIcon size={20} className="shrink-0 text-[var(--color-text-faint)]" />
-          </button>
+            <h2 className="px-1.5 pb-2.5 text-[19px] font-extrabold tracking-tight">{group}</h2>
+            <div className="divide-y divide-[var(--color-border-soft)] rounded-[var(--radius-row)] bg-[var(--color-surface)] px-4 shadow-[var(--shadow-row)]">
+              {ITEMS.filter((i) => i.group === group).map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setView(item.id)}
+                    aria-label={`${item.label} — ${item.hint}`}
+                    className="flex min-h-[56px] w-full items-center gap-3.5 py-3 text-left transition-transform active:scale-[0.99]"
+                  >
+                    <span aria-hidden="true" className="shrink-0 text-[var(--color-text)]">
+                      <Icon size={24} />
+                    </span>
+                    <span className="min-w-0 flex-1 text-[16.5px] font-semibold">{item.label}</span>
+                    <ChevronRightIcon size={20} className="shrink-0 text-[var(--color-text-faint)]" />
+                  </button>
+                );
+              })}
+            </div>
+          </section>
         ))}
       </nav>
 
