@@ -7,7 +7,10 @@ WORKDIR /app
 COPY shared ./shared
 COPY mini-app/package*.json ./mini-app/
 WORKDIR /app/mini-app
-RUN npm install --no-audit --no-fund
+# Lockfiles are generated on glibc hosts; the Alpine (musl) builder hits the
+# npm optional-deps bug (npm/cli#4828) and misses @rollup/rollup-linux-x64-musl.
+# Resolve fresh inside the image instead (matches the pre-lockfile deploys).
+RUN rm -f package-lock.json && npm install --no-audit --no-fund
 
 COPY mini-app/ ./
 
