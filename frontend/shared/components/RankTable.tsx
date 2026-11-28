@@ -9,12 +9,48 @@ export interface RankRow {
   bias?: Bias;
   /** Score in points out of 100; omit for unranked/unavailable rows. */
   score?: number;
+  /** Catalog pair the scan did not rank — reference variant renders the
+   *  grey "UNRANKED" pill (unranked ≠ unavailable, handoff §3 row 04). */
+  unranked?: boolean;
 }
 
 export interface RankTableProps {
   rows: RankRow[];
   onRowSelect?: (row: RankRow) => void;
   caption?: string;
+  /** 'reference' = study-28 desktop table: mint header band, tall rows,
+   *  flag-pair instrument cells, rectangular status pills, plain coloured
+   *  bias text and a large bare score. Default keeps the Z1 table. */
+  variant?: 'default' | 'reference';
+  /** Reference variant: leading visual per row (e.g. <PairFlags />). */
+  leading?: (row: RankRow) => React.ReactNode;
+}
+
+/** Study-28 status pill: rectangular, centred, uppercase. Colours come
+ *  from the semantic status tokens (Focus mint, Watch warm yellow,
+ *  Avoid burgundy, Unavailable/Unranked grey). */
+const REF_PILL: Record<MarketStatus, string> = {
+  focus: 'bg-[var(--color-focus-bg)] text-[var(--color-focus-text)]',
+  watch: 'bg-[var(--color-watch-bg)] text-[var(--color-watch-text)]',
+  avoid: 'bg-[var(--color-avoid-bg)] text-[var(--color-avoid-text)]',
+  unavailable: 'bg-[var(--color-unavailable-bg)] text-[var(--color-unavailable-text)]',
+};
+
+function ReferencePill({ row }: { row: RankRow }) {
+  if (row.unranked) {
+    return (
+      <span className="inline-flex h-10 min-w-[112px] items-center justify-center rounded-[10px] bg-[var(--color-unavailable-bg)] px-3 text-[13px] font-extrabold tracking-wider text-[var(--color-unavailable-text)]">
+        UNRANKED
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`inline-flex h-10 min-w-[112px] items-center justify-center rounded-[10px] px-3 text-[13px] font-extrabold tracking-wider ${REF_PILL[row.status]}`}
+    >
+      {row.status.toUpperCase()}
+    </span>
+  );
 }
 
 /**
@@ -22,7 +58,7 @@ export interface RankTableProps {
  * Rows are keyboard navigable: Tab reaches the table, arrow keys move
  * between rows, Enter/Space selects when onRowSelect is provided.
  */
-export function RankTable({ rows, onRowSelect, caption }: RankTableProps) {
+export function RankTable({ rows, onRowSelect, caption, variant = 'default', leading }: RankTableProps) {
   const rowRefs = React.useRef<Array<HTMLTableRowElement | null>>([]);
 
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
@@ -38,6 +74,72 @@ export function RankTable({ rows, onRowSelect, caption }: RankTableProps) {
       onRowSelect(rows[index]);
     }
   };
+
+  if (variant === 'reference') {
+    return (
+      <div
+        className="overflow-x-auto rounded-[16px] border border-[var(--color-border-soft)] bg-[var(--color-surface)] shadow-[var(--shadow-row)]"
+        role="region"
+        aria-label={caption ? `${caption} — scroll horizontally on small screens` : 'Radar results table — scroll horizontally on small screens'}
+        tabIndex={0}
+      >
+        <table className="w-full border-collapse text-left">
+          {caption && <caption className="sr-only">{caption}</caption>}
+          <thead>
+            <tr className="bg-[var(--color-mint-wash)] text-[15px] text-[var(--color-text)]">
+              <th scope="col" className="px-5 py-4 font-bold">Instrument</th>
+              <th scope="col" className="px-5 py-4 font-bold">Status</th>
+              <th scope="col" className="px-5 py-4 font-bold">Bias</th>
+              <th scope="col" className="px-5 py-4 text-right font-bold">Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr
+                key={row.pair}
+                ref={(el) => {
+                  rowRefs.current[i] = el;
+                }}
+                tabIndex={0}
+                onClick={onRowSelect && !row.unranked ? () => onRowSelect(row) : undefined}
+                onKeyDown={(e) => handleKeyDown(e, i)}
+                aria-label={onRowSelect && !row.unranked ? `Open ${row.pair}` : undefined}
+                className={`border-t border-[var(--color-border-soft)] ${
+                  onRowSelect && !row.unranked ? 'cursor-pointer hover:bg-[var(--color-surface-hover)]' : ''
+                }`}
+              >
+                <td className="px-5 py-4">
+                  <span className="flex items-center gap-3">
+                    {leading?.(row)}
+                    <span className="text-[17px] font-extrabold tracking-tight text-[var(--color-text)]">
+                      {row.pair}
+                    </span>
+                  </span>
+                </td>
+                <td className="px-5 py-4">
+                  <ReferencePill row={row} />
+                </td>
+                <td className="px-5 py-4">
+                  {row.bias && !row.unranked ? (
+                    <BiasText bias={row.bias} showArrow={false} className="text-base" />
+                  ) : (
+                    <span className="text-[var(--color-text-muted)]">—</span>
+                  )}
+                </td>
+                <td className="tnum px-5 py-4 text-right text-2xl font-extrabold text-[var(--color-text)]">
+                  {typeof row.score === 'number' && !row.unranked ? (
+                    row.score
+                  ) : (
+                    <span className="text-[var(--color-text-muted)]">—</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
 
   return (
     <div

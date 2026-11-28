@@ -192,6 +192,113 @@ export function TrendingUpIcon(props: IconProps) {
   );
 }
 
+export function BellIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8" />
+      <path d="M10.3 21a2 2 0 0 0 3.4 0" />
+    </>,
+  );
+}
+
+export function GearIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <circle cx="12" cy="12" r="3.2" />
+      <path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1" />
+    </>,
+  );
+}
+
+export function UsersIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20c.8-3.2 3.4-5 6.5-5s5.7 1.8 6.5 5" />
+      <path d="M16 5.2a3.5 3.5 0 0 1 0 5.9M18.6 15.6c1.6.8 2.6 2.2 3 4.4" />
+    </>,
+  );
+}
+
+export function HelpCircleIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9.3A2.6 2.6 0 0 1 12 7.5c1.4 0 2.5 1 2.5 2.3 0 1.7-2.4 2-2.4 3.7" />
+      <circle cx="12" cy="17.2" r="0.6" fill="currentColor" />
+    </>,
+  );
+}
+
+export function SlidersIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <path d="M4 7h9M17 7h3M4 17h3M11 17h9" />
+      <circle cx="15" cy="7" r="2.2" />
+      <circle cx="9" cy="17" r="2.2" />
+    </>,
+  );
+}
+
+export function ListIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <path d="M9 6h11M9 12h11M9 18h11" />
+      <circle cx="4.5" cy="6" r="1" fill="currentColor" />
+      <circle cx="4.5" cy="12" r="1" fill="currentColor" />
+      <circle cx="4.5" cy="18" r="1" fill="currentColor" />
+    </>,
+  );
+}
+
+export function CardIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <path d="M3 10h18" />
+    </>,
+  );
+}
+
+export function GiftIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <rect x="4" y="10" width="16" height="4" />
+      <path d="M6 14v6h12v-6M12 10v10" />
+      <path d="M12 10a2.4 2.4 0 1 1 2.4-2.4c0 1.5-2.4 2.4-2.4 2.4Zm0 0a2.4 2.4 0 1 0-2.4-2.4C9.6 9.1 12 10 12 10Z" />
+    </>,
+  );
+}
+
+export function WalletIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <path d="M3 7a2.5 2.5 0 0 1 2.5-2.5H18a1 1 0 0 1 1 1V8" />
+      <path d="M3 7v10A2.5 2.5 0 0 0 5.5 19.5h13A2.5 2.5 0 0 0 21 17v-6a2.5 2.5 0 0 0-2.5-2.5H5A2 2 0 0 1 3 6.5Z" />
+      <circle cx="16.8" cy="14" r="1.1" fill="currentColor" />
+    </>,
+  );
+}
+
+export function ShieldCheckIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <path d="M12 3 5 5.8v5.4c0 4.3 2.9 7.4 7 9 4.1-1.6 7-4.7 7-9V5.8Z" />
+      <path d="m9 11.6 2.2 2.2 4-4.2" />
+    </>,
+  );
+}
+
 export function ArrowUpDownIcon(props: IconProps) {
   return base(
     props,
