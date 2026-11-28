@@ -16,6 +16,7 @@ const css = cssFiles.map((f) => readFileSync(join(assetsDir, f), 'utf8')).join('
 const sentinels = ['.flex', '.items-center', '.justify-between', '.grid', '.gap-', '.rounded', '.font-semibold', '.text-sm', '.px-', '.py-'];
 const missing = sentinels.filter((s) => !css.includes(s));
 if (!['.sm\\:', '.md\\:', '.lg\\:'].some((v) => css.includes(v))) missing.push('responsive variants (.sm:/.md:/.lg:)');
+if (!css.includes('--color-primary:') && !css.includes('--grad-hero')) missing.push('shared theme tokens (--color-primary/--grad-hero) — theme.css import did not inline');
 if (missing.length > 0) {
   console.error(`assert-css: FAIL — built CSS (${css.length} bytes) is missing utility selectors: ${missing.join(', ')}`);
   console.error('Tailwind content sources are broken. Check the @source directives in src/index.css.');
