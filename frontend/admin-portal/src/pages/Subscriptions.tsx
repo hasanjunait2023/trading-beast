@@ -114,8 +114,9 @@ export default function Subscriptions() {
           <EmptyState title="No users in this tier" message="No users currently hold this effective tier." />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" role="region" aria-label="Subscriptions table — scroll horizontally on small screens" tabIndex={0}>
               <table className="tb-table">
+                <caption className="sr-only">Subscriptions</caption>
                 <thead><tr><th>User</th><th>Effective tier</th><th>Subscription</th><th>Expires</th><th>Payments</th></tr></thead>
                 <tbody>
                   {users.map((u) => (

@@ -126,7 +126,7 @@ export function PaymentHistoryList() {
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" role="region" aria-label="Payment history table — scroll horizontally on small screens" tabIndex={0}>
         <table className="w-full border-collapse text-left text-sm">
           <caption className="sr-only">Payment history</caption>
           <thead>

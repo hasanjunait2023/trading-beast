@@ -116,8 +116,9 @@ export default function Finance() {
         {pending.length === 0 ? (
           <EmptyState title="Nothing pending" message="The verification queue is empty." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="tb-table">
+            <div className="overflow-x-auto" role="region" aria-label="Pending payments table — scroll horizontally on small screens" tabIndex={0}>
+              <table className="tb-table">
+                <caption className="sr-only">Payments pending verification</caption>
               <thead><tr><th>User</th><th>Amount</th><th>Method</th><th>Status</th><th>Submitted</th></tr></thead>
               <tbody>
                 {pending.slice(0, 5).map((p) => (

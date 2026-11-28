@@ -28,7 +28,32 @@ export function Sheet({ open, onClose, title, children, footer }: SheetProps) {
       (focusable ?? sheet).focus();
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      // Focus trap (Z5): keep Tab / Shift+Tab cycling inside the sheet.
+      if (e.key === 'Tab' && sheet) {
+        const items = Array.from(
+          sheet.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          ),
+        ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+        if (items.length === 0) {
+          e.preventDefault();
+          sheet.focus();
+          return;
+        }
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (e.shiftKey && (document.activeElement === first || document.activeElement === sheet)) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => {

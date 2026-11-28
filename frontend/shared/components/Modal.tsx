@@ -28,7 +28,33 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
       (focusable ?? dialog).focus();
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      // Focus trap (Z5): keep Tab / Shift+Tab cycling inside the dialog so
+      // keyboard users cannot tab into the page behind the modal.
+      if (e.key === 'Tab' && dialog) {
+        const items = Array.from(
+          dialog.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          ),
+        ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+        if (items.length === 0) {
+          e.preventDefault();
+          dialog.focus();
+          return;
+        }
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (e.shiftKey && (document.activeElement === first || document.activeElement === dialog)) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => {

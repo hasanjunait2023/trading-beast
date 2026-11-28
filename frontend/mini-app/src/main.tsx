@@ -5,6 +5,8 @@ import { AuthProvider } from './hooks/useAuth';
 import { initTelegram, getWebApp } from './telegram';
 import { ThemeProvider, useTheme } from '@shared/theme';
 import { ToastProvider } from '@shared/components/Toast';
+import { ErrorBoundary } from '@shared/components/ErrorBoundary';
+import { OfflineBanner } from '@shared/components/OfflineBanner';
 import './index.css';
 
 // Initialise the Telegram WebApp (ready/expand/theme vars) before first paint.
@@ -42,11 +44,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ThemeProvider>
       <TelegramThemeSeed />
-      <ToastProvider>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </ToastProvider>
+      <OfflineBanner />
+      <ErrorBoundary context="TradingBeast">
+        <ToastProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </ToastProvider>
+      </ErrorBoundary>
     </ThemeProvider>
   </React.StrictMode>,
 );

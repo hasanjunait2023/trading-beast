@@ -115,8 +115,9 @@ export default function Payments() {
           <EmptyState title="Queue is clear" message={page > 1 ? 'No more pending payments on this page.' : 'No payments are waiting for verification.'} />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" role="region" aria-label="Payments table — scroll horizontally on small screens" tabIndex={0}>
               <table className="tb-table">
+                <caption className="sr-only">Payments</caption>
                 <thead><tr><th>User</th><th>Amount</th><th>Method</th><th>Transaction ID</th><th>Screenshot</th><th>Status</th><th>Submitted</th><th>Actions</th></tr></thead>
                 <tbody>
                   {payments.map((p) => (

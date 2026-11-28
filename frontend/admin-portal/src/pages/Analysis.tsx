@@ -118,8 +118,9 @@ export default function Analysis() {
               <span>FX week: <span className="font-medium text-[var(--color-text)]">{sessions.fxWeekOpen ? 'Open' : 'Closed'}</span></span>
               {sessions.calendarPolicy && <span>Calendar policy: <span className="font-medium text-[var(--color-text)]">{sessions.calendarPolicy}</span></span>}
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" role="region" aria-label="Session windows table — scroll horizontally on small screens" tabIndex={0}>
               <table className="tb-table">
+                <caption className="sr-only">Session windows</caption>
                 <thead><tr><th>Session</th><th>Zone</th><th>State</th><th>Window</th><th>Next start</th><th>Opening range</th></tr></thead>
                 <tbody>
                   {sessions.sessions!.map((s, i) => {

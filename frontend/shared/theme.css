@@ -24,7 +24,10 @@
   --color-border-strong: #b9d2c7;
   --color-text: #101d2c;
   --color-text-muted: #4c625d;
-  --color-text-faint: #7d938c;
+  /* Z5 contrast fix: was #7d938c = 3.10:1 on canvas / 3.27:1 on white —
+     failed WCAG AA for the small text / placeholders this token carries.
+     #59766e measures 4.95:1 on white and 4.69:1 on canvas. */
+  --color-text-faint: #59766e;
 
   /* ---- Brand / actions ---- */
   --color-accent: #00664b;
@@ -119,12 +122,21 @@
   --color-border-strong: #283358;
   --color-text: #e8edfb;
   --color-text-muted: #8896bd;
-  --color-text-faint: #556080;
+  /* Z5 contrast fix: was #556080 = 3.00:1 on surface / 3.18:1 on canvas —
+     failed WCAG AA for small text. #7e8db3 measures 5.65:1 on surface
+     and 5.99:1 on canvas. */
+  --color-text-faint: #7e8db3;
 
   /* ---- Brand / actions ---- */
   --color-accent: #4f6dff;
   --color-accent-hover: #6b86ff;
-  --color-accent-text: #ffffff;
+  /* Z5 contrast fix: white on --color-accent measured 4.23:1 — below AA
+     for the normal-size button/chip text that sits on the accent fill.
+     Near-black navy text measures 4.68:1 on #4f6dff and 6.11:1 on the
+     hover fill #6b86ff, so the dark variant pairs dark text with its
+     bright accent (the light variant keeps white on the deep emerald,
+     6.99:1). */
+  --color-accent-text: #060918;
   --color-accent-soft: rgba(79, 109, 255, 0.14);
   --color-link: #6b86ff;
   --color-violet: #7c5cff;

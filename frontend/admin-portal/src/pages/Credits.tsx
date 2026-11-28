@@ -67,8 +67,9 @@ export default function Credits() {
         {recon.discrepancies.length === 0 ? (
           <EmptyState title="No discrepancies" message="Every stored credit balance matches its ledger sum." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="tb-table">
+            <div className="overflow-x-auto" role="region" aria-label="Credit discrepancies table — scroll horizontally on small screens" tabIndex={0}>
+              <table className="tb-table">
+                <caption className="sr-only">Credit balance discrepancies</caption>
               <thead><tr><th>User ID</th><th>Stored balance</th><th>Ledger sum</th><th>Difference</th></tr></thead>
               <tbody>
                 {recon.discrepancies.map((d) => (

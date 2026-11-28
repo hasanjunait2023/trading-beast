@@ -148,8 +148,9 @@ function UserList() {
           <EmptyState title="No users found" message="Try a different search or tier filter." />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" role="region" aria-label="Users table — scroll horizontally on small screens" tabIndex={0}>
               <table className="tb-table">
+                <caption className="sr-only">Users</caption>
                 <thead><tr><th>User</th><th>Tier</th><th>Subscription</th><th>Payments</th><th>Referrals</th><th>Joined</th><th>Last active</th><th>Actions</th></tr></thead>
                 <tbody>
                   {users.map((u) => (
@@ -272,7 +273,9 @@ function UserDetail({ id }: { id: string }) {
         {(user.subscriptions ?? []).length === 0 ? (
           <EmptyState title="No subscriptions" message="This user has never had a subscription record." />
         ) : (
-          <div className="overflow-x-auto"><table className="tb-table">
+          <div className="overflow-x-auto" role="region" aria-label="User subscriptions table — scroll horizontally on small screens" tabIndex={0}>
+            <table className="tb-table">
+              <caption className="sr-only">Subscriptions for the selected user</caption>
             <thead><tr><th>Tier</th><th>Status</th><th>Starts</th><th>Expires</th></tr></thead>
             <tbody>{user.subscriptions!.map((s) => (
               <tr key={s.id}><td><TierPill tier={s.tier} /></td><td><StatusBadge status={s.status} /></td><td>{formatDate(s.startsAt)}</td><td>{formatDate(s.expiresAt)}</td></tr>
@@ -286,7 +289,9 @@ function UserDetail({ id }: { id: string }) {
         {(user.payments ?? []).length === 0 ? (
           <EmptyState title="No payments" message="This user has not submitted a payment." />
         ) : (
-          <div className="overflow-x-auto"><table className="tb-table">
+          <div className="overflow-x-auto" role="region" aria-label="User payments table — scroll horizontally on small screens" tabIndex={0}>
+            <table className="tb-table">
+              <caption className="sr-only">Payments for the selected user</caption>
             <thead><tr><th>Amount</th><th>Method</th><th>Status</th><th>Submitted</th></tr></thead>
             <tbody>{user.payments!.map((p) => (
               <tr key={p.id}><td className="tnum">{(p.amount / 100).toFixed(2)} {p.currency}</td><td>{p.method}</td><td><StatusBadge status={p.status} /></td><td>{formatDate(p.createdAt)}</td></tr>
@@ -300,7 +305,9 @@ function UserDetail({ id }: { id: string }) {
         {(user.referrals ?? []).length === 0 ? (
           <EmptyState title="No referrals" message="This user has not referred anyone yet." />
         ) : (
-          <div className="overflow-x-auto"><table className="tb-table">
+          <div className="overflow-x-auto" role="region" aria-label="User referrals table — scroll horizontally on small screens" tabIndex={0}>
+            <table className="tb-table">
+              <caption className="sr-only">Referrals for the selected user</caption>
             <thead><tr><th>Referred user</th><th>Status</th><th>Date</th></tr></thead>
             <tbody>{user.referrals!.map((r) => (
               <tr key={r.id}><td>{r.referred?.firstName || 'Unknown'} <span className="text-[var(--color-text-muted)]">@{r.referred?.username || r.referred?.telegramId}</span></td><td><StatusBadge status={r.status} /></td><td>{formatDate(r.createdAt)}</td></tr>

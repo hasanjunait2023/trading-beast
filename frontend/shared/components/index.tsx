@@ -26,6 +26,8 @@ export * from './ChartPanel';
 export * from './Skeleton';
 export * from './EmptyState';
 export * from './ErrorState';
+export * from './ErrorBoundary';
+export * from './OfflineBanner';
 export * from './UnavailableState';
 export * from './Sidebar';
 export * from './BottomNav';

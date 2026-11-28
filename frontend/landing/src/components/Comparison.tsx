@@ -129,6 +129,9 @@ export default function Comparison() {
         <Reveal>
           <div
             className="mx-auto max-w-5xl overflow-x-auto rounded-[var(--radius-lg)] border"
+            role="region"
+            aria-label="Feature comparison table — scroll horizontally on small screens"
+            tabIndex={0}
             style={{
               background: 'var(--color-surface)',
               borderColor: 'var(--color-border)',

@@ -16,6 +16,7 @@ const Finance = lazy(() => import('./pages/Finance'));
 const Subscriptions = lazy(() => import('./pages/Subscriptions'));
 const Credits = lazy(() => import('./pages/Credits'));
 const Settings = lazy(() => import('./pages/Settings'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 function PageFallback() {
   return (
@@ -52,7 +53,8 @@ function App() {
           <Route path="/credits" element={<Credits />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        {/* 404 (Z5): a real not-found page, not a silent redirect. */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
   );

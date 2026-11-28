@@ -158,7 +158,7 @@ export default function Checkout() {
           )}
 
           <FormField label="Payment method">
-            <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Payment method">
+            <div className="grid grid-cols-1 gap-2 min-[480px]:grid-cols-3" role="radiogroup" aria-label="Payment method">
               {METHODS.map((m) => (
                 <button
                   key={m.id}

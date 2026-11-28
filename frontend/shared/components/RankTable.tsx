@@ -40,7 +40,12 @@ export function RankTable({ rows, onRowSelect, caption }: RankTableProps) {
   };
 
   return (
-    <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)]">
+    <div
+      className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)]"
+      role="region"
+      aria-label={caption ? `${caption} — scroll horizontally on small screens` : 'Radar results table — scroll horizontally on small screens'}
+      tabIndex={0}
+    >
       <table className="w-full border-collapse text-left">
         {caption && <caption className="sr-only">{caption}</caption>}
         <thead>
