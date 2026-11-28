@@ -8,7 +8,11 @@ import { z } from 'zod';
 import { AuthRequest } from '../middleware/auth.js';
 
 import { prisma } from '../services/db.js';
-import { getPreferences, upsertPreferences, isValidTimezone, KNOWN_SESSIONS } from '../services/preferences.js';
+import { getPreferences, upsertPreferences, isValidTimezone, isValidTimeOfDay, KNOWN_SESSIONS } from '../services/preferences.js';
+import {
+  listAlertRules, createAlertRule, setAlertRuleEnabled, deleteAlertRule,
+  EVALUATOR_SCOPE, AlertAlreadyExistsError, AlertNotFoundError,
+} from '../services/alerts.js';
 import {
   listPlansForDate, getPlan, createPlan, updatePlan, parsePlanDate, todayUtc,
   PlanAlreadyExistsError, PlanNotFoundError, VersionConflictError, InvalidPinnedRunError,
@@ -143,9 +147,14 @@ router.get('/payments', async (req: AuthRequest, res) => {
 
 // --- Server preferences (handoff §5): account-level timezone + sessions ---
 
+const timeOfDaySchema = z.string().refine(isValidTimeOfDay, 'Expected HH:MM (24h)');
+
 const preferencesSchema = z.object({
   timezone: z.string().max(64).nullable().optional(),
-  preferredSessions: z.array(z.enum(KNOWN_SESSIONS)).max(3).optional()
+  preferredSessions: z.array(z.enum(KNOWN_SESSIONS)).max(3).optional(),
+  quietHoursEnabled: z.boolean().optional(),
+  quietStart: timeOfDaySchema.nullable().optional(),
+  quietEnd: timeOfDaySchema.nullable().optional()
 });
 
 router.get('/preferences', async (req: AuthRequest, res) => {
@@ -157,12 +166,104 @@ router.put('/preferences', async (req: AuthRequest, res) => {
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: 'Invalid preferences', details: parsed.error.errors });
   }
-  const { timezone, preferredSessions } = parsed.data;
+  const { timezone, preferredSessions, quietHoursEnabled, quietStart, quietEnd } = parsed.data;
   if (timezone !== undefined && timezone !== null && !isValidTimezone(timezone)) {
     return res.status(400).json({ success: false, error: 'Invalid timezone: not an IANA time zone' });
   }
-  const data = await upsertPreferences(req.user!.id, { timezone, preferredSessions });
+  // Quiet hours are validated against the MERGED state: enabling requires
+  // both bounds, whether they arrive in this request or were saved earlier.
+  if (quietHoursEnabled !== undefined || quietStart !== undefined || quietEnd !== undefined) {
+    const current = await getPreferences(req.user!.id);
+    const merged = {
+      enabled: quietHoursEnabled ?? current.quietHoursEnabled,
+      start: quietStart !== undefined ? quietStart : current.quietStart,
+      end: quietEnd !== undefined ? quietEnd : current.quietEnd
+    };
+    if (merged.enabled && (!merged.start || !merged.end)) {
+      return res.status(400).json({ success: false, error: 'Quiet hours require both a start and an end time' });
+    }
+  }
+  const data = await upsertPreferences(req.user!.id, {
+    timezone, preferredSessions, quietHoursEnabled, quietStart, quietEnd
+  });
   res.json({ success: true, data });
+});
+
+// --- Alerts (handoff §3 row 13): owner-scoped SESSION_START rules only ---
+// The evaluator scope is stated in every list response: SESSION_START is the
+// only type that can actually be evaluated and delivered today.
+
+router.get('/alerts', async (req: AuthRequest, res) => {
+  const [rules, user] = await Promise.all([
+    listAlertRules(req.user!.id),
+    prisma.user.findUnique({ where: { id: req.user!.id }, select: { telegramId: true } })
+  ]);
+  res.json({
+    success: true,
+    data: {
+      rules,
+      status: {
+        telegramLinked: Boolean(user?.telegramId),
+        // Boolean only — the token value itself is never exposed.
+        botConfigured: Boolean(process.env.TELEGRAM_BOT_TOKEN),
+        evaluator: EVALUATOR_SCOPE
+      }
+    }
+  });
+});
+
+const createAlertSchema = z.object({
+  type: z.literal('SESSION_START'),
+  session: z.enum(KNOWN_SESSIONS)
+});
+
+router.post('/alerts', async (req: AuthRequest, res) => {
+  const parsed = createAlertSchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: 'Invalid alert rule: only SESSION_START rules are available', details: parsed.error.errors });
+  }
+  try {
+    const rule = await createAlertRule(req.user!.id, parsed.data);
+    res.status(201).json({ success: true, data: rule });
+  } catch (err) {
+    if (err instanceof AlertAlreadyExistsError) {
+      // Same contract as plans: 409 with the existing rule in `data`.
+      return res.status(409).json({ success: false, error: 'ALERT_EXISTS', data: err.existing });
+    }
+    throw err;
+  }
+});
+
+const patchAlertSchema = z.object({
+  enabled: z.boolean()
+});
+
+router.patch('/alerts/:id', async (req: AuthRequest, res) => {
+  const parsed = patchAlertSchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: 'Invalid alert update', details: parsed.error.errors });
+  }
+  try {
+    const rule = await setAlertRuleEnabled(req.user!.id, req.params.id, parsed.data.enabled);
+    res.json({ success: true, data: rule });
+  } catch (err) {
+    if (err instanceof AlertNotFoundError) {
+      return res.status(404).json({ success: false, error: 'Alert rule not found' });
+    }
+    throw err;
+  }
+});
+
+router.delete('/alerts/:id', async (req: AuthRequest, res) => {
+  try {
+    await deleteAlertRule(req.user!.id, req.params.id);
+    res.json({ success: true, data: { deleted: true } });
+  } catch (err) {
+    if (err instanceof AlertNotFoundError) {
+      return res.status(404).json({ success: false, error: 'Alert rule not found' });
+    }
+    throw err;
+  }
 });
 
 // --- Session plans (handoff §3 row 09): owner-scoped, optimistic concurrency ---

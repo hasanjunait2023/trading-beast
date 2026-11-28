@@ -28,6 +28,7 @@ model User {
   creditEntries   CreditEntry[]
   radarRuns       RadarRun[]
   journalTrades   JournalTrade[]
+  alertRules      AlertRule[]
   preference      UserPreference?
   sessionPlans    SessionPlan[]
   subscriptions   Subscription[]
@@ -231,7 +232,25 @@ model UserPreference {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   timezone String?
   preferredSessions String[] @default([])
+  quietHoursEnabled Boolean @default(false)
+  quietStart String? // "HH:MM" 24h, in the user's preference timezone
+  quietEnd String? // "HH:MM" 24h, in the user's preference timezone
   updatedAt DateTime @updatedAt
+}
+
+model AlertRule {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type String // 'SESSION_START' only (app-validated — the only evaluatable type)
+  session String // one of SESSION_NAMES (app-validated)
+  enabled Boolean @default(true)
+  lastTriggeredAt DateTime?
+  lastSessionStartTs BigInt? // dedupe marker: last session-start boundary (epoch sec) already delivered
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([userId, type, session])
+  @@index([userId])
 }
 
 model JournalTrade {

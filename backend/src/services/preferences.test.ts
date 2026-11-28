@@ -3,6 +3,7 @@ import {
   getPreferences,
   upsertPreferences,
   isValidTimezone,
+  isValidTimeOfDay,
   type PreferencesDb,
   type PreferenceRow,
 } from './preferences.js';
@@ -37,12 +38,30 @@ describe('isValidTimezone', () => {
   });
 });
 
+describe('isValidTimeOfDay', () => {
+  it('accepts HH:MM 24h times', () => {
+    expect(isValidTimeOfDay('00:00')).toBe(true);
+    expect(isValidTimeOfDay('22:30')).toBe(true);
+    expect(isValidTimeOfDay('23:59')).toBe(true);
+  });
+
+  it('rejects out-of-range or malformed times', () => {
+    expect(isValidTimeOfDay('24:00')).toBe(false);
+    expect(isValidTimeOfDay('12:60')).toBe(false);
+    expect(isValidTimeOfDay('9:00')).toBe(false);
+    expect(isValidTimeOfDay('')).toBe(false);
+  });
+});
+
 describe('getPreferences', () => {
   it('returns defaults (null + []) when the user has no row', async () => {
     const { db, userPreference } = fakeDb();
     await expect(getPreferences('user-1', db)).resolves.toEqual({
       timezone: null,
       preferredSessions: [],
+      quietHoursEnabled: false,
+      quietStart: null,
+      quietEnd: null,
     });
     const args = userPreference.findUnique.mock.calls[0][0] as any;
     expect(args.where).toEqual({ userId: 'user-1' });
@@ -59,7 +78,27 @@ describe('getPreferences', () => {
     await expect(getPreferences('user-1', db)).resolves.toEqual({
       timezone: 'Asia/Dhaka',
       preferredSessions: ['London', 'Asian'],
+      quietHoursEnabled: false,
+      quietStart: null,
+      quietEnd: null,
     });
+  });
+
+  it('returns stored quiet hours', async () => {
+    const row: PreferenceRow = {
+      userId: 'user-1',
+      timezone: 'Asia/Dhaka',
+      preferredSessions: [],
+      quietHoursEnabled: true,
+      quietStart: '22:00',
+      quietEnd: '06:00',
+      updatedAt: new Date(),
+    };
+    const { db } = fakeDb({ findUnique: vi.fn(async () => row) });
+    const view = await getPreferences('user-1', db);
+    expect(view.quietHoursEnabled).toBe(true);
+    expect(view.quietStart).toBe('22:00');
+    expect(view.quietEnd).toBe('06:00');
   });
 });
 
@@ -83,5 +122,19 @@ describe('upsertPreferences', () => {
     const args = userPreference.upsert.mock.calls[0][0] as any;
     expect(args.update).toEqual({ timezone: null });
     expect(args.update).not.toHaveProperty('preferredSessions');
+  });
+
+  it('partial update: a quiet-hours-only save writes only quiet fields', async () => {
+    const { db, userPreference } = fakeDb();
+    await upsertPreferences(
+      'user-7',
+      { quietHoursEnabled: true, quietStart: '22:00', quietEnd: '06:00' },
+      db,
+    );
+    const args = userPreference.upsert.mock.calls[0][0] as any;
+    expect(args.update).toEqual({ quietHoursEnabled: true, quietStart: '22:00', quietEnd: '06:00' });
+    expect(args.update).not.toHaveProperty('timezone');
+    expect(args.create.quietHoursEnabled).toBe(true);
+    expect(args.create.quietStart).toBe('22:00');
   });
 });

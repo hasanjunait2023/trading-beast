@@ -144,6 +144,33 @@ export interface RadarRunPayload {
 export interface UserPreferences {
   timezone: string | null;
   preferredSessions: string[];
+  quietHoursEnabled: boolean;
+  /** "HH:MM" 24h in the account timezone, or null. */
+  quietStart: string | null;
+  quietEnd: string | null;
+}
+
+export interface AlertRule {
+  id: string;
+  /** Only 'SESSION_START' exists — the only type the evaluator can fire. */
+  type: string;
+  session: string;
+  enabled: boolean;
+  lastTriggeredAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AlertsStatus {
+  telegramLinked: boolean;
+  botConfigured: boolean;
+  /** Server-stated evaluator scope, e.g. "SESSION_START only". */
+  evaluator: string;
+}
+
+export interface AlertsData {
+  rules: AlertRule[];
+  status: AlertsStatus;
 }
 
 export interface ChecklistItem {
@@ -278,10 +305,23 @@ export const userApi = {
     request<Payment[]>('GET', `/user/payments?page=${page}&limit=${limit}`),
   getReferrals: (page = 1, limit = 20) =>
     request<ReferralEntry[]>('GET', `/user/referrals?page=${page}&limit=${limit}`),
-  // Server preferences (account-level timezone + preferred sessions).
+  // Server preferences (account-level timezone + preferred sessions + quiet hours).
   getPreferences: () => request<UserPreferences>('GET', '/user/preferences'),
-  updatePreferences: (data: { timezone?: string | null; preferredSessions?: string[] }) =>
-    request<UserPreferences>('PUT', '/user/preferences', data),
+  updatePreferences: (data: {
+    timezone?: string | null;
+    preferredSessions?: string[];
+    quietHoursEnabled?: boolean;
+    quietStart?: string | null;
+    quietEnd?: string | null;
+  }) => request<UserPreferences>('PUT', '/user/preferences', data),
+  // Alerts (owner-scoped SESSION_START rules + delivery status).
+  getAlerts: () => request<AlertsData>('GET', '/user/alerts'),
+  createAlert: (session: string) =>
+    request<AlertRule>('POST', '/user/alerts', { type: 'SESSION_START', session }),
+  updateAlert: (id: string, enabled: boolean) =>
+    request<AlertRule>('PATCH', `/user/alerts/${encodeURIComponent(id)}`, { enabled }),
+  deleteAlert: (id: string) =>
+    request<{ deleted: boolean }>('DELETE', `/user/alerts/${encodeURIComponent(id)}`),
   // Session plans (owner-scoped; PATCH uses optimistic-concurrency version).
   getPlans: (date: string) =>
     request<SessionPlan[]>('GET', `/user/plans?date=${encodeURIComponent(date)}`),

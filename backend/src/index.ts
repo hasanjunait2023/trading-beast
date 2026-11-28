@@ -12,6 +12,7 @@ import { adminRoutes } from './routes/admin.js';
 import { telegramRoutes } from './routes/telegram.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { recoverExpiredRadarRuns } from './services/credits.js';
+import { evaluateSessionStartAlerts } from './services/alerts.js';
 import { prisma } from './services/db.js';
 import { authMiddleware } from './middleware/auth.js';
 import { getMiniAppOrigin } from './services/telegram-config.js';
@@ -104,11 +105,19 @@ async function deliver(){
   delivering=true;
   try{await deliverTelegramBatch();}catch(e){console.error('Telegram queue worker failed',e instanceof Error?e.name:'Unknown');}finally{delivering=false;}
 }
+let evaluatingAlerts=false;
+async function evaluateAlerts(){
+  if(evaluatingAlerts || closing)return;
+  evaluatingAlerts=true;
+  try{await evaluateSessionStartAlerts(Math.floor(Date.now()/1000));}catch(e){console.error('Alert evaluation failed',e instanceof Error?e.name:'Unknown');}finally{evaluatingAlerts=false;}
+}
 const server=app.listen(PORT, () => {
   void deliver();
   setInterval(()=>void deliver(),5000).unref();
   void recover();
   setInterval(() => void recover(), 60_000).unref();
+  void evaluateAlerts();
+  setInterval(() => void evaluateAlerts(), 60_000).unref();
   console.log(`Server running on port ${PORT}`);
 });
 

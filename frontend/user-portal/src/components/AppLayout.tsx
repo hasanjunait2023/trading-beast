@@ -35,6 +35,8 @@ const DESTINATIONS: Dest[] = [
   { id: 'plan', label: 'Plan', path: '/app/plan', match: (p) => p.startsWith('/app/plan') },
   // Journal is sidebar-only: the mobile bottom nav stays at its five slots.
   { id: 'journal', label: 'Journal', path: '/app/journal', match: (p) => p.startsWith('/app/journal') },
+  // Alerts is sidebar-only: the mobile bottom nav stays at its five slots.
+  { id: 'alerts', label: 'Alerts', path: '/app/alerts', match: (p) => p.startsWith('/app/alerts') },
   { id: 'watchlist', label: 'Watchlist', path: '/app/watchlist', mobile: true, match: (p) => p.startsWith('/app/watchlist') || p === '/watchlist' },
   { id: 'sessions', label: 'Sessions', path: '/app/sessions', match: (p) => p.startsWith('/app/sessions') },
   { id: 'credits', label: 'Credits', path: '/app/credits', mobile: true, match: (p) => p.startsWith('/app/credits') },

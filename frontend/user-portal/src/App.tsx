@@ -11,6 +11,7 @@ const Home = lazy(() => import('./pages/Home'));
 const Markets = lazy(() => import('./pages/Markets'));
 const Plan = lazy(() => import('./pages/Plan'));
 const Journal = lazy(() => import('./pages/Journal'));
+const Alerts = lazy(() => import('./pages/Alerts'));
 const TradeEditor = lazy(() => import('./pages/TradeEditor'));
 const PairDetail = lazy(() => import('./pages/PairDetail'));
 const SessionsPage = lazy(() => import('./pages/SessionsPage'));
@@ -82,6 +83,8 @@ function App() {
           <Route path="/app/journal" element={<Journal />} />
           <Route path="/app/journal/new" element={<TradeEditor />} />
           <Route path="/app/journal/:id/edit" element={<TradeEditor />} />
+          {/* Alerts (13) — canonical only */}
+          <Route path="/app/alerts" element={<Alerts />} />
           {/* Session Clock (06) */}
           <Route path="/app/sessions" element={<SessionsPage />} />
           {/* Watchlist (08) */}
