@@ -60,10 +60,44 @@ export interface Payment {
 export interface Metrics {
   users: { total: number; new30d: number; new7d: number };
   tiers: { free: number; pro: number; elite: number; trial: number };
-  revenue: { total: number; pendingPayments: number; approved30d: number };
+  revenue: {
+    /** Null when approved revenue spans multiple currencies — use byCurrency. */
+    total: number | null;
+    currency: string | null;
+    byCurrency: { currency: string; amount: number }[];
+    pendingPayments: number;
+    approved30d: number;
+  };
   referrals: { total: number; active: number };
   activation: { rate: number };
   trialConversion: { converted: number };
+}
+
+export interface Operations {
+  telegram: { pending: number; failed: number };
+  expiredRuns: number;
+}
+
+export interface CreditReconciliation {
+  consistent: boolean;
+  truncated: boolean;
+  discrepancies: { userId: string; balance: string | null; ledger: string; difference: string }[];
+}
+
+/** Full user record from GET /admin/users/:id (subscriptions/payments/referrals included). */
+export interface AdminUserDetail {
+  id: string;
+  telegramId: string;
+  username?: string | null;
+  firstName?: string | null;
+  tier: string;
+  trialEndsAt?: string | null;
+  referralCode: string;
+  createdAt: string;
+  lastActiveAt?: string | null;
+  subscriptions?: { id: string; tier: string; status: string; startsAt: string; expiresAt: string; createdAt: string }[];
+  payments?: Payment[];
+  referrals?: { id: string; status: string; createdAt: string; referred?: { firstName?: string | null; username?: string | null; telegramId: string } }[];
 }
 
 export interface TelegramPublicConfig {
@@ -124,12 +158,19 @@ export const adminApi = {
   updateUserTier: (id: string, tier: string, expiresAt?: string) =>
     api.patch(`/admin/users/${id}/tier`, { tier, expiresAt }),
 
-  getPendingPayments: () => api.get('/admin/payments/pending'),
+  getPendingPayments: (params?: { page?: number; limit?: number }) =>
+    api.get('/admin/payments/pending', { params }),
 
   verifyPayment: (paymentId: string, action: 'APPROVE' | 'REJECT', tier?: string, durationDays?: number) =>
     api.post('/admin/payments/verify', { paymentId, action, tier, durationDays }),
 
   getMetrics: () => api.get('/admin/metrics'),
+
+  getOperations: () => api.get('/admin/operations'),
+
+  getCreditReconciliation: () => api.get('/admin/credits/reconciliation'),
+
+  getAnalysisSessions: () => api.get('/analysis/sessions'),
 
   triggerAnalysis: () => api.post('/admin/analysis/trigger'),
 

@@ -1,233 +1,148 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { adminApi } from '../services/api';
-import type { Metrics, AdminUser } from '../services/api';
-import { RefreshCw, Users, ArrowRight, Info, TrendingUp } from 'lucide-react';
+import { adminApi, type AdminUser, type Metrics } from '../services/api';
+import { PageHeader } from '@shared/components/PageHeader';
+import { Card } from '@shared/components/Card';
+import { Button } from '@shared/components/Button';
+import { Tabs } from '@shared/components/Tabs';
+import { ErrorState } from '@shared/components/ErrorState';
+import { EmptyState } from '@shared/components/EmptyState';
+import { Skeleton } from '@shared/components/Skeleton';
+import { TierPill, StatusBadge, PageLoading } from '../components/ui';
+import { BarList } from '../lib/Charts';
+import { errorMessage, formatDate } from '../lib/format';
 
+const LIMIT = 20;
 type TierFilter = 'ALL' | 'FREE' | 'PRO' | 'ELITE';
 
-const TIER_META: { key: 'free' | 'pro' | 'elite'; label: string; badge: string; bar: string }[] = [
-  { key: 'free', label: 'Free', badge: 'badge-free', bar: 'bg-slate-400' },
-  { key: 'pro', label: 'Pro', badge: 'badge-pro', bar: 'bg-[var(--color-accent)]' },
-  { key: 'elite', label: 'Elite', badge: 'badge-elite', bar: 'bg-amber-400' }
-];
-
+/**
+ * Subscriptions — there is NO dedicated subscriptions endpoint. This page
+ * is built only from GET /admin/metrics (tier distribution) and
+ * GET /admin/users with the server-side tier filter + pagination.
+ * No subscription ledger is fabricated.
+ */
 export default function Subscriptions() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
-  const [usersTotal, setUsersTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [error, setError] = useState('');
   const [tierFilter, setTierFilter] = useState<TierFilter>('ALL');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
-  const fetchData = async () => {
-    setIsLoading(true);
+  const loadMetrics = useCallback(async () => {
+    setLoading(true);
     try {
-      const [metricsRes, usersRes] = await Promise.all([
-        adminApi.getMetrics(),
-        adminApi.getUsers({ page: 1, limit: 100 })
-      ]);
-      if (metricsRes.data.success) setMetrics(metricsRes.data.data);
-      if (usersRes.data.success) {
-        setUsers(usersRes.data.data);
-        setUsersTotal(usersRes.data.meta.total);
-      }
-    } catch (error) {
-      console.error('Failed to load subscription data:', error);
+      const res = await adminApi.getMetrics();
+      if (res.data.success) setMetrics(res.data.data);
+      setError('');
+    } catch (e) {
+      setError(errorMessage(e, 'Could not load subscription data.'));
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    void fetchData();
   }, []);
 
-  const filteredUsers = useMemo(
-    () => (tierFilter === 'ALL' ? users : users.filter((u) => u.tier === tierFilter)),
-    [users, tierFilter]
-  );
-
-  const total = metrics?.users.total || 0;
-  const share = (count: number) => (total > 0 ? (count / total) * 100 : 0);
-
-  const getTierBadge = (tier: string) => {
-    switch (tier) {
-      case 'FREE': return <span className="badge badge-free">Free</span>;
-      case 'PRO': return <span className="badge badge-pro">Pro</span>;
-      case 'ELITE': return <span className="badge badge-elite">Elite</span>;
-      default: return <span className="badge">{tier}</span>;
+  const loadUsers = useCallback(async () => {
+    setUsersLoading(true);
+    try {
+      const res = await adminApi.getUsers({
+        page, limit: LIMIT,
+        tier: tierFilter !== 'ALL' ? tierFilter : undefined,
+      });
+      if (res.data.success) {
+        setUsers(res.data.data);
+        setTotalPages(res.data.meta.totalPages);
+        setTotal(res.data.meta.total);
+      }
+    } catch (e) {
+      setError(errorMessage(e, 'Could not load users for this tier.'));
+    } finally {
+      setUsersLoading(false);
     }
-  };
+  }, [page, tierFilter]);
 
-  if (isLoading && !metrics) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-[var(--color-accent)] border-t-transparent" />
-      </div>
-    );
-  }
+  useEffect(() => { void loadMetrics(); }, [loadMetrics]);
+  useEffect(() => { void loadUsers(); }, [loadUsers]);
+
+  if (loading && !metrics) return <PageLoading />;
+  if (error && !metrics) return <ErrorState message={error} onRetry={() => void loadMetrics()} />;
+  if (!metrics) return null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className="space-y-6"
-    >
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-bold">Subscriptions</h1>
-          <p className="text-[var(--color-text-muted)]">Tier distribution across all users</p>
-        </div>
-        <button onClick={() => void fetchData()} disabled={isLoading} className="btn btn-secondary btn-sm">
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
+    <div className="space-y-4">
+      <PageHeader
+        title="Subscriptions"
+        subtitle="Tier distribution from the metrics API, with the user list filtered server-side by tier. There is no separate subscriptions endpoint."
+        actions={<Button variant="secondary" size="sm" loading={loading} onClick={() => { void loadMetrics(); void loadUsers(); }}>Refresh</Button>}
+      />
 
-      {/* Tier distribution with share bars */}
-      <div className="card">
-        <h2 className="font-medium mb-4">Tier Distribution</h2>
-        {metrics && (
-          <div className="space-y-5">
-            {TIER_META.map((tier) => {
-              const count = metrics.tiers[tier.key];
-              const pct = share(count);
-              return (
-                <div key={tier.key}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className={`badge ${tier.badge}`}>{tier.label}</span>
-                    <span className="text-sm text-[var(--color-text-muted)]">
-                      <span className="font-display font-bold text-[var(--color-text)]">{count}</span> users · {pct.toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="h-2.5 rounded-full bg-[var(--color-bg)] overflow-hidden">
-                    <motion.div
-                      className={`h-full rounded-full ${tier.bar}`}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${pct}%` }}
-                      transition={{ duration: 0.6, ease: 'easeOut' }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-            <div className="flex items-center justify-between pt-2 border-t border-[var(--color-border)] text-sm">
-              <span className="text-[var(--color-text-muted)]">Currently in a trial period (overlaps the tiers above)</span>
-              <span className="font-display font-bold">{metrics.tiers.trial}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-[var(--color-text-muted)] flex items-center gap-1.5">
-                <TrendingUp className="w-4 h-4 text-[var(--color-success)]" /> Trial → paid conversions
-              </span>
-              <span className="font-display font-bold">{metrics.trialConversion.converted}</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Launch status note */}
-      <div className="card flex items-start gap-3">
-        <Info className="w-5 h-5 text-[var(--color-info)] flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-[var(--color-text-muted)]">
-          Pro and Elite are <span className="text-[var(--color-text)] font-medium">not yet launched for self-serve purchase</span>.
-          Users reach a paid tier today only through a manually verified payment (Payments page) or a manual
-          tier grant on the Users page — there is no automatic checkout or renewal yet.
+      <Card>
+        <h2 className="mb-4 font-semibold">Tier distribution</h2>
+        <BarList
+          data={[
+            { label: 'Free', value: metrics.tiers.free },
+            { label: 'Pro', value: metrics.tiers.pro },
+            { label: 'Elite', value: metrics.tiers.elite },
+          ]}
+        />
+        <p className="mt-3 text-sm text-[var(--color-text-muted)]">
+          Of {metrics.users.total.toLocaleString()} users · currently trialing (overlaps tiers):{' '}
+          <span className="tnum font-semibold text-[var(--color-text)]">{metrics.tiers.trial}</span> · trial → paid conversions:{' '}
+          <span className="tnum font-semibold text-[var(--color-text)]">{metrics.trialConversion.converted}</span>
         </p>
-      </div>
+      </Card>
 
-      {/* Users by tier */}
-      <div className="card overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <h2 className="font-medium flex items-center gap-2">
-            <Users className="w-5 h-5 text-[var(--color-accent)]" />
-            Users by Tier
-          </h2>
-          <div className="flex border border-[var(--color-border)] rounded-lg overflow-hidden">
-            {(['ALL', 'FREE', 'PRO', 'ELITE'] as TierFilter[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTierFilter(t)}
-                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                  tierFilter === t
-                    ? 'bg-[var(--color-accent)] text-black'
-                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
-                }`}
-              >
-                {t === 'ALL' ? 'All' : t.charAt(0) + t.slice(1).toLowerCase()}
-              </button>
-            ))}
-          </div>
-        </div>
+      <Tabs
+        ariaLabel="Filter users by tier"
+        activeId={tierFilter}
+        onChange={(id) => { setTierFilter(id as TierFilter); setPage(1); }}
+        tabs={[
+          { id: 'ALL', label: 'All tiers' },
+          { id: 'FREE', label: 'Free' },
+          { id: 'PRO', label: 'Pro' },
+          { id: 'ELITE', label: 'Elite' },
+        ]}
+      />
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-[var(--color-accent)] border-t-transparent" />
-          </div>
-        ) : filteredUsers.length === 0 ? (
-          <div className="text-center py-12 text-[var(--color-text-muted)]">
-            <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>No users in this tier yet.</p>
-          </div>
+      <Card padded={false} className="overflow-hidden">
+        {usersLoading ? (
+          <div className="space-y-3 p-4" role="status" aria-label="Loading users"><Skeleton height={36} /><Skeleton height={36} /><Skeleton height={36} /></div>
+        ) : users.length === 0 ? (
+          <EmptyState title="No users in this tier" message="No users currently hold this effective tier." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Tier</th>
-                  <th>Subscription</th>
-                  <th>Payments</th>
-                  <th>Referrals</th>
-                  <th>Joined</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map((user) => (
-                  <tr key={user.id}>
-                    <td>
-                      <div>
-                        <p className="font-medium">{user.firstName || 'Unknown'}</p>
-                        <p className="text-sm text-[var(--color-text-muted)] font-mono">
-                          @{user.username || user.telegramId}
-                        </p>
-                      </div>
-                    </td>
-                    <td>{getTierBadge(user.tier)}</td>
-                    <td className="text-sm">
-                      {user.activeSubscription ? (
-                        <>
-                          <p>{user.activeSubscription.tier} · {user.activeSubscription.status}</p>
-                          <p className="text-[var(--color-text-muted)]">
-                            Expires {new Date(user.activeSubscription.expiresAt).toLocaleDateString()}
-                          </p>
-                        </>
-                      ) : (
-                        <span className="text-[var(--color-text-muted)]">None</span>
-                      )}
-                    </td>
-                    <td>{user.paymentCount}</td>
-                    <td>{user.referralCount}</td>
-                    <td className="text-sm">{new Date(user.createdAt).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <div className="overflow-x-auto">
+              <table className="tb-table">
+                <thead><tr><th>User</th><th>Effective tier</th><th>Subscription</th><th>Expires</th><th>Payments</th></tr></thead>
+                <tbody>
+                  {users.map((u) => (
+                    <tr key={u.id}>
+                      <td>
+                        <Link to={`/users/${u.id}`} className="font-medium text-[var(--color-link)] hover:underline">{u.firstName || 'Unknown'}</Link>
+                        <p className="text-xs text-[var(--color-text-muted)]">@{u.username || u.telegramId}</p>
+                      </td>
+                      <td><TierPill tier={u.tier} /></td>
+                      <td>{u.activeSubscription ? <StatusBadge status={u.activeSubscription.status} /> : <span className="text-[var(--color-text-muted)]">None</span>}</td>
+                      <td className="text-sm">{u.activeSubscription ? formatDate(u.activeSubscription.expiresAt) : '—'}</td>
+                      <td className="tnum">{u.paymentCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex items-center justify-between border-t border-[var(--color-border)] px-4 py-3">
+              <span className="text-sm text-[var(--color-text-muted)]">Page {page} of {totalPages} ({total.toLocaleString()} users)</span>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+                <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
+              </div>
+            </div>
+          </>
         )}
-
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 pt-4 border-t border-[var(--color-border)]">
-          <p className="text-sm text-[var(--color-text-muted)]">
-            Showing {filteredUsers.length} of {users.length} loaded users ({usersTotal} total).
-            Tier changes are made on the Users page.
-          </p>
-          <Link to="/users" className="btn btn-secondary btn-sm gap-1">
-            Manage users <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      </div>
-    </motion.div>
+      </Card>
+    </div>
   );
 }

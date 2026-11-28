@@ -1,347 +1,207 @@
-import { useState, useEffect } from 'react';
-import { adminApi, Payment } from '../services/api';
-import { Search, Filter, CheckCircle, XCircle, Clock, AlertCircle, ImageIcon, FileText, Eye, Download, CreditCard, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { adminApi, type Payment } from '../services/api';
+import { PageHeader } from '@shared/components/PageHeader';
+import { Card } from '@shared/components/Card';
+import { Button } from '@shared/components/Button';
+import { Modal } from '@shared/components/Modal';
+import { FormField, Input, Select } from '@shared/components/FormField';
+import { ErrorState } from '@shared/components/ErrorState';
+import { EmptyState } from '@shared/components/EmptyState';
+import { Skeleton } from '@shared/components/Skeleton';
+import { useToast } from '@shared/components/Toast';
+import { StatusBadge } from '../components/ui';
+import { downloadCsv, errorMessage, errorStatus, formatDate, formatMoney } from '../lib/format';
 
-const STATUS_OPTIONS = ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'EXPIRED'] as const;
-const METHOD_OPTIONS = ['ALL', 'BKASH', 'NAGAD', 'USDT', 'STRIPE', 'MANUAL'] as const;
+const LIMIT = 20;
 
+/**
+ * Payments — the pending queue only: GET /admin/payments/pending is the
+ * sole list endpoint, and its meta carries {page, limit} with NO total, so
+ * pagination is "has next page" based (a full page suggests more).
+ * The old page filtered/sliced one unpaginated fetch client-side and
+ * showed Approved/Rejected stats computed from a pending-only list — both
+ * removed. Approve/Reject go through POST /admin/payments/verify with a
+ * confirmation Modal. APPROVE returns 503 unless the server env
+ * ENABLE_LEGACY_PAYMENT_APPROVAL=true; that 503 is surfaced honestly.
+ */
 export default function Payments() {
+  const toast = useToast();
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED'>('PENDING');
-  const [methodFilter, setMethodFilter] = useState<'ALL' | 'BKASH' | 'NAGAD' | 'USDT' | 'STRIPE' | 'MANUAL'>('ALL');
-  const [viewingScreenshot, setViewingScreenshot] = useState<string | null>(null);
-  const [verifyingPayment, setVerifyingPayment] = useState<{ id: string; action: 'APPROVE' | 'REJECT'; tier: 'PRO' | 'ELITE'; duration: number } | null>(null);
+  const [screenshot, setScreenshot] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<{ payment: Payment; action: 'APPROVE' | 'REJECT' } | null>(null);
+  const [tier, setTier] = useState<'PRO' | 'ELITE'>('PRO');
+  const [durationDays, setDurationDays] = useState(30);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
 
-  useEffect(() => {
-    fetchPayments();
-  }, [page, statusFilter, methodFilter, search]);
-
-  const fetchPayments = async () => {
-    setIsLoading(true);
+  const load = useCallback(async () => {
+    setLoading(true);
     try {
-      const res = await adminApi.getPendingPayments();
-      if (res.data.success) {
-        let filtered = res.data.data;
-
-        if (search) {
-          const s = search.toLowerCase();
-          filtered = filtered.filter((p: Payment) =>
-            p.user.telegramId.includes(s) ||
-            p.user.username?.toLowerCase().includes(s) ||
-            p.user.firstName?.toLowerCase().includes(s) ||
-            p.transactionId.toLowerCase().includes(s)
-          );
-        }
-        if (statusFilter !== 'ALL') {
-          filtered = filtered.filter((p: Payment) => p.status === statusFilter);
-        }
-        if (methodFilter !== 'ALL') {
-          filtered = filtered.filter((p: Payment) => p.method === methodFilter);
-        }
-
-        setTotal(filtered.length);
-        setTotalPages(Math.ceil(filtered.length / 20));
-        setPayments(filtered.slice((page - 1) * 20, page * 20));
-      }
-    } catch (error) {
-      console.error('Failed to fetch payments:', error);
+      const res = await adminApi.getPendingPayments({ page, limit: LIMIT });
+      if (res.data.success) setPayments(res.data.data);
+      setError('');
+    } catch (e) {
+      setError(errorMessage(e, 'Could not load pending payments.'));
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
+  }, [page]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const openConfirm = (payment: Payment, action: 'APPROVE' | 'REJECT') => {
+    setConfirm({ payment, action });
+    setTier('PRO');
+    setDurationDays(30);
+    setVerifyError('');
   };
 
-  const handleVerify = async (paymentId: string, action: 'APPROVE' | 'REJECT') => {
-    if (action === 'APPROVE') {
-      setVerifyingPayment({ id: paymentId, action, tier: 'PRO', duration: 30 });
-    } else {
-      try {
-        await adminApi.verifyPayment(paymentId, 'REJECT');
-        fetchPayments();
-      } catch (error) {
-        console.error('Failed to reject payment:', error);
-      }
-    }
-  };
-
-  const handleConfirmVerify = async () => {
-    if (!verifyingPayment) return;
+  const doVerify = async () => {
+    if (!confirm) return;
+    setVerifying(true);
+    setVerifyError('');
     try {
       await adminApi.verifyPayment(
-        verifyingPayment.id,
-        verifyingPayment.action,
-        verifyingPayment.tier,
-        verifyingPayment.duration
+        confirm.payment.id,
+        confirm.action,
+        confirm.action === 'APPROVE' ? tier : undefined,
+        confirm.action === 'APPROVE' ? durationDays : undefined,
       );
-      setVerifyingPayment(null);
-      fetchPayments();
-    } catch (error) {
-      console.error('Failed to verify payment:', error);
+      toast.success(confirm.action === 'APPROVE' ? 'Payment approved.' : 'Payment rejected.');
+      setConfirm(null);
+      void load();
+    } catch (e) {
+      if (confirm.action === 'APPROVE' && errorStatus(e) === 503) {
+        setVerifyError('Approval is disabled on the server pending catalog verification (ENABLE_LEGACY_PAYMENT_APPROVAL is not enabled). The payment was NOT approved.');
+      } else {
+        setVerifyError(errorMessage(e, 'Verification failed.'));
+      }
+    } finally {
+      setVerifying(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'APPROVED': return <span className="badge badge-approved"><CheckCircle className="w-3 h-3 mr-1" /> Approved</span>;
-      case 'REJECTED': return <span className="badge badge-rejected"><XCircle className="w-3 h-3 mr-1" /> Rejected</span>;
-      case 'PENDING': return <span className="badge badge-pending"><Clock className="w-3 h-3 mr-1" /> Pending</span>;
-      case 'EXPIRED': return <span className="badge badge-rejected"><XCircle className="w-3 h-3 mr-1" /> Expired</span>;
-      default: return <span className="badge">{status}</span>;
-    }
+  const exportCsv = () => {
+    downloadCsv(`pending-payments-page-${page}.csv`, payments.map((p) => ({
+      id: p.id, user: p.user.username || p.user.telegramId, amountMinor: p.amount, currency: p.currency,
+      method: p.method, transactionId: p.transactionId, status: p.status, createdAt: p.createdAt,
+    })));
   };
 
-  const getMethodIcon = (method: string) => {
-    switch (method) {
-      case 'BKASH': return <span className="text-pink-500">📱</span>;
-      case 'NAGAD': return <span className="text-orange-500">📱</span>;
-      case 'USDT': return <span className="text-green-500">₿</span>;
-      case 'STRIPE': return <CreditCard className="w-4 h-4 text-[var(--color-accent)]" />;
-      default: return <FileText className="w-4 h-4 text-[var(--color-text-muted)]" />;
-    }
-  };
+  const hasNext = payments.length === LIMIT;
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-bold">Payments</h1>
-          <p className="text-[var(--color-text-muted)]">Review and verify subscription payments</p>
-        </div>
-        <button onClick={fetchPayments} disabled={isLoading} className="btn btn-secondary btn-sm">
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
+    <div className="space-y-4">
+      <PageHeader
+        title="Payments"
+        subtitle="Pending verification queue (oldest first). This is the only payment list the admin API exposes."
+        actions={
+          <>
+            <Button variant="secondary" size="sm" onClick={exportCsv} disabled={payments.length === 0}>Export this page (CSV)</Button>
+            <Button variant="secondary" size="sm" loading={loading} onClick={() => void load()}>Refresh</Button>
+          </>
+        }
+      />
 
-      {/* Stats */}
-      <div className="grid grid-2 md:grid-4 gap-4">
-        {[
-          { label: 'Pending', count: payments.filter(p => p.status === 'PENDING').length, color: 'text-[var(--color-warning)]', bg: 'bg-[var(--color-warning)]/10', icon: Clock },
-          { label: 'Approved', count: payments.filter(p => p.status === 'APPROVED').length, color: 'text-[var(--color-success)]', bg: 'bg-[var(--color-success)]/10', icon: CheckCircle },
-          { label: 'Rejected', count: payments.filter(p => p.status === 'REJECTED').length, color: 'text-[var(--color-danger)]', bg: 'bg-[var(--color-danger)]/10', icon: XCircle },
-          { label: 'Total Amount', count: `$${(payments.filter(p => p.status === 'APPROVED').reduce((sum, p) => sum + p.amount, 0) / 100).toLocaleString()}`, color: 'text-amber-400', bg: 'bg-amber-400/10', icon: CreditCard }
-        ].map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div key={stat.label} className="card-elevated">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-[var(--color-text-muted)]">{stat.label}</p>
-                  <p className="font-display text-2xl font-bold">{stat.count}</p>
-                </div>
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${stat.bg}`}>
-                  <Icon className={`w-5 h-5 ${stat.color}`} />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Filters */}
-      <div className="card flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <input
-            type="text"
-            className="input"
-            placeholder="Search by user, transaction ID..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          />
-        </div>
-        <select
-          className="input w-auto"
-          value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value as any); setPage(1); }}
-        >
-          {STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt === 'ALL' ? 'All Status' : opt}</option>)}
-        </select>
-        <select
-          className="input w-auto"
-          value={methodFilter}
-          onChange={(e) => { setMethodFilter(e.target.value as any); setPage(1); }}
-        >
-          {METHOD_OPTIONS.map(opt => <option key={opt} value={opt}>{opt === 'ALL' ? 'All Methods' : opt}</option>)}
-        </select>
-      </div>
-
-      {/* Payments Table */}
-      <div className="card overflow-hidden">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-[var(--color-accent)] border-t-transparent" />
-          </div>
+      <Card padded={false} className="overflow-hidden">
+        {loading ? (
+          <div className="space-y-3 p-4" role="status" aria-label="Loading payments"><Skeleton height={36} /><Skeleton height={36} /><Skeleton height={36} /></div>
+        ) : error ? (
+          <ErrorState message={error} onRetry={() => void load()} />
         ) : payments.length === 0 ? (
-          <div className="text-center py-12 text-[var(--color-text-muted)]">
-            <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>No payments found</p>
-          </div>
+          <EmptyState title="Queue is clear" message={page > 1 ? 'No more pending payments on this page.' : 'No payments are waiting for verification.'} />
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Amount</th>
-                    <th>Method</th>
-                    <th>Transaction ID</th>
-                    <th>Screenshot</th>
-                    <th>Status</th>
-                    <th>Submitted</th>
-                    <th>Verified</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
+              <table className="tb-table">
+                <thead><tr><th>User</th><th>Amount</th><th>Method</th><th>Transaction ID</th><th>Screenshot</th><th>Status</th><th>Submitted</th><th>Actions</th></tr></thead>
                 <tbody>
-                  {payments.map((payment) => (
-                    <tr key={payment.id}>
+                  {payments.map((p) => (
+                    <tr key={p.id}>
                       <td>
-                        <div>
-                          <p className="font-medium">{payment.user.firstName || 'Unknown'}</p>
-                          <p className="text-sm text-[var(--color-text-muted)] font-mono">
-                            @{payment.user.username || payment.user.telegramId}
-                          </p>
+                        <p className="font-medium">{p.user.firstName || 'Unknown'}</p>
+                        <p className="text-xs text-[var(--color-text-muted)]">@{p.user.username || p.user.telegramId}</p>
+                      </td>
+                      <td className="tnum font-medium">{formatMoney(p.amount, p.currency)}</td>
+                      <td>{p.method}</td>
+                      <td className="font-mono text-xs break-all">{p.transactionId}</td>
+                      <td>
+                        {p.screenshotUrl ? (
+                          <Button variant="ghost" size="sm" onClick={() => setScreenshot(p.screenshotUrl!)}>View</Button>
+                        ) : <span className="text-sm text-[var(--color-text-muted)]">None</span>}
+                      </td>
+                      <td><StatusBadge status={p.status} /></td>
+                      <td className="text-sm">{formatDate(p.createdAt)}</td>
+                      <td>
+                        <div className="flex gap-1">
+                          <Button variant="secondary" size="sm" onClick={() => openConfirm(p, 'APPROVE')}>Approve</Button>
+                          <Button variant="danger" size="sm" onClick={() => openConfirm(p, 'REJECT')}>Reject</Button>
                         </div>
-                      </td>
-                      <td className="font-mono font-medium">${(payment.amount / 100).toFixed(2)} {payment.currency}</td>
-                      <td className="flex items-center gap-2">
-                        {getMethodIcon(payment.method)}
-                        <span className="capitalize text-sm">{payment.method.toLowerCase()}</span>
-                      </td>
-                      <td className="font-mono text-sm">{payment.transactionId}</td>
-                      <td>
-                        {payment.screenshotUrl ? (
-                          <button
-                            onClick={() => setViewingScreenshot(payment.screenshotUrl)}
-                            className="btn btn-ghost btn-sm p-1"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                        ) : (
-                          <span className="text-[var(--color-text-muted)] text-sm">No screenshot</span>
-                        )}
-                      </td>
-                      <td>{getStatusBadge(payment.status)}</td>
-                      <td className="text-sm">{new Date(payment.createdAt).toLocaleDateString()}</td>
-                      <td className="text-sm">
-                        {payment.verifiedAt ? new Date(payment.verifiedAt).toLocaleDateString() : <span className="text-[var(--color-text-muted)]">—</span>}
-                      </td>
-                      <td>
-                        {payment.status === 'PENDING' && (
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => handleVerify(payment.id, 'APPROVE')}
-                              className="btn btn-ghost btn-sm p-1 text-[var(--color-success)] hover:text-[var(--color-success)]"
-                              title="Approve"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleVerify(payment.id, 'REJECT')}
-                              className="btn btn-ghost btn-sm p-1 text-[var(--color-danger)] hover:text-[var(--color-danger)]"
-                              title="Reject"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--color-border)]">
-                <span className="text-sm text-[var(--color-text-muted)]">
-                  Page {page} of {totalPages} ({total} total)
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    Next
-                  </button>
-                </div>
+            <div className="flex items-center justify-between border-t border-[var(--color-border)] px-4 py-3">
+              <span className="text-sm text-[var(--color-text-muted)]">Page {page} · the API returns no total for this queue</span>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((v) => v - 1)}>Previous</Button>
+                <Button variant="secondary" size="sm" disabled={!hasNext} onClick={() => setPage((v) => v + 1)}>Next</Button>
               </div>
-            )}
+            </div>
           </>
         )}
-      </div>
+      </Card>
 
-      {/* Screenshot Modal */}
-      {viewingScreenshot && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80" onClick={() => setViewingScreenshot(null)}>
-          <div className="relative max-w-4xl max-h-[90vh] animate-slide-up" onClick={e => e.stopPropagation()}>
-            <button className="absolute top-4 right-4 z-10 btn btn-ghost p-2 bg-[var(--color-surface)] rounded-full" onClick={() => setViewingScreenshot(null)}>
-              <XCircle className="w-5 h-5" />
-            </button>
-            <img src={viewingScreenshot} alt="Payment screenshot" className="max-w-full max-h-[80vh] rounded-lg shadow-lg" />
+      <Modal open={Boolean(screenshot)} onClose={() => setScreenshot(null)} title="Payment screenshot">
+        {screenshot && <img src={screenshot} alt="Payment screenshot submitted by the user" className="max-h-[70vh] w-full rounded-[var(--radius-md)] object-contain" />}
+      </Modal>
+
+      <Modal
+        open={Boolean(confirm)}
+        onClose={() => setConfirm(null)}
+        title={confirm?.action === 'APPROVE' ? 'Approve payment' : 'Reject payment'}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setConfirm(null)}>Cancel</Button>
+            <Button variant={confirm?.action === 'APPROVE' ? 'primary' : 'danger'} loading={verifying} onClick={() => void doVerify()}>
+              {confirm?.action === 'APPROVE' ? 'Approve & activate' : 'Reject payment'}
+            </Button>
+          </>
+        }
+      >
+        {confirm && (
+          <div className="space-y-4">
+            <p>
+              {confirm.action === 'APPROVE' ? 'Approve' : 'Reject'} the payment of{' '}
+              <strong>{formatMoney(confirm.payment.amount, confirm.payment.currency)}</strong> from{' '}
+              {confirm.payment.user.firstName || 'Unknown'} (@{confirm.payment.user.username || confirm.payment.user.telegramId}),
+              transaction <span className="font-mono text-xs">{confirm.payment.transactionId}</span>?
+            </p>
+            {confirm.action === 'APPROVE' && (
+              <>
+                <FormField label="Tier to activate">
+                  <Select value={tier} onChange={(e) => setTier(e.target.value as 'PRO' | 'ELITE')}>
+                    <option value="PRO">Pro</option>
+                    <option value="ELITE">Elite</option>
+                  </Select>
+                </FormField>
+                <FormField label="Duration (days)" hint="Between 1 and 366 days.">
+                  <Input type="number" min={1} max={366} value={durationDays} onChange={(e) => setDurationDays(Math.max(1, Math.min(366, parseInt(e.target.value, 10) || 30)))} />
+                </FormField>
+                <p className="rounded-[var(--radius-md)] bg-[var(--color-warning-bg)] px-3 py-2 text-[var(--color-warning)]">
+                  Note: approval is disabled on the server unless legacy payment approval is enabled for catalog verification — if so, this will return an error and nothing will be approved.
+                </p>
+              </>
+            )}
+            {verifyError && <p role="alert" className="rounded-[var(--radius-md)] bg-[var(--color-danger-bg)] px-3 py-2 font-medium text-[var(--color-danger)]">{verifyError}</p>}
           </div>
-        </div>
-      )}
-
-      {/* Verify Payment Modal */}
-      {verifyingPayment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={() => setVerifyingPayment(null)}>
-          <div className="card-elevated w-full max-w-md animate-slide-up" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-display text-xl font-bold">Approve Payment</h2>
-              <button onClick={() => setVerifyingPayment(null)} className="btn btn-ghost p-1">
-                <XCircle className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="label">Subscription Tier</label>
-                <select
-                  className="input"
-                  value={verifyingPayment.tier}
-                  onChange={(e) => setVerifyingPayment({ ...verifyingPayment, tier: e.target.value as 'PRO' | 'ELITE' })}
-                >
-                  <option value="PRO">Pro</option>
-                  <option value="ELITE">Elite</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="label">Duration (Days)</label>
-                <input
-                  type="number"
-                  className="input"
-                  min="1"
-                  max="365"
-                  value={verifyingPayment.duration}
-                  onChange={(e) => setVerifyingPayment({ ...verifyingPayment, duration: parseInt(e.target.value) || 30 })}
-                />
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setVerifyingPayment(null)} className="btn btn-secondary flex-1">Cancel</button>
-                <button onClick={handleConfirmVerify} className="btn btn-primary flex-1">Approve & Activate</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }
