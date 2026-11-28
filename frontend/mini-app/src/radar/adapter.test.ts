@@ -87,6 +87,25 @@ describe('score handling', () => {
   });
 });
 
+describe('live price handling', () => {
+  it('exposes the payload live price untouched', () => {
+    const view = adaptFocusResult(result({ focus: [pair({ live: 1.08642 })] }));
+    expect(view.focus[0].live).toBe(1.08642);
+  });
+
+  it('is null when the payload carries no live price (older runs)', () => {
+    const view = adaptFocusResult(result({ focus: [pair({})] }));
+    expect(view.focus[0].live).toBeNull();
+  });
+
+  it('is null for non-finite live values', () => {
+    const view = adaptFocusResult(
+      result({ focus: [pair({ live: Number.NaN })] }),
+    );
+    expect(view.focus[0].live).toBeNull();
+  });
+});
+
 describe('timestamp unit detection', () => {
   it('treats values < 1e12 as seconds and larger values as ms', () => {
     expect(toEpochMs(1_700_000_000)).toBe(1_700_000_000_000);
