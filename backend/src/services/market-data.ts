@@ -1,5 +1,5 @@
 import { fetchMultipleSymbols, type Candle } from './yahoo.js';
-import { buildPairs } from './analysis-engine.js';
+import { buildPairs, type FocusResult } from './analysis-engine.js';
 
 export type Interval = '15m' | '1h';
 export interface MarketDataProvider {
@@ -20,6 +20,36 @@ export function normalizeCandles(input: readonly Candle[], seconds: number, asOf
   }
   return [...byTime.values()].sort((a,b)=>a.ts-b.ts);
 }
+/**
+ * Sparkline series for one instrument: the last `maxPoints` hourly closes
+ * from candles the analysis already fetched. Returns undefined when fewer
+ * than 2 finite closes exist — callers must then omit the series entirely
+ * (the UI hides the sparkline) rather than fabricate points.
+ */
+export function sparkFromCloses(candles: readonly Candle[], maxPoints = 24): number[] | undefined {
+  const closes = candles.filter((c) => Number.isFinite(c.c)).map((c) => c.c);
+  if (closes.length < 2) return undefined;
+  return closes.slice(-maxPoints);
+}
+
+/**
+ * Attach real sparkline series (last ≤24 hourly closes) to every analyzed
+ * pair, using the 1H candles the run already fetched. Pairs whose candles
+ * cannot supply ≥2 closes keep no `spark` field — the UI hides the
+ * sparkline for them; points are never synthesized.
+ */
+export function attachSparks(result: FocusResult, hourlyByYahoo: Map<string, Candle[]>): void {
+  const yahooByPair = new Map(buildPairs().map((p) => [p.pair, p.yahoo]));
+  for (const list of [result.focus, result.watch, result.avoid]) {
+    for (const pair of list) {
+      const yahoo = yahooByPair.get(pair.pair);
+      const candles = yahoo ? hourlyByYahoo.get(yahoo) : undefined;
+      const spark = candles ? sparkFromCloses(candles) : undefined;
+      if (spark) pair.spark = spark;
+    }
+  }
+}
+
 export interface MarketSnapshot {
   provider: string;
   asOf: number;

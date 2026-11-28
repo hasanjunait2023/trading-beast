@@ -23,6 +23,11 @@ export interface RawAnalyzedPair {
   pair: string;
   name?: string;
   kind?: 'fx' | 'asset';
+  base?: string;
+  quote?: string;
+  /** Real hourly-close series for sparklines (backend `spark`); absent when
+   *  the run's candle data could not supply one — never synthesized. */
+  spark?: number[];
   dec?: number;
   score: number;
   bias: 'BUY' | 'SELL' | null;
@@ -72,6 +77,11 @@ export interface RadarPairView {
   pair: string;
   displayName: string;
   kind: 'fx' | 'asset';
+  /** Currency codes when the payload carries them (flag rendering). */
+  base: string | null;
+  quote: string | null;
+  /** Real sparkline series (hourly closes); null when the payload has none. */
+  spark: number[] | null;
   dec: number;
   status: MarketStatus;
   bias: Bias;
@@ -159,6 +169,12 @@ function toPairView(raw: RawAnalyzedPair, status: MarketStatus): RadarPairView {
     pair: raw.pair,
     displayName: pairDisplayName(raw),
     kind: raw.kind ?? 'fx',
+    base: raw.base ?? null,
+    quote: raw.quote ?? null,
+    spark:
+      Array.isArray(raw.spark) && raw.spark.length >= 2 && raw.spark.every(Number.isFinite)
+        ? raw.spark
+        : null,
     dec: raw.dec ?? 0,
     status,
     bias: mapBias(raw.bias),
@@ -325,4 +341,42 @@ export function adaptSessions(raw: RawSessionsOverview): SessionsOverviewView {
     calendarPolicy: raw.calendarPolicy ?? null,
     nextTransition,
   };
+}
+
+/**
+ * The next session OPENING after the overview's as-of time — distinct from
+ * `nextTransition`, which for an active session is its CLOSE. The Home hero
+ * "Next:" row must name the next session that opens (reference 03), so it
+ * uses this selector. The returned window's start/end are shifted to that
+ * next occurrence (same duration and zone as the source window).
+ */
+export interface NextOpeningView {
+  session: string;
+  zone: string;
+  startMs: number;
+  endMs: number;
+}
+
+export function nextOpening(overview: SessionsOverviewView): NextOpeningView | null {
+  let best: NextOpeningView | null = null;
+  for (const s of overview.sessions) {
+    if (s.nextStartMs <= overview.asOfMs) continue;
+    if (best && s.nextStartMs >= best.startMs) continue;
+    best = {
+      session: s.session,
+      zone: s.zone,
+      startMs: s.nextStartMs,
+      endMs: s.nextStartMs + (s.sessionEndMs - s.sessionStartMs),
+    };
+  }
+  return best;
+}
+
+/**
+ * Top-N shortlist for Home (reference 03): a copy of the result's pairs
+ * sorted by score descending (stable for ties), truncated to `count`.
+ * The stored result itself is never mutated.
+ */
+export function topShortlist(result: RadarResultView, count = 3): RadarPairView[] {
+  return [...result.all].sort((a, b) => b.score - a.score).slice(0, count);
 }

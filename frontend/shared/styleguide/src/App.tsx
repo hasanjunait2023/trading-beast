@@ -2,11 +2,15 @@ import React, { useState } from 'react';
 import { useTheme } from '../../theme';
 import {
   AppShell,
+  ArrowRightIcon,
   BiasText,
+  Brand,
   Button,
+  CalendarCheckIcon,
   Card,
   ChartPanel,
   CreditPill,
+  CrosshairIcon,
   DataFreshness,
   EmptyState,
   ErrorState,
@@ -14,13 +18,17 @@ import {
   Input,
   Modal,
   PageHeader,
+  PairFlags,
   PairRow,
   RankTable,
+  RefreshIcon,
   ScoreEvidence,
   Select,
   SessionBadge,
+  SessionHero,
   Sheet,
   Skeleton,
+  Sparkline,
   StatusPill,
   Tabs,
   Textarea,
@@ -35,7 +43,17 @@ const NAV: NavItem[] = [
   { id: 'forms', label: 'Forms', href: '#forms' },
   { id: 'overlays', label: 'Tabs & overlays', href: '#overlays' },
   { id: 'market', label: 'Market primitives', href: '#market' },
+  { id: 'reference-home', label: 'Reference 03 Home', href: '#reference-home' },
   { id: 'states', label: 'States', href: '#states' },
+];;
+
+// Reference-03 visual-gate samples (style guide ONLY — never product data):
+// London live, Top 3 = EUR/USD Focus 78, GBP/USD Watch 64, USD/JPY Watch 58.
+const SAMPLE_SPARK = [1.0812, 1.0821, 1.0818, 1.083, 1.0842, 1.0839, 1.0851, 1.0864];
+const SAMPLE_HOME_ROWS = [
+  { pair: 'EUR/USD', base: 'EUR', quote: 'USD', status: 'focus' as const, score: 78, spark: SAMPLE_SPARK },
+  { pair: 'GBP/USD', base: 'GBP', quote: 'USD', status: 'watch' as const, score: 64, spark: SAMPLE_SPARK },
+  { pair: 'USD/JPY', base: 'USD', quote: 'JPY', status: 'watch' as const, score: 58, spark: SAMPLE_SPARK },
 ];
 
 // Style-guide sample rows only — NOT product data.
@@ -304,6 +322,77 @@ export default function App() {
             />
           </div>
           <ChartPanel state="no-data" title="Chart — no data state" />
+        </div>
+      </Section>
+
+      <Section id="reference-home" title="Reference 03 — Mini App Home composition (sample data)">
+        <div className="mx-auto max-w-[420px] space-y-5 rounded-[var(--radius-card-xl)] border border-[var(--color-border-soft)] bg-[var(--color-canvas-top)] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <Brand size={36} />
+            <CreditPill credits={20} />
+          </div>
+          <div>
+            <p className="text-xl font-semibold text-[var(--color-accent)]">Good Morning,</p>
+            <p className="mt-0.5 text-[38px] leading-[1.05] font-extrabold tracking-tight text-[var(--color-text)]">
+              Session Focus Radar
+            </p>
+            <p className="mt-2 text-[15px] text-[var(--color-text-muted)]">
+              Professional discretionary FX analysis, session by session.
+            </p>
+          </div>
+          <SessionHero
+            sessionName="London"
+            state="live"
+            rangeLabel="08:00 – 16:00 GMT"
+            nextLabel="New York 16:00 – 21:00 GMT"
+          />
+          <div className="flex items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--color-mint-wash)] px-4 py-3.5">
+            <RefreshIcon size={26} className="shrink-0 text-[var(--color-accent)]" />
+            <span className="text-[15px] font-bold text-[var(--color-text)]">Analysis Freshness</span>
+            <span aria-hidden="true" className="h-8 w-px bg-[var(--color-border)]" />
+            <DataFreshness timestamp={now - 3 * 60_000} now={now} className="text-[13px]" />
+          </div>
+          <div>
+            <div className="mb-3 flex items-end justify-between gap-3">
+              <p className="text-2xl font-extrabold tracking-tight text-[var(--color-text)]">Top 3 Shortlist</p>
+              <span className="inline-flex shrink-0 items-center gap-1.5 text-[15px] font-semibold text-[var(--color-accent)]">
+                See Details <ArrowRightIcon size={18} />
+              </span>
+            </div>
+            <div className="space-y-2.5">
+              {SAMPLE_HOME_ROWS.map((row) => (
+                <PairRow
+                  key={row.pair}
+                  variant="home"
+                  pair={row.pair}
+                  status={row.status}
+                  score={row.score}
+                  leading={<PairFlags pair={row.pair} base={row.base} quote={row.quote} kind="fx" />}
+                  sparkline={<Sparkline values={row.spark} label={`${row.pair} sample series`} />}
+                  onClick={() => setSelectedRow(row.pair)}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <span
+              className="flex min-h-[64px] flex-[1.2] items-center justify-center gap-2.5 rounded-[var(--radius-lg)] px-4 text-lg font-bold text-white shadow-[var(--shadow-hero)]"
+              style={{ background: 'var(--gradient-primary-action)' }}
+            >
+              <CrosshairIcon size={26} /> Open Radar <ArrowRightIcon size={22} />
+            </span>
+            <span className="flex min-h-[64px] flex-1 items-center justify-center gap-2.5 rounded-[var(--radius-lg)] bg-[var(--color-mint-wash)] px-4 text-lg font-bold text-[var(--color-text)]">
+              <CalendarCheckIcon size={26} className="text-[var(--color-accent)]" /> Continue Plan
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <PairFlags pair="Gold" kind="asset" name="Gold" size={38} />
+            <PairFlags pair="Bitcoin" kind="asset" name="Bitcoin" size={38} />
+            <PairFlags pair="AUD/USD" base="AUD" quote="USD" kind="fx" size={38} />
+            <PairFlags pair="USD/CAD" base="USD" quote="CAD" kind="fx" size={38} />
+            <PairFlags pair="CHF/JPY" base="CHF" quote="JPY" kind="fx" size={38} />
+            <PairFlags pair="NZD/USD" base="NZD" quote="USD" kind="fx" size={38} />
+          </div>
         </div>
       </Section>
 

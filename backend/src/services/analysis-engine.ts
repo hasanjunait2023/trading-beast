@@ -35,6 +35,10 @@ export interface AnalyzedPair {
   pair: string;
   base?: string;
   quote?: string;
+  /** Last ≤24 hourly closes from the fetched 1H candles (real series for UI
+   *  sparklines). Omitted when the candle data cannot supply ≥2 closes —
+   *  never synthesized. */
+  spark?: number[];
   live: number;
   p15: number;
   e20: number;

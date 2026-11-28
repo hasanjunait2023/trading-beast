@@ -1,6 +1,7 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { runAnalysis, buildPairs, detectSession, type SessionConfig, type FocusResult, type PairConfig } from './analysis-engine.js';
 import { fetchMultipleSymbols, type Candle } from './yahoo.js';
+import { attachSparks } from './market-data.js';
 
 const prisma = new PrismaClient();
 
@@ -50,6 +51,7 @@ export async function runAnalysisForUser(userId: string, request: AnalysisReques
   }
 
   const result = await runAnalysis(yahooData, cfg, nowSec);
+  attachSparks(result, data1h);
 
   // Personalized requests must never overwrite shared session snapshots.
   if (!cfg.watchlist?.length) await prisma.focusResult.upsert({
@@ -128,6 +130,7 @@ export async function runDailyPublishing(): Promise<FocusResult[]> {
     }
 
     const result = await runAnalysis(yahooData, cfg, nowSec);
+    attachSparks(result, data1h);
 
     await prisma.focusResult.upsert({
       where: { session_date: { session, date: sessionDate(cfg.sessionStartTs) } },

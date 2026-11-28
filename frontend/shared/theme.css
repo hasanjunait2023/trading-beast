@@ -76,6 +76,34 @@
   --grad-hero: linear-gradient(135deg, #054333 0%, #007959 100%);
   --grad-accent: linear-gradient(135deg, #00664b 0%, #007959 100%);
 
+  /* ---- Reference-match layer (R0, studies 03/04/05/28) ----
+     Layered canvas, deep-green session heroes with artwork, mint control
+     panels and gradient primary actions. Additive: existing tokens and
+     component behavior are unchanged. */
+  --color-canvas-top: #fcfffd;
+  --color-canvas-bottom: #eef8f3;
+  --color-hero-950: #033326;
+  --color-hero-900: #043d2d;
+  --color-hero-700: #006b4f;
+  --color-hero-500: #00a36f;
+  --color-hero-highlight: #35d99a;
+  --color-hero-silhouette: rgba(2, 51, 38, 0.58);
+  --color-mint-wash: #e8f6ef;
+  --color-mint-panel: #eef8f3;
+  --color-control-track: #edf3f0;
+  --color-border-soft: #dce9e3;
+  --gradient-primary-action: linear-gradient(135deg, #087a4b 0%, #00a870 100%);
+  --gradient-session-hero:
+    radial-gradient(120% 150% at 88% -10%, rgba(53, 217, 154, 0.55) 0%, rgba(53, 217, 154, 0) 52%),
+    linear-gradient(112deg, #043d2d 0%, #006b4f 58%, #00a36f 100%);
+  --shadow-hero: 0 18px 36px rgba(4, 80, 55, 0.22);
+  --shadow-card-soft: 0 6px 18px rgba(16, 55, 40, 0.06);
+  --shadow-row: 0 4px 14px rgba(16, 55, 40, 0.05);
+  --radius-hero: 28px;
+  --radius-card-xl: 20px;
+  --radius-row: 18px;
+  --radius-input: 16px;
+
   /* ---- Typography (font stacks only; no webfont loading here) ---- */
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Space Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
@@ -179,6 +207,31 @@
   /* ---- Gradients ---- */
   --grad-hero: linear-gradient(135deg, #4f6dff 0%, #7c5cff 100%);
   --grad-accent: linear-gradient(135deg, #4f6dff 0%, #6b86ff 100%);
+
+  /* ---- Reference-match layer (dark variant maps onto Neon Dark Tech) ---- */
+  --color-canvas-top: #060918;
+  --color-canvas-bottom: #060918;
+  --color-hero-950: #0c1126;
+  --color-hero-900: #0c1126;
+  --color-hero-700: #18213f;
+  --color-hero-500: #28335f;
+  --color-hero-highlight: #7c5cff;
+  --color-hero-silhouette: rgba(3, 6, 20, 0.55);
+  --color-mint-wash: #121a33;
+  --color-mint-panel: #121a33;
+  --color-control-track: #18213f;
+  --color-border-soft: #1c2748;
+  --gradient-primary-action: linear-gradient(135deg, #4f6dff 0%, #7c5cff 100%);
+  --gradient-session-hero:
+    radial-gradient(120% 150% at 88% -10%, rgba(124, 92, 255, 0.5) 0%, rgba(124, 92, 255, 0) 52%),
+    linear-gradient(112deg, #0c1126 0%, #1c2a5e 58%, #4f6dff 100%);
+  --shadow-hero: 0 18px 36px rgba(0, 0, 0, 0.5);
+  --shadow-card-soft: 0 6px 18px rgba(0, 0, 0, 0.35);
+  --shadow-row: 0 4px 14px rgba(0, 0, 0, 0.3);
+  --radius-hero: 28px;
+  --radius-card-xl: 20px;
+  --radius-row: 18px;
+  --radius-input: 16px;
 
   /* ---- Elevation ---- */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);

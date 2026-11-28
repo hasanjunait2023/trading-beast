@@ -1,28 +1,39 @@
-import { Suspense, lazy, useState, type FormEvent } from 'react';
+import { Suspense, lazy, useState, type FormEvent, type ReactNode } from 'react';
 import { BottomNav } from '@shared/components/BottomNav';
 import { Button } from '@shared/components/Button';
 import { Card } from '@shared/components/Card';
 import { Input, FormField } from '@shared/components/FormField';
 import { Skeleton } from '@shared/components/Skeleton';
+import {
+  HomeIcon,
+  JournalIcon,
+  MarketsIcon,
+  MoreIcon,
+  PlanIcon,
+} from '@shared/components/icons';
 import { useAuth } from './hooks/useAuth';
 import { haptics } from './telegram';
 
 // Per-tab code splitting keeps the initial (entry) chunk within the
-// ≤200 KB budget (handoff §6): only the shell + auth + Radar load eagerly.
-const Radar = lazy(() => import('./pages/Radar'));
-const Watchlist = lazy(() => import('./pages/Watchlist'));
-const Credits = lazy(() => import('./pages/Credits'));
-const Referral = lazy(() => import('./pages/Referral'));
-const Profile = lazy(() => import('./pages/Profile'));
+// ≤200 KB budget (handoff §6): only the shell + auth load eagerly; every
+// tab page is a lazy chunk.
+const Home = lazy(() => import('./pages/Home'));
+const Markets = lazy(() => import('./pages/Markets'));
+const Plan = lazy(() => import('./pages/Plan'));
+const Journal = lazy(() => import('./pages/Journal'));
+const More = lazy(() => import('./pages/More'));
 
-export type Tab = 'radar' | 'watchlist' | 'credits' | 'referral' | 'profile';
+// Reference tab bar (studies 03/04): Home / Markets / Plan / Journal /
+// More. Watchlist, Session Clock, Credits, Referrals and Profile live
+// under More.
+export type Tab = 'home' | 'markets' | 'plan' | 'journal' | 'more';
 
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'radar', label: 'Radar', icon: '◎' },
-  { id: 'watchlist', label: 'Watchlist', icon: '☰' },
-  { id: 'credits', label: 'Credits', icon: '◉' },
-  { id: 'referral', label: 'Referral', icon: '⧉' },
-  { id: 'profile', label: 'Profile', icon: '◐' },
+const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
+  { id: 'home', label: 'Home', icon: <HomeIcon size={24} /> },
+  { id: 'markets', label: 'Markets', icon: <MarketsIcon size={24} /> },
+  { id: 'plan', label: 'Plan', icon: <PlanIcon size={24} /> },
+  { id: 'journal', label: 'Journal', icon: <JournalIcon size={24} /> },
+  { id: 'more', label: 'More', icon: <MoreIcon size={24} /> },
 ];
 
 function LoadingScreen() {
@@ -119,7 +130,10 @@ function FallbackScreen() {
 
 export default function App() {
   const { user, isLoading } = useAuth();
-  const [tab, setTab] = useState<Tab>('radar');
+  const [tab, setTab] = useState<Tab>('home');
+  // More hosts Credits as a subview; Home/Markets credit pills deep-link
+  // there via this nonce (More mounts fresh when it changes).
+  const [moreNonce, setMoreNonce] = useState(0);
 
   if (isLoading) {
     return <div className="app-shell"><LoadingScreen /></div>;
@@ -133,15 +147,20 @@ export default function App() {
     haptics.selection();
   };
 
+  const openCredits = () => {
+    setMoreNonce((n) => n + 1);
+    goToTab('more');
+  };
+
   return (
     <div className="app-shell">
       <main key={tab} className="tb-page-enter">
         <Suspense fallback={<LoadingScreen />}>
-          {tab === 'radar' && <Radar goToTab={goToTab} />}
-          {tab === 'watchlist' && <Watchlist />}
-          {tab === 'credits' && <Credits goToTab={goToTab} />}
-          {tab === 'referral' && <Referral />}
-          {tab === 'profile' && <Profile />}
+          {tab === 'home' && <Home goToTab={goToTab} onOpenCredits={openCredits} />}
+          {tab === 'markets' && <Markets onOpenCredits={openCredits} />}
+          {tab === 'plan' && <Plan goToTab={goToTab} />}
+          {tab === 'journal' && <Journal goToTab={goToTab} />}
+          {tab === 'more' && <More key={moreNonce} goToTab={goToTab} initialView={moreNonce > 0 ? 'credits' : 'menu'} />}
         </Suspense>
       </main>
       <BottomNav
@@ -149,7 +168,7 @@ export default function App() {
           id: t.id,
           label: t.label,
           active: tab === t.id,
-          icon: <span aria-hidden="true" className="text-lg leading-none">{t.icon}</span>,
+          icon: t.icon,
           onSelect: (id: string) => goToTab(id as Tab),
         }))}
       />
