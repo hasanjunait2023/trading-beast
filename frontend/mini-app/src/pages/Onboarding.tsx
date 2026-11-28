@@ -142,7 +142,7 @@ export default function Onboarding({
       <div className="mt-3" aria-hidden="true">
         <div className="h-1.5 overflow-hidden rounded-full bg-[var(--color-control-track)]">
           <div
-            className="h-full rounded-full transition-all duration-500"
+            className="h-full rounded-full transition-[width] duration-500"
             style={{
               width: `${((stepIndex + (step === 'done' ? 0 : 0.5)) / FLOW.length) * 100}%`,
               background: 'var(--gradient-primary-action)',

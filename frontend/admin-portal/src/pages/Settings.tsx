@@ -7,6 +7,7 @@ import { Button } from '@shared/components/Button';
 import { ErrorState } from '@shared/components/ErrorState';
 import { Skeleton } from '@shared/components/Skeleton';
 import { UnavailableState } from '@shared/components/UnavailableState';
+import { CheckIcon, XIcon } from '@shared/components/icons';
 import { errorMessage, errorStatus } from '../lib/format';
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -21,7 +22,11 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 function CheckRow({ ok, label, env, detail }: { ok: boolean; label: string; env?: string; detail: string }) {
   return (
     <div className="flex items-start gap-3 rounded-[var(--radius-md)] bg-[var(--color-surface-hover)] px-3 py-2.5">
-      <span aria-hidden="true" className={`mt-0.5 font-bold ${ok ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'}`}>{ok ? '✓' : '✕'}</span>
+      {ok ? (
+        <CheckIcon size={16} className="mt-0.5 shrink-0 text-[var(--color-success)]" />
+      ) : (
+        <XIcon size={16} className="mt-0.5 shrink-0 text-[var(--color-danger)]" />
+      )}
       <div className="min-w-0">
         <p className="text-sm font-medium">{label}{env && <span className="ml-2 font-mono text-xs text-[var(--color-text-muted)]">{env}</span>}</p>
         <p className="text-sm break-all text-[var(--color-text-muted)]">{detail}</p>

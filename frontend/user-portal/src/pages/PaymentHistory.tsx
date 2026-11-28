@@ -12,6 +12,7 @@ import {
   ClockIcon,
   CoinsIcon,
   WalletIcon,
+  XIcon,
 } from '@shared/components/icons';
 import { userApi, type Payment } from '../services/api';
 
@@ -213,7 +214,7 @@ export function PaymentHistoryList() {
                 ) : p.status === 'PENDING' ? (
                   <ClockIcon size={13} />
                 ) : (
-                  <span aria-hidden="true">✕</span>
+                  <XIcon size={13} />
                 )}
                 {paymentStatusLabel(p.status)}
               </span>

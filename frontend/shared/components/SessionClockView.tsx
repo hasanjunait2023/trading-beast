@@ -165,8 +165,7 @@ export function SessionClockView({
           }}
         />
         <div className="relative p-5">
-          <p className="text-[13px] font-bold tracking-[0.22em] text-[var(--color-hero-text-soft)]">SESSION CLOCK</p>
-          <h1 className="mt-1.5 text-[30px] leading-none font-extrabold tracking-tight sm:text-[34px]">
+          <h1 className="text-[30px] leading-none font-extrabold tracking-tight sm:text-[34px]">
             Session Clock
           </h1>
           <p className="mt-2.5 max-w-[420px] text-[15px] leading-snug text-white/90">

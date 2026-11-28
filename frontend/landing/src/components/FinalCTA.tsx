@@ -42,7 +42,7 @@ export default function FinalCTA() {
             <a
               href={telegram.primaryHref}
               {...telegramLinkProps(telegram)}
-              className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-white px-8 font-semibold transition-transform hover:-translate-y-0.5 sm:w-auto"
+              className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-white px-8 font-semibold transition-transform sm:w-auto"
               style={{ color: '#054333' }}
             >
               <Send className="h-4 w-4" aria-hidden="true" />

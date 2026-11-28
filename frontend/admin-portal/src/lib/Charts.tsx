@@ -11,7 +11,14 @@ export interface BarDatum {
   color?: string;
 }
 
-const PALETTE = ['#00664b', '#0e7490', '#92600a', '#7c5cff', '#b4232f', '#4c625d'];
+const PALETTE = [
+  'var(--color-accent)',
+  'var(--color-info)',
+  'var(--color-warning)',
+  'var(--color-avoid)',
+  'var(--color-danger)',
+  'var(--color-text-muted)',
+];
 
 /** Horizontal bars scaled to the largest value. */
 export function BarList({ data, format }: { data: BarDatum[]; format?: (v: number) => string }) {
@@ -32,7 +39,7 @@ export function BarList({ data, format }: { data: BarDatum[]; format?: (v: numbe
             aria-label={`${d.label}: ${format ? format(d.value) : d.value}`}
           >
             <div
-              className="h-full rounded-full transition-all duration-300"
+              className="h-full rounded-full transition-[width] duration-300"
               style={{
                 width: max > 0 ? `${(d.value / max) * 100}%` : '0%',
                 background: d.color ?? PALETTE[i % PALETTE.length],

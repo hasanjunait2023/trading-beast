@@ -11,6 +11,7 @@ import {
   ClockIcon,
   CrownIcon,
   ListIcon,
+  XIcon,
 } from '@shared/components/icons';
 import { userApi, type Payment } from '../services/api';
 import {
@@ -163,7 +164,7 @@ export default function PaymentSubmitted() {
                 ) : payment.status === 'PENDING' ? (
                   <ClockIcon size={36} />
                 ) : (
-                  <span className="text-3xl font-extrabold">!</span>
+                  <XIcon size={36} />
                 )}
               </span>
               <p
@@ -199,7 +200,7 @@ export default function PaymentSubmitted() {
                       {step.state === 'done' ? (
                         <CheckIcon size={16} />
                       ) : step.state === 'rejected' ? (
-                        '✕'
+                        <XIcon size={16} />
                       ) : step.state === 'active' ? (
                         <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-success)]" />
                       ) : (
