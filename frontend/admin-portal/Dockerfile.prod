@@ -20,7 +20,7 @@ ARG VITE_BOT_USERNAME=
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_BOT_USERNAME=$VITE_BOT_USERNAME
 
-RUN node node_modules/typescript/bin/tsc && node node_modules/vite/bin/vite.js build
+RUN node node_modules/typescript/bin/tsc && node node_modules/vite/bin/vite.js build && node ../shared/scripts/assert-css.mjs dist
 
 FROM nginx:alpine AS runner
 

@@ -1,4 +1,11 @@
 @import "tailwindcss";
+/* Tailwind v4: explicit content sources. Automatic detection silently
+   generated almost no utilities in the Docker build (no .git in context,
+   shared kit outside the app dir) — production shipped unstyled.
+   Never rely on auto-detection again. */
+@source "./**/*.{ts,tsx}";
+@source "../index.html";
+@source "../../shared/**/*.{ts,tsx}";
 @import "@shared/theme.css";
 
 /*
