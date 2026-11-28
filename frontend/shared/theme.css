@@ -1,0 +1,245 @@
+/*
+  TradingBeast shared theme — Z0 foundation.
+
+  Default theme = LIGHT (emerald/mint, per design handoff §2):
+    canvas #F5FAF8, white surfaces, primary #00664B, hero #054333 -> #007959.
+  Dark variant = repo "Neon Dark Tech" (navy-black, electric blue/violet),
+  activated with [data-theme="dark"] on <html> (see theme.tsx ThemeProvider).
+
+  Import AFTER `@import "tailwindcss"` in an app's CSS:
+    @import "tailwindcss";
+    @import "@shared/theme.css";
+
+  No external URLs are imported here (fonts are system/self-hosted stacks only).
+  All existing --color-* names are preserved so current app CSS keeps working.
+*/
+
+:root {
+  /* ---- Core surfaces & text (LIGHT) ---- */
+  --color-bg: #f5faf8;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #e5f5ef;
+  --color-surface-hover: #eef7f3;
+  --color-border: #d7e5df;
+  --color-border-strong: #b9d2c7;
+  --color-text: #101d2c;
+  --color-text-muted: #4c625d;
+  --color-text-faint: #7d938c;
+
+  /* ---- Brand / actions ---- */
+  --color-accent: #00664b;
+  --color-accent-hover: #00553e;
+  --color-accent-text: #ffffff;
+  --color-accent-soft: #e5f5ef;
+  --color-link: #00664b;
+  --color-violet: #7c5cff;
+  --color-cyan: #0e7490;
+
+  /* ---- Feedback (accessible on white) ---- */
+  --color-success: #0b7a43;
+  --color-success-bg: #dcf5e7;
+  --color-warning: #92600a;
+  --color-warning-bg: #fdf0cd;
+  --color-danger: #b4232f;
+  --color-danger-bg: #fde3e5;
+  --color-info: #175cd3;
+  --color-info-bg: #e0ebfd;
+
+  /* ---- Market semantics: status (rank) — always paired bg + text ---- */
+  --color-focus: #06543c;
+  --color-focus-bg: #cdeee0;
+  --color-focus-text: #06543c;
+  --color-watch: #7a5a00;
+  --color-watch-bg: #fbefc0;
+  --color-watch-text: #7a5a00;
+  --color-avoid: #7a2438;
+  --color-avoid-bg: #f6dee3;
+  --color-avoid-text: #7a2438;
+  --color-unavailable: #4a5a66;
+  --color-unavailable-bg: #e8edf0;
+  --color-unavailable-text: #4a5a66;
+
+  /* ---- Market semantics: directional bias (separate from rank) ---- */
+  --color-bullish: #0b7a43;
+  --color-bearish: #c22633;
+  --color-neutral-bias: #4c625d;
+
+  /* ---- Session state ---- */
+  --color-session-live: #0b7a43;
+  --color-session-upcoming: #92600a;
+  --color-session-closed: #4a5a66;
+
+  /* ---- Gradients ---- */
+  --grad-hero: linear-gradient(135deg, #054333 0%, #007959 100%);
+  --grad-accent: linear-gradient(135deg, #00664b 0%, #007959 100%);
+
+  /* ---- Typography (font stacks only; no webfont loading here) ---- */
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ---- Spacing (4px base: 4/8/12/16/24/32) ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* ---- Radius ---- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* ---- Elevation ---- */
+  --shadow-sm: 0 1px 2px rgba(16, 29, 44, 0.06);
+  --shadow-md: 0 4px 16px rgba(16, 29, 44, 0.08);
+  --shadow-lg: 0 16px 40px rgba(16, 29, 44, 0.14);
+  --shadow-glow: 0 0 32px rgba(0, 102, 75, 0.22);
+
+  /* ---- Motion (120–200ms per handoff) ---- */
+  --transition-fast: 140ms cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-normal: 200ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ---- Focus ring ---- */
+  --focus-ring: 0 0 0 3px rgba(0, 102, 75, 0.35);
+
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  /* ---- Core surfaces & text (Neon Dark Tech) ---- */
+  --color-bg: #060918;
+  --color-surface: #0c1126;
+  --color-surface-elevated: #121a33;
+  --color-surface-hover: #18213f;
+  --color-border: #1c2748;
+  --color-border-strong: #283358;
+  --color-text: #e8edfb;
+  --color-text-muted: #8896bd;
+  --color-text-faint: #556080;
+
+  /* ---- Brand / actions ---- */
+  --color-accent: #4f6dff;
+  --color-accent-hover: #6b86ff;
+  --color-accent-text: #ffffff;
+  --color-accent-soft: rgba(79, 109, 255, 0.14);
+  --color-link: #6b86ff;
+  --color-violet: #7c5cff;
+  --color-cyan: #22d3ee;
+
+  /* ---- Feedback (accessible on navy surfaces) ---- */
+  --color-success: #4ade80;
+  --color-success-bg: rgba(34, 197, 94, 0.14);
+  --color-warning: #fbbf24;
+  --color-warning-bg: rgba(245, 158, 11, 0.14);
+  --color-danger: #f87171;
+  --color-danger-bg: rgba(239, 68, 68, 0.14);
+  --color-info: #60a5fa;
+  --color-info-bg: rgba(59, 130, 246, 0.14);
+
+  /* ---- Market semantics: status (rank) ---- */
+  --color-focus: #34d399;
+  --color-focus-bg: rgba(16, 185, 129, 0.16);
+  --color-focus-text: #34d399;
+  --color-watch: #f5c542;
+  --color-watch-bg: rgba(245, 197, 66, 0.15);
+  --color-watch-text: #f5c542;
+  --color-avoid: #f08ca0;
+  --color-avoid-bg: rgba(190, 80, 100, 0.18);
+  --color-avoid-text: #f08ca0;
+  --color-unavailable: #9aa8c7;
+  --color-unavailable-bg: rgba(136, 150, 189, 0.16);
+  --color-unavailable-text: #9aa8c7;
+
+  /* ---- Market semantics: directional bias ---- */
+  --color-bullish: #34d399;
+  --color-bearish: #f87171;
+  --color-neutral-bias: #8896bd;
+
+  /* ---- Session state ---- */
+  --color-session-live: #34d399;
+  --color-session-upcoming: #f5c542;
+  --color-session-closed: #9aa8c7;
+
+  /* ---- Gradients ---- */
+  --grad-hero: linear-gradient(135deg, #4f6dff 0%, #7c5cff 100%);
+  --grad-accent: linear-gradient(135deg, #4f6dff 0%, #6b86ff 100%);
+
+  /* ---- Elevation ---- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 40px rgba(79, 109, 255, 0.35);
+
+  --focus-ring: 0 0 0 3px rgba(107, 134, 255, 0.45);
+
+  color-scheme: dark;
+}
+
+/* ---- Base element styles ---- */
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  line-height: 1.2;
+}
+
+/* Visible keyboard focus everywhere (handoff §2). */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  box-shadow: var(--focus-ring);
+}
+
+/* Tabular numerals for quotes, scores and credits. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Skeleton shimmer (transform-only, reduced-motion safe). */
+@keyframes tb-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+.tb-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-surface-elevated);
+}
+.tb-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(127, 127, 127, 0.14), transparent);
+  animation: tb-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes tb-spin {
+  to { transform: rotate(360deg); }
+}
+.tb-spinner {
+  animation: tb-spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .tb-skeleton::after { animation: none; }
+  .tb-spinner { animation-duration: 1.6s; }
+}
