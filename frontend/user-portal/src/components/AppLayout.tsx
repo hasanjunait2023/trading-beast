@@ -37,6 +37,8 @@ const DESTINATIONS: Dest[] = [
   { id: 'journal', label: 'Journal', path: '/app/journal', match: (p) => p.startsWith('/app/journal') },
   // Alerts is sidebar-only: the mobile bottom nav stays at its five slots.
   { id: 'alerts', label: 'Alerts', path: '/app/alerts', match: (p) => p.startsWith('/app/alerts') },
+  // Risk Tools is sidebar-only: the mobile bottom nav stays at its five slots.
+  { id: 'tools', label: 'Risk Tools', path: '/app/tools', match: (p) => p.startsWith('/app/tools') },
   { id: 'watchlist', label: 'Watchlist', path: '/app/watchlist', mobile: true, match: (p) => p.startsWith('/app/watchlist') || p === '/watchlist' },
   { id: 'sessions', label: 'Sessions', path: '/app/sessions', match: (p) => p.startsWith('/app/sessions') },
   { id: 'credits', label: 'Credits', path: '/app/credits', mobile: true, match: (p) => p.startsWith('/app/credits') },

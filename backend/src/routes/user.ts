@@ -22,6 +22,8 @@ import {
   deleteJournalTrade, parseRangeBound,
   JournalNotFoundError, JournalValidationError,
 } from '../services/journal.js';
+import { getToolsStatus } from '../services/tools.js';
+import { getCalendarStatus } from '../services/calendar.js';
 const router: Router = asyncRouter();
 
 const watchlistSchema = z.object({
@@ -484,6 +486,21 @@ router.delete('/journal/:id', async (req: AuthRequest, res) => {
   } catch (err) {
     if (!journalError(res, err)) throw err;
   }
+});
+
+// --- Risk Tools status (B5, handoff §3 row 10): per-tool availability with
+// machine-readable reasons. Contract-dependent tools are unavailable until
+// contract metadata exists; the pure-math tools are computed client-side
+// from user inputs only, so this endpoint reports availability, not values.
+router.get('/tools/status', (_req, res) => {
+  res.json({ success: true, data: getToolsStatus() });
+});
+
+// --- Economic Calendar status (B5, handoff §3 row 12): no licensed feed is
+// configured, so this reports exactly that. There is deliberately NO events
+// endpoint — no data exists to serve.
+router.get('/calendar/status', (_req, res) => {
+  res.json({ success: true, data: getCalendarStatus() });
 });
 
 router.get('/referrals', async (req: AuthRequest, res) => {

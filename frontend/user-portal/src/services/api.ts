@@ -274,6 +274,34 @@ export interface JournalTradeInput {
 
 export type PaymentMethod = 'BKASH' | 'NAGAD' | 'USDT';
 
+export type ToolId = 'position-size' | 'pip-value' | 'margin' | 'risk-reward' | 'recovery';
+
+export interface ToolStatus {
+  id: ToolId;
+  available: boolean;
+  /** Machine-readable reason code from the server; null when available. */
+  reason: string | null;
+  /** Metadata fields whose absence blocks the tool. */
+  missing: string[];
+}
+
+export interface ToolsStatusData {
+  tools: ToolStatus[];
+}
+
+export interface Instrument {
+  pair: string;
+  code: string;
+  kind: 'fx' | 'asset';
+  name: string;
+  decimals: number;
+  yahoo: string;
+  base?: string;
+  quote?: string;
+  group?: string;
+  sessions?: string[] | null;
+}
+
 export const authApi = {
   telegramLogin: (data: { initData: string; referralCode?: string }) =>
     request<{ token: string; user: User }>('POST', '/auth/telegram', data),
@@ -356,6 +384,10 @@ export const userApi = {
     request<JournalTrade>('PATCH', `/user/journal/${encodeURIComponent(id)}`, patch),
   deleteJournalTrade: (id: string) =>
     request<{ deleted: boolean }>('DELETE', `/user/journal/${encodeURIComponent(id)}`),
+  // Risk Tools availability (per-tool reasons come from the server — the
+  // Tools page renders them verbatim rather than hard-coding why a tool is
+  // unavailable).
+  getToolsStatus: () => request<ToolsStatusData>('GET', '/user/tools/status'),
 };
 
 export const analysisApi = {
@@ -374,6 +406,9 @@ export const analysisApi = {
       'Idempotency-Key': idempotencyKey,
     }),
   getPairs: () => request<string[]>('GET', '/analysis/pairs'),
+  // Instrument catalog derived from the engine definitions (B5). Carries
+  // only fields the engine defines — no contract metadata exists.
+  getInstruments: () => request<Instrument[]>('GET', '/analysis/instruments'),
   getSessions: () => request<unknown>('GET', '/analysis/sessions'),
   // Read-only run history (zero credits). Payloads are mapped RadarRuns:
   // { runId, session, scope, completedAt, startedAt, result } where result
