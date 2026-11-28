@@ -175,8 +175,11 @@ export function CoinsIcon(props: IconProps) {
   );
 }
 
-export function BookmarkIcon(props: IconProps) {
-  return base(props, <path d="M6 3h12v18l-6-4.5L6 21z" />);
+export function BookmarkIcon({ filled, ...props }: IconProps & { filled?: boolean }) {
+  return base(
+    filled ? { ...props, fill: 'currentColor' } : props,
+    <path d="M6 3h12v18l-6-4.5L6 21z" />,
+  );
 }
 
 export function TrendingUpIcon(props: IconProps) {

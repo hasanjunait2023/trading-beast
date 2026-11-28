@@ -28,6 +28,9 @@ export interface RawAnalyzedPair {
   /** Real hourly-close series for sparklines (backend `spark`); absent when
    *  the run's candle data could not supply one — never synthesized. */
   spark?: number[];
+  /** Engine's latest 15m close at scan time (backend `live`); absent in
+   *  older persisted payloads — never derived from other fields. */
+  live?: number;
   dec?: number;
   score: number;
   bias: 'BUY' | 'SELL' | null;
@@ -82,6 +85,8 @@ export interface RadarPairView {
   quote: string | null;
   /** Real sparkline series (hourly closes); null when the payload has none. */
   spark: number[] | null;
+  /** Scan-time price (latest 15m close); null when the payload has none. */
+  live: number | null;
   dec: number;
   status: MarketStatus;
   bias: Bias;
@@ -175,6 +180,7 @@ function toPairView(raw: RawAnalyzedPair, status: MarketStatus): RadarPairView {
       Array.isArray(raw.spark) && raw.spark.length >= 2 && raw.spark.every(Number.isFinite)
         ? raw.spark
         : null,
+    live: typeof raw.live === 'number' && Number.isFinite(raw.live) ? raw.live : null,
     dec: raw.dec ?? 0,
     status,
     bias: mapBias(raw.bias),

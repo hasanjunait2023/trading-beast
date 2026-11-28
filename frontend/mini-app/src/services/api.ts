@@ -249,7 +249,12 @@ export const plansApi = {
     request<SessionPlanData>('POST', '/user/plans', { session }),
   update: (
     id: string,
-    patch: { checklist?: PlanChecklistItem[]; status?: string; version: number },
+    patch: {
+      checklist?: PlanChecklistItem[];
+      status?: string;
+      pinnedRunId?: string | null;
+      version: number;
+    },
   ) => request<SessionPlanData>('PATCH', `/user/plans/${encodeURIComponent(id)}`, patch),
 };
 
