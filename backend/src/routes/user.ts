@@ -24,6 +24,11 @@ import {
 } from '../services/journal.js';
 import { getToolsStatus } from '../services/tools.js';
 import { getCalendarStatus } from '../services/calendar.js';
+import {
+  getProfile, completeProfile, isValidEmail, normalizeEmail, normalizePhone,
+  EmailTakenError, ProfileNotFoundError
+} from '../services/profile.js';
+import { MIN_PASSWORD_LENGTH } from '../services/passwords.js';
 const router: Router = asyncRouter();
 
 const watchlistSchema = z.object({
@@ -73,6 +78,7 @@ router.get('/me', async (req: AuthRequest, res) => {
       referralCode: user.referralCode,
       watchlist: user.watchlist,
       languageCode: user.languageCode,
+      profileCompleted: user.profileCompletedAt !== null,
       isTrialActive,
       isProActive,
       subscription: activeSub ? {
@@ -145,6 +151,43 @@ router.get('/payments', async (req: AuthRequest, res) => {
     orderBy: [{createdAt:'desc'},{id:'desc'}]
   });
   res.json({ success: true, data: payments,meta:{page:p.page,limit:p.limit} });
+});
+
+// --- Onboarding profile (onboarding chapter): email + phone + password ---
+// Owner-scoped: the user id always comes from the verified session, and the
+// response never contains the password hash (hasPassword boolean only).
+
+router.get('/profile', async (req: AuthRequest, res) => {
+  const profile = await getProfile(req.user!.id);
+  if (!profile) {
+    return res.status(404).json({ success: false, error: 'User not found' });
+  }
+  res.json({ success: true, data: profile });
+});
+
+const completeProfileSchema = z.object({
+  email: z.string().trim().max(254).refine((v) => isValidEmail(normalizeEmail(v)), 'Invalid email address'),
+  phone: z.string().trim().min(1).max(32).refine((v) => normalizePhone(v) !== null, 'Invalid phone number'),
+  password: z.string().min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters`).max(128)
+});
+
+router.post('/profile/complete', async (req: AuthRequest, res) => {
+  const parsed = completeProfileSchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: 'Invalid profile data', details: parsed.error.errors });
+  }
+  try {
+    const profile = await completeProfile(req.user!.id, parsed.data);
+    res.json({ success: true, data: profile });
+  } catch (err) {
+    if (err instanceof EmailTakenError) {
+      return res.status(409).json({ success: false, error: 'EMAIL_TAKEN' });
+    }
+    if (err instanceof ProfileNotFoundError) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    throw err;
+  }
 });
 
 // --- Server preferences (handoff §5): account-level timezone + sessions ---
