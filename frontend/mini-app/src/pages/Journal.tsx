@@ -251,7 +251,7 @@ export default function Journal({ goToTab }: { goToTab: (tab: Tab) => void }) {
                   {closedWeek.length} Closed Trade{closedWeek.length === 1 ? '' : 's'}
                 </p>
                 {netR !== null ? (
-                  <span className="tnum mt-2.5 inline-flex rounded-full bg-[#d9f5e6] px-3.5 py-1.5 text-[15px] font-extrabold text-[#04503a]">
+                  <span className="tnum mt-2.5 inline-flex rounded-full bg-[var(--color-hero-chip-bg)] px-3.5 py-1.5 text-[15px] font-extrabold text-[var(--color-hero-chip-text)]">
                     {fmtRSigned(netR)}
                   </span>
                 ) : (

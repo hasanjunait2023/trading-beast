@@ -225,7 +225,7 @@ export default function Help() {
           }}
         />
         <div className="relative max-w-md">
-          <p className="text-[12px] font-bold tracking-[0.22em] text-[#a9ecc9]">
+          <p className="text-[12px] font-bold tracking-[0.22em] text-[var(--color-hero-text-soft)]">
             PROFESSIONAL FX ANALYSIS
           </p>
           <h2 className="mt-2 text-[28px] leading-tight font-extrabold tracking-tight">

@@ -249,7 +249,7 @@ export default function Plan() {
         />
         <div className="relative flex flex-wrap items-end justify-between gap-5">
           <div className="min-w-0 max-w-[380px]">
-            <p className="text-[13px] font-bold tracking-[0.22em] text-[#a9ecc9]">
+            <p className="text-[13px] font-bold tracking-[0.22em] text-[var(--color-hero-text-soft)]">
               {session.toUpperCase()} SESSION
             </p>
             <h2 className="mt-1.5 text-[34px] leading-none font-extrabold tracking-tight">

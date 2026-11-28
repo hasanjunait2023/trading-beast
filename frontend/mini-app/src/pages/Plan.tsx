@@ -202,7 +202,7 @@ export default function Plan({ goToTab }: { goToTab: (tab: Tab) => void }) {
           }}
         />
         <div className="relative">
-          <p className="text-[12px] font-bold tracking-[0.22em] text-[#a9ecc9]">
+          <p className="text-[12px] font-bold tracking-[0.22em] text-[var(--color-hero-text-soft)]">
             {session.toUpperCase()} SESSION
           </p>
           <h2 className="mt-1.5 text-[30px] leading-none font-extrabold tracking-tight">

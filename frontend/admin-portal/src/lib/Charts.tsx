@@ -11,7 +11,14 @@ export interface BarDatum {
   color?: string;
 }
 
-const PALETTE = ['#00664b', '#0e7490', '#92600a', '#7c5cff', '#b4232f', '#4c625d'];
+const PALETTE = [
+  'var(--color-accent)',
+  'var(--color-info)',
+  'var(--color-warning)',
+  'var(--color-avoid)',
+  'var(--color-danger)',
+  'var(--color-text-muted)',
+];
 
 /** Horizontal bars scaled to the largest value. */
 export function BarList({ data, format }: { data: BarDatum[]; format?: (v: number) => string }) {

@@ -211,7 +211,7 @@ export default function Journal() {
                 {summary.closedCount} Closed Trade{summary.closedCount === 1 ? '' : 's'}
               </p>
               {rTotals.count > 0 ? (
-                <span className="tnum mt-3 inline-flex rounded-full bg-[#d9f5e6] px-3.5 py-1.5 text-[16px] font-extrabold text-[#04503a]">
+                <span className="tnum mt-3 inline-flex rounded-full bg-[var(--color-hero-chip-bg)] px-3.5 py-1.5 text-[16px] font-extrabold text-[var(--color-hero-chip-text)]">
                   {fmtRSigned(rTotals.sum)}
                 </span>
               ) : (
