@@ -1,4 +1,4 @@
-import { Check, Zap, Crown, ArrowRight, Clock } from 'lucide-react';
+import { Check, Zap, Crown, ArrowRight, Clock, Send } from 'lucide-react';
 import Reveal from './Reveal';
 import { useTelegramLinks, telegramLinkProps } from '../services/telegram';
 
@@ -18,6 +18,7 @@ const tiers: Tier[] = [
     headline: 'Free — live now',
     icon: Zap,
     features: [
+      '100 welcome credits when you join — 10 full Radar runs',
       '10 credits per day, granted every UTC day',
       'Credits never expire — unused credits stack up',
       'One Radar run costs 10 credits',
@@ -29,25 +30,25 @@ const tiers: Tier[] = [
   },
   {
     name: 'Pro',
-    headline: 'Planned',
+    headline: 'Coming soon',
     planned: true,
     icon: Zap,
     features: [
       'Everything in Free',
-      '+300 credits per verified monthly renewal (planned)',
-      'Advanced features as they are released (planned)',
+      'A larger monthly credit grant (details at launch)',
+      'Advanced features as they are released',
     ],
     cta: 'waitlist',
   },
   {
     name: 'Elite',
-    headline: 'Planned',
+    headline: 'Coming soon',
     planned: true,
     icon: Crown,
     features: [
       'Everything in Free',
-      '+900 credits per verified monthly renewal (planned)',
-      'First access to advanced tools as they ship (planned)',
+      'The largest monthly credit grant (details at launch)',
+      'First access to advanced tools as they ship',
     ],
     cta: 'waitlist',
   },
@@ -84,13 +85,42 @@ export default function Pricing() {
           </p>
         </Reveal>
 
+        {/* Welcome-credit conversion banner: the 100-credit join grant is
+            the fastest honest path to a first Radar run. */}
+        <Reveal className="mx-auto mb-12 max-w-5xl">
+          <div
+            className="flex flex-col items-start gap-6 rounded-[var(--radius-lg)] p-8 text-white sm:p-10 lg:flex-row lg:items-center lg:justify-between"
+            style={{ background: 'var(--grad-hero)', boxShadow: 'var(--shadow-hero)' }}
+          >
+            <div className="max-w-2xl">
+              <p className="tb-font-display tnum text-2xl font-bold tracking-tight sm:text-3xl">
+                Join today and start with 100 welcome credits
+              </p>
+              <p className="mt-3 leading-relaxed" style={{ color: '#d7efe6' }}>
+                That is 10 full Radar runs in your wallet from minute one — before your first
+                daily grant of 10 free credits even lands. Open the bot, pick a session, and
+                run your first scan.
+              </p>
+            </div>
+            <a
+              href={telegram.primaryHref}
+              {...telegramLinkProps(telegram)}
+              className="tb-press inline-flex min-h-[52px] flex-shrink-0 items-center gap-2 rounded-full bg-white px-7 text-base font-semibold"
+              style={{ color: '#054333' }}
+            >
+              <Send className="h-5 w-5" aria-hidden="true" />
+              {telegram.isTelegram ? 'Claim in Telegram' : 'Get started free'}
+            </a>
+          </div>
+        </Reveal>
+
         <div className="mx-auto grid max-w-5xl gap-6 pt-4 md:grid-cols-3">
           {tiers.map((t, i) => {
             const Icon = t.icon;
             return (
               <Reveal key={t.name} delay={i * 90}>
                 <article
-                  className="relative flex h-full flex-col rounded-[var(--radius-lg)] border p-8"
+                  className="tb-lift relative flex h-full flex-col rounded-[var(--radius-lg)] border p-8"
                   style={{
                     background: 'var(--color-surface)',
                     borderColor: t.planned ? 'var(--color-border)' : 'var(--color-accent)',
@@ -108,7 +138,7 @@ export default function Pricing() {
                         }}
                       >
                         <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-                        Planned — not yet available
+                        Coming soon — not yet available
                       </span>
                     </div>
                   )}
@@ -150,7 +180,7 @@ export default function Pricing() {
                     <a
                       href={telegram.primaryHref}
                       {...telegramLinkProps(telegram)}
-                      className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full text-center font-semibold text-white transition-opacity hover:opacity-90"
+                      className="tb-press flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full text-center font-semibold text-white transition-opacity hover:opacity-90"
                       style={{ background: 'var(--grad-accent)' }}
                     >
                       {telegram.isTelegram ? 'Open in Telegram' : 'Get started free'}
@@ -194,8 +224,8 @@ export default function Pricing() {
               you both receive 7 days of Pro free.
             </p>
             <p>
-              Pro and Elite are planned and not yet activated. The planned credit amounts above
-              may change before launch, and no paid plan can be purchased yet.
+              Pro and Elite are coming soon and not yet activated — no paid plan can be
+              purchased yet, and plan details will be confirmed at launch.
             </p>
           </div>
         </Reveal>
