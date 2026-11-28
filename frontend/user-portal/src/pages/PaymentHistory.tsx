@@ -1,12 +1,33 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ComponentType } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@shared/components/Card';
 import { Button } from '@shared/components/Button';
 import { PageHeader } from '@shared/components/PageHeader';
 import { Skeleton } from '@shared/components/Skeleton';
 import { EmptyState } from '@shared/components/EmptyState';
 import { ErrorState } from '@shared/components/ErrorState';
+import {
+  ArrowRightIcon,
+  CardIcon,
+  CheckIcon,
+  ClockIcon,
+  CoinsIcon,
+  WalletIcon,
+} from '@shared/components/icons';
 import { userApi, type Payment } from '../services/api';
+
+/** Study 23 method tiles: wallet for the mobile-money methods, coins for
+ *  USDT, card as the generic fallback. */
+function methodIcon(method: string): ComponentType<{ size?: number }> {
+  switch (method) {
+    case 'BKASH':
+    case 'NAGAD':
+      return WalletIcon;
+    case 'USDT':
+      return CoinsIcon;
+    default:
+      return CardIcon;
+  }
+}
 
 /**
  * Payment History (study 23). Paginated GET /user/payments (meta.page /
@@ -126,65 +147,80 @@ export function PaymentHistoryList() {
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto" role="region" aria-label="Payment history table — scroll horizontally on small screens" tabIndex={0}>
-        <table className="w-full border-collapse text-left text-sm">
-          <caption className="sr-only">Payment history</caption>
-          <thead>
-            <tr className="text-[var(--color-text-muted)]">
-              <th scope="col" className="px-2 py-2 font-semibold">Date</th>
-              <th scope="col" className="px-2 py-2 font-semibold">Method</th>
-              <th scope="col" className="px-2 py-2 text-right font-semibold">Amount</th>
-              <th scope="col" className="px-2 py-2 font-semibold">Reference</th>
-              <th scope="col" className="px-2 py-2 font-semibold">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {payments.map((p) => (
-              <tr key={p.id} className="border-t border-[var(--color-border)]">
-                <td className="tnum px-2 py-2.5">
-                  {new Date(p.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}
-                </td>
-                <td className="px-2 py-2.5">{paymentMethodLabel(p.method)}</td>
-                <td className="tnum px-2 py-2.5 text-right font-semibold">
-                  {formatMinorUnits(p.amount, p.currency)}
-                </td>
-                <td className="px-2 py-2.5">
-                  {p.transactionId ? (
-                    revealed.has(p.id) ? (
-                      <button
-                        type="button"
-                        className="break-all text-left font-mono text-[13px] underline"
-                        onClick={() => toggleReveal(p.id)}
-                        aria-label={`Hide reference for payment on ${new Date(p.createdAt).toLocaleDateString()}`}
-                      >
-                        {p.transactionId}
-                      </button>
+      <ul className="space-y-2" aria-label="Payment history">
+        {payments.map((p) => {
+          const Icon = methodIcon(p.method);
+          return (
+            <li
+              key={p.id}
+              className="flex items-center gap-3 rounded-[var(--radius-row)] border border-[var(--color-border-soft)] bg-[var(--color-surface)] px-3.5 py-3 shadow-[var(--shadow-row)]"
+            >
+              <span
+                aria-hidden="true"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-mint-wash)] text-[var(--color-accent)]"
+              >
+                <Icon size={21} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="tnum text-[15px] font-bold">
+                  {new Date(p.createdAt).toLocaleDateString(undefined, {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </p>
+                <p className="text-[13px] text-[var(--color-text-muted)]">
+                  {paymentMethodLabel(p.method)}
+                  {p.transactionId &&
+                    (revealed.has(p.id) ? (
+                      <>
+                        {' · '}
+                        <button
+                          type="button"
+                          className="break-all text-left font-mono text-[12px] underline"
+                          onClick={() => toggleReveal(p.id)}
+                          aria-label={`Hide reference for payment on ${new Date(p.createdAt).toLocaleDateString()}`}
+                        >
+                          {p.transactionId}
+                        </button>
+                      </>
                     ) : (
-                      <button
-                        type="button"
-                        className="text-[13px] font-semibold text-[var(--color-link)] underline"
-                        onClick={() => toggleReveal(p.id)}
-                        aria-label="Show payment reference"
-                      >
-                        Show reference
-                      </button>
-                    )
-                  ) : (
-                    <span className="text-[var(--color-text-muted)]">—</span>
-                  )}
-                </td>
-                <td className="px-2 py-2.5">
-                  <span
-                    className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(p.status)}`}
-                  >
-                    {paymentStatusLabel(p.status)}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                      <>
+                        {' · '}
+                        <button
+                          type="button"
+                          className="font-semibold text-[var(--color-link)] underline"
+                          onClick={() => toggleReveal(p.id)}
+                          aria-label="Show payment reference"
+                        >
+                          Show reference
+                        </button>
+                      </>
+                    ))}
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="tnum text-[16px] font-extrabold">
+                  {formatMinorUnits(p.amount, p.currency)}
+                </p>
+                <p className="text-[12px] text-[var(--color-text-muted)]">{p.currency}</p>
+              </div>
+              <span
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${statusClasses(p.status)}`}
+              >
+                {p.status === 'APPROVED' ? (
+                  <CheckIcon size={13} />
+                ) : p.status === 'PENDING' ? (
+                  <ClockIcon size={13} />
+                ) : (
+                  <span aria-hidden="true">✕</span>
+                )}
+                {paymentStatusLabel(p.status)}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
       <div className="flex items-center justify-between">
         <Button
           variant="secondary"
@@ -216,17 +252,20 @@ export function PaymentHistoryList() {
 export default function PaymentHistoryPage() {
   const navigate = useNavigate();
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-4xl space-y-4">
       <PageHeader
         title="Payment History"
-        subtitle="Manual payments and their verification status."
-        actions={
-          <Button onClick={() => navigate('/app/membership/checkout')}>New payment</Button>
-        }
+        subtitle="Track all your transactions and their status."
       />
-      <Card>
-        <PaymentHistoryList />
-      </Card>
+      <PaymentHistoryList />
+      <Button
+        size="lg"
+        className="w-full rounded-full text-white"
+        style={{ background: 'var(--gradient-primary-action)' }}
+        onClick={() => navigate('/app/membership/checkout')}
+      >
+        <CardIcon size={20} /> Make a Payment Now <ArrowRightIcon size={19} />
+      </Button>
       <p className="text-sm text-[var(--color-text-muted)]">
         Looking for your current subscription? See{' '}
         <button

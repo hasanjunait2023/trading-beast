@@ -1,10 +1,31 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ComponentType } from 'react';
 import { Card } from '@shared/components/Card';
 import { Button } from '@shared/components/Button';
 import { PageHeader } from '@shared/components/PageHeader';
-import { Input, FormField } from '@shared/components/FormField';
 import { EmptyState } from '@shared/components/EmptyState';
+import { MarketsHeroArt } from '@shared/components/MarketsHeroArt';
+import {
+  ArrowRightIcon,
+  BookmarkIcon,
+  CardIcon,
+  CoinsIcon,
+  CrosshairIcon,
+  HeadsetIcon,
+  LockIcon,
+  SearchIcon,
+  UsersIcon,
+} from '@shared/components/icons';
 import { useBotUsername, botUrl } from '../hooks/useBotConfig';
+
+/** Study 17: one mint icon chip per FAQ section. */
+const SECTION_ICONS: Record<string, ComponentType<{ size?: number }>> = {
+  'Scores & the Focus Radar': CrosshairIcon,
+  Credits: CoinsIcon,
+  Watchlist: BookmarkIcon,
+  'Payments & verification': CardIcon,
+  Referrals: UsersIcon,
+  'Account & login': LockIcon,
+};
 
 /**
  * Help (study 17). Searchable static FAQ with vetted copy (score meaning,
@@ -128,21 +149,31 @@ const FAQ: FaqSection[] = [
 
 function FaqAccordionItem({
   item,
+  icon: Icon,
   isOpen,
   onToggle,
 }: {
   item: FaqItem;
+  icon?: ComponentType<{ size?: number }>;
   isOpen: boolean;
   onToggle: () => void;
 }) {
   return (
-    <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)]">
+    <div className="overflow-hidden rounded-[var(--radius-row)] border border-[var(--color-border-soft)] bg-[var(--color-surface)] shadow-[var(--shadow-row)]">
       <button
         onClick={onToggle}
         aria-expanded={isOpen}
-        className="flex w-full items-center justify-between gap-3 bg-[var(--color-surface-elevated)] px-4 py-3 text-left transition-colors hover:bg-[var(--color-surface-hover)]"
+        className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--color-surface-hover)]"
       >
-        <span className="text-sm font-medium">{item.q}</span>
+        {Icon && (
+          <span
+            aria-hidden="true"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-mint-wash)] text-[var(--color-accent)]"
+          >
+            <Icon size={20} />
+          </span>
+        )}
+        <span className="flex-1 text-[15px] font-bold">{item.q}</span>
         <span
           aria-hidden="true"
           className={`shrink-0 text-[var(--color-text-muted)] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
@@ -151,7 +182,7 @@ function FaqAccordionItem({
         </span>
       </button>
       {isOpen && (
-        <p className="border-t border-[var(--color-border)] px-4 py-3 text-sm text-[var(--color-text-muted)]">
+        <p className="border-t border-[var(--color-border-soft)] px-4 py-3 text-sm text-[var(--color-text-muted)]">
           {item.a}
         </p>
       )}
@@ -178,21 +209,49 @@ export default function Help() {
   }, [query]);
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-4xl space-y-4">
+      <section
+        aria-label="TradingBeast — professional FX analysis"
+        className="relative overflow-hidden rounded-[var(--radius-hero)] p-6 text-white shadow-[var(--shadow-hero)]"
+        style={{ background: 'var(--gradient-session-hero)' }}
+      >
+        <MarketsHeroArt />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(90deg, rgba(3,40,28,0.55) 0%, rgba(3,40,28,0.2) 55%, rgba(3,40,28,0) 82%)',
+          }}
+        />
+        <div className="relative max-w-md">
+          <p className="text-[12px] font-bold tracking-[0.22em] text-[#a9ecc9]">
+            PROFESSIONAL FX ANALYSIS
+          </p>
+          <h2 className="mt-2 text-[28px] leading-tight font-extrabold tracking-tight">
+            Trade FX with Discretion and Clarity
+          </h2>
+          <p className="mt-2 text-[15px] leading-snug text-white/90">
+            Expert analysis, radar insights, and actionable trade ideas.
+          </p>
+        </div>
+      </section>
+
       <PageHeader
-        title="Help & FAQ"
-        subtitle="Answers about scores, data age, credits, payments and your account."
+        title="Help & Support"
+        subtitle="Find answers, get guidance, or contact our support team."
       />
 
-      <div className="max-w-md">
-        <FormField label="Search the FAQ">
-          <Input
-            type="search"
-            placeholder="Search questions and answers…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </FormField>
+      <div className="flex max-w-xl items-center gap-2.5 rounded-full bg-[var(--color-mint-wash)] px-4 py-1">
+        <SearchIcon size={20} className="shrink-0 text-[var(--color-accent)]" />
+        <input
+          type="search"
+          aria-label="Search help articles"
+          placeholder="Search help articles…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="min-h-[44px] w-full bg-transparent text-[15px] outline-none placeholder:text-[var(--color-text-faint)]"
+        />
       </div>
 
       {sections.length === 0 ? (
@@ -204,8 +263,8 @@ export default function Help() {
         </Card>
       ) : (
         sections.map((section) => (
-          <Card key={section.title}>
-            <h2 className="mb-4 font-bold">{section.title}</h2>
+          <section key={section.title} aria-label={section.title}>
+            <h2 className="mb-2.5 text-[19px] font-extrabold tracking-tight">{section.title}</h2>
             <div className="space-y-2">
               {section.items.map((item, i) => {
                 const key = `${section.title}-${i}`;
@@ -213,32 +272,42 @@ export default function Help() {
                   <FaqAccordionItem
                     key={key}
                     item={item}
+                    icon={SECTION_ICONS[section.title]}
                     isOpen={openKey === key}
                     onToggle={() => setOpenKey(openKey === key ? null : key)}
                   />
                 );
               })}
             </div>
-          </Card>
+          </section>
         ))
       )}
 
-      <Card elevated>
+      <div className="rounded-[var(--radius-card-xl)] bg-[var(--color-mint-panel)] p-5 shadow-[var(--shadow-card-soft)]">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <span aria-hidden="true" className="shrink-0 text-[var(--color-accent)]">
+            <HeadsetIcon size={44} />
+          </span>
           <div className="flex-1">
-            <h2 className="font-bold">Still need help?</h2>
+            <h2 className="text-[20px] font-extrabold tracking-tight">Need more help?</h2>
             <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-              Support runs through the Telegram bot. Send your question there — and include your
-              transaction ID if it is about a payment.
+              Get in touch with our support team. Support runs through the Telegram bot — send
+              your question there, and include your transaction ID if it is about a payment.
             </p>
+            {supportUrl && (
+              <a href={supportUrl} target="_blank" rel="noreferrer" className="mt-3.5 block">
+                <Button
+                  size="lg"
+                  className="w-full rounded-full text-white sm:w-auto sm:min-w-[280px]"
+                  style={{ background: 'var(--gradient-primary-action)' }}
+                >
+                  Contact Support <ArrowRightIcon size={19} />
+                </Button>
+              </a>
+            )}
           </div>
-          {supportUrl && (
-            <a href={supportUrl} target="_blank" rel="noreferrer">
-              <Button>Open the bot</Button>
-            </a>
-          )}
         </div>
-      </Card>
+      </div>
 
       <Card className="border-[var(--color-warning)]">
         <p className="font-semibold">Risk disclaimer</p>

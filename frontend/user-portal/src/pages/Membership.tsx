@@ -5,10 +5,19 @@ import { Button } from '@shared/components/Button';
 import { PageHeader } from '@shared/components/PageHeader';
 import { Tabs } from '@shared/components/Tabs';
 import { Skeleton } from '@shared/components/Skeleton';
+import { Brand } from '@shared/components/Brand';
+import { ChevronRightIcon, CrownIcon, LeafIcon, MedalIcon } from '@shared/components/icons';
 import { useAuth } from '../hooks/useAuth';
 import { userApi, type CreditsData, type User } from '../services/api';
 import { PLAN_OFFERINGS, CREDIT_MODEL_NOTES } from './membershipCatalog';
 import { PaymentHistoryList } from './PaymentHistory';
+
+/** Study 16 plan-row icons: leaf = Free, medal = Pro, crown = Elite. */
+const PLAN_ICONS: Record<string, typeof LeafIcon> = {
+  FREE: LeafIcon,
+  PRO: MedalIcon,
+  ELITE: CrownIcon,
+};
 
 export type MembershipSection = 'current' | 'plans' | 'payments';
 
@@ -74,22 +83,81 @@ export default function Membership({ initialSection }: { initialSection: Members
 
       {section === 'current' && (
         <div className="space-y-4">
+          {/* Study 16 composition: brand card, plan rows, gradient action. */}
+          <div className="rounded-[var(--radius-card-xl)] bg-[var(--color-mint-panel)] p-4 shadow-[var(--shadow-card-soft)] sm:p-5">
+            <div className="flex flex-wrap items-center gap-3.5">
+              <Brand variant="tile" size={56} markOnly />
+              <div className="min-w-0">
+                <p className="text-[21px] font-extrabold tracking-tight">TradingBeast</p>
+                <span className="mt-1 inline-flex rounded-full bg-[var(--color-mint-wash)] px-3 py-1 text-[13px] font-bold text-[var(--color-accent)]">
+                  Current plan · {currentTier.charAt(0) + currentTier.slice(1).toLowerCase()}
+                </span>
+              </div>
+              {credits && (
+                <p className="tnum ml-auto text-sm text-[var(--color-text-muted)]">
+                  Balance: <strong className="text-[var(--color-text)]">{credits.balance} credits</strong>
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-[var(--radius-card-xl)] bg-[var(--color-mint-panel)] p-2.5 shadow-[var(--shadow-card-soft)]">
+            <div className="space-y-2">
+              {PLAN_OFFERINGS.map((plan) => {
+                const Icon = PLAN_ICONS[plan.id] ?? LeafIcon;
+                const isCurrent = plan.id === currentTier;
+                return (
+                  <button
+                    key={plan.id}
+                    type="button"
+                    onClick={() => setSection('plans')}
+                    aria-label={`View the ${plan.name} plan${isCurrent ? ' (your current plan)' : ''}`}
+                    className="flex min-h-[64px] w-full items-center gap-3.5 rounded-[var(--radius-row)] bg-[var(--color-surface)] px-4 py-3 text-left shadow-[var(--shadow-row)] transition-transform active:scale-[0.99]"
+                  >
+                    <span className="text-[var(--color-accent)]">
+                      <Icon size={27} />
+                    </span>
+                    <span className="flex-1 text-[19px] font-extrabold tracking-tight">{plan.name}</span>
+                    {isCurrent && (
+                      <span className="rounded-full bg-[var(--color-success-bg)] px-2.5 py-1 text-xs font-bold text-[var(--color-success)]">
+                        Current plan
+                      </span>
+                    )}
+                    {plan.planned && (
+                      <span className="rounded-full bg-[var(--color-warning-bg)] px-2.5 py-1 text-xs font-bold text-[var(--color-warning)]">
+                        Coming soon
+                      </span>
+                    )}
+                    <ChevronRightIcon size={20} className="shrink-0 text-[var(--color-text-faint)]" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <Button
+            size="lg"
+            className="w-full rounded-full text-white"
+            style={{ background: 'var(--gradient-primary-action)' }}
+            onClick={() => setSection('plans')}
+          >
+            View plan options
+          </Button>
+          <p className="text-center">
+            <button
+              type="button"
+              className="text-[16px] font-bold text-[var(--color-accent)] underline underline-offset-4"
+              onClick={() => navigate('/app/membership/payments')}
+            >
+              Payment history
+            </button>
+          </p>
+
           <Card elevated>
             {loading && !user ? (
               <Skeleton height={80} />
             ) : (
               <>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm text-[var(--color-text-muted)]">Current plan</p>
-                    <p className="mt-0.5 text-2xl font-bold">{currentTier}</p>
-                  </div>
-                  {credits && (
-                    <p className="tnum text-sm text-[var(--color-text-muted)]">
-                      Balance: <strong className="text-[var(--color-text)]">{credits.balance} credits</strong>
-                    </p>
-                  )}
-                </div>
                 {user?.isTrialActive ? (
                   <p className="mt-3 rounded-[var(--radius-md)] bg-[var(--color-warning-bg)] p-3 text-sm">
                     <strong>Pro trial active</strong> — {trialDaysLeft} day{trialDaysLeft === 1 ? '' : 's'}{' '}
@@ -126,10 +194,6 @@ export default function Membership({ initialSection }: { initialSection: Members
             )}
           </Card>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => setSection('plans')}>View plan options</Button>
-            <Button variant="secondary" onClick={() => navigate('/app/membership/payments')}>
-              Payment history
-            </Button>
             <Button variant="secondary" onClick={() => navigate('/app/membership/checkout')}>
               Submit a payment
             </Button>
@@ -142,10 +206,16 @@ export default function Membership({ initialSection }: { initialSection: Members
           <div className="grid gap-4 md:grid-cols-3">
             {PLAN_OFFERINGS.map((plan) => {
               const isCurrent = plan.id === currentTier;
+              const Icon = PLAN_ICONS[plan.id] ?? LeafIcon;
               return (
                 <Card key={plan.id} className={isCurrent ? 'outline outline-2 outline-[var(--color-success)]' : ''}>
                   <div className="flex items-center justify-between gap-2">
-                    <h2 className="text-lg font-bold">{plan.name}</h2>
+                    <h2 className="flex items-center gap-2.5 text-lg font-bold">
+                      <span className="text-[var(--color-accent)]">
+                        <Icon size={24} />
+                      </span>
+                      {plan.name}
+                    </h2>
                     {isCurrent && (
                       <span className="rounded-full bg-[var(--color-success)] px-2.5 py-1 text-xs font-semibold text-white">
                         Current plan
