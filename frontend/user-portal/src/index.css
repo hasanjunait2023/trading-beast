@@ -1,0 +1,53 @@
+@import "tailwindcss";
+@import "@shared/theme.css";
+
+/*
+  TradingBeast web portal styles (Z2).
+  The design system lives in frontend/shared/theme.css (light emerald/mint
+  default; [data-theme="dark"] = Neon Dark Tech). No external URL imports —
+  fonts resolve from the shared font stacks.
+  Telegram host vars: when telegram.ts writes --tg-theme-* variables, the
+  mappings below let the host colors override the brand vars when the portal
+  is opened inside Telegram (compact host mode).
+*/
+
+:root {
+  --tg-safe-top: env(safe-area-inset-top, 0px);
+  --tg-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Telegram themeParams override the brand palette when present. */
+:root[data-tg-color-scheme] {
+  --color-bg: var(--tg-theme-bg-color, var(--color-bg));
+  --color-surface: var(--tg-theme-secondary-bg-color, var(--color-surface));
+  --color-surface-elevated: var(--tg-theme-section-bg-color, var(--color-surface-elevated));
+  --color-text: var(--tg-theme-text-color, var(--color-text));
+  --color-text-muted: var(--tg-theme-hint-color, var(--color-text-muted));
+  --color-accent: var(--tg-theme-button-color, var(--color-accent));
+  --color-accent-text: var(--tg-theme-button-text-color, var(--color-accent-text));
+  --color-link: var(--tg-theme-link-color, var(--color-link));
+  --color-danger: var(--tg-theme-destructive-text-color, var(--color-danger));
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+}
+
+/* Page transition replacing framer-motion: opacity/transform only,
+   120–200ms per the shared motion language; disabled under reduced motion
+   by theme.css's global reduced-motion rules. */
+@keyframes tb-page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.tb-page-enter {
+  animation: tb-page-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }

@@ -1,42 +1,29 @@
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Compass, LayoutDashboard, CircleHelp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Card } from '@shared/components/Card';
+import { Button } from '@shared/components/Button';
+import { EmptyState } from '@shared/components/EmptyState';
+import { useAuth } from '../hooks/useAuth';
 
+/**
+ * 404 (study 27). Clear message + Back to Home when signed in, or Back to
+ * Login when signed out — never back to the invalid route.
+ */
 export default function NotFound() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, ease: 'easeOut' }}
-        className="text-center max-w-sm"
-      >
-        <motion.div
-          initial={{ rotate: -12, scale: 0.9 }}
-          animate={{ rotate: 0, scale: 1 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 16, delay: 0.1 }}
-          className="w-20 h-20 mx-auto rounded-2xl bg-[var(--color-accent)]/15 flex items-center justify-center"
-        >
-          <Compass className="w-10 h-10 text-[var(--color-accent)]" />
-        </motion.div>
-
-        <p className="font-display text-6xl font-bold mt-6">404</p>
-        <h1 className="font-display text-xl font-bold mt-2">Off the radar</h1>
-        <p className="text-[var(--color-text-muted)] mt-2">
-          This page is not on any session's focus list. It may have moved, or the link is wrong.
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-3 mt-6">
-          <Link to="/dashboard" className="btn btn-primary flex-1">
-            <LayoutDashboard className="w-4 h-4" />
-            Go to Dashboard
-          </Link>
-          <Link to="/help" className="btn btn-secondary flex-1">
-            <CircleHelp className="w-4 h-4" />
-            Help
-          </Link>
-        </div>
-      </motion.div>
+    <div className="flex min-h-[60vh] items-center justify-center px-4 py-10">
+      <Card className="w-full max-w-md">
+        <EmptyState
+          title="Page not found"
+          message="That address does not match any page in TradingBeast. It may have moved, or the link may be incomplete."
+          action={
+            <Button onClick={() => navigate(user ? '/app' : '/login', { replace: true })}>
+              {user ? 'Back to Home' : 'Back to Login'}
+            </Button>
+          }
+        />
+      </Card>
     </div>
   );
 }

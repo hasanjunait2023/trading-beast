@@ -1,17 +1,19 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ChevronDown,
-  Coins,
-  Radar,
-  List,
-  CreditCard,
-  Gift,
-  KeyRound,
-  Send,
-  AlertTriangle
-} from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Card } from '@shared/components/Card';
+import { Button } from '@shared/components/Button';
+import { PageHeader } from '@shared/components/PageHeader';
+import { Input, FormField } from '@shared/components/FormField';
+import { EmptyState } from '@shared/components/EmptyState';
+import { useBotUsername, botUrl } from '../hooks/useBotConfig';
+
+/**
+ * Help (study 17). Searchable static FAQ with vetted copy (score meaning,
+ * data age, account, credits, payments, referrals, login) — the same
+ * answers the previous Help page shipped, kept consistent with the product
+ * truths (10 credits/day, 10 per run, 7 days Pro per credited referral for
+ * both sides). The support link is rendered ONLY when a bot destination is
+ * actually configured; otherwise it is omitted entirely. Aliased at /help.
+ */
 
 interface FaqItem {
   q: string;
@@ -20,218 +22,233 @@ interface FaqItem {
 
 interface FaqSection {
   title: string;
-  icon: typeof Coins;
   items: FaqItem[];
 }
 
 const FAQ: FaqSection[] = [
   {
-    title: 'Credits',
-    icon: Coins,
+    title: 'Scores & the Focus Radar',
     items: [
       {
-        q: 'How do credits work?',
-        a: 'You receive 10 free credits every UTC day, starting from signup. Credits never expire, and if you are away for a few days the missed daily grants catch up automatically when you return.'
+        q: 'What does the score mean?',
+        a: 'The score is points out of 100 summarising how strongly a pair matches the Radar\u2019s session criteria. It is an analysis ranking, not a probability or a success rate, and it is separate from the directional bias (Bullish/Bearish/Neutral), which comes from the pair\u2019s own evidence.',
       },
-      {
-        q: 'What does a Focus Radar run cost?',
-        a: 'One Radar run costs 10 credits — exactly one day of free grants. Credits are only spent when you explicitly trigger a run; there is no automatic or recurring scan. If a run fails on our side, the 10 credits are refunded automatically.'
-      },
-      {
-        q: 'Is my balance the same in Telegram and the browser?',
-        a: 'Yes. One wallet is shared across the Telegram bot, the Mini App and this web portal — earn and spend anywhere, the balance follows you.'
-      }
-    ]
-  },
-  {
-    title: 'Sessions & Focus Radar',
-    icon: Radar,
-    items: [
       {
         q: 'What is the Focus Radar?',
-        a: 'The Radar scans 28 forex pairs plus Gold, Silver, Oil and Bitcoin for the current trading session and sorts them into Focus, Watch and Avoid lists. Scoring uses EMA trend, RSI, ADR (average daily range) and the session opening range — it is an analysis aid, not a signal service.'
+        a: 'The Radar scans 28 forex pairs plus Gold, Silver, Oil and Bitcoin for a trading session and sorts them into Focus, Watch and Avoid lists. Scoring uses EMA trend, RSI, ADR (average daily range) and the session opening range — it is an analysis aid, not a signal service.',
       },
       {
         q: 'Which sessions does it cover?',
-        a: 'Asian, London and New York. The Radar automatically works with the session that is active (in UTC) when you run it, so the focus list always matches the market you are about to trade.'
+        a: 'Asian, London and New York. You choose the session when you run a scan; the Session Clock shows which windows are open in your timezone.',
+      },
+      {
+        q: 'How fresh is the data in a result?',
+        a: 'Every result shows when the scan ran, and pair evidence carries the candle time it is based on. If a pair\u2019s data was stale at scan time it is flagged "Stale data" on the result — treat stale evidence with extra caution, and remember a stored result never updates itself: run a new scan for fresh data.',
       },
       {
         q: 'Why did a run fail or return nothing?',
-        a: 'Runs can return an empty focus list when the market is closed or no pair meets the scoring criteria — that is the tool telling you there is nothing clean to focus on. Failed runs caused by a system error are refunded.'
-      }
-    ]
+        a: 'Runs can return an empty focus list when the market is closed or no pair meets the scoring criteria — that is the tool telling you there is nothing clean to focus on. Failed runs caused by a system error are refunded.',
+      },
+    ],
+  },
+  {
+    title: 'Credits',
+    items: [
+      {
+        q: 'How do credits work?',
+        a: 'You receive 10 free credits every UTC day, starting from signup. Credits never expire, and if you are away for a few days the missed daily grants catch up automatically when you return.',
+      },
+      {
+        q: 'What does a Focus Radar run cost?',
+        a: 'One Radar run costs 10 credits — exactly one day of free grants. Credits are only spent when you explicitly confirm a run; browsing, filters and the Session Clock are free, and there is no automatic or recurring scan. If a run fails on our side, the 10 credits are refunded automatically.',
+      },
+      {
+        q: 'Is my balance the same in Telegram and the browser?',
+        a: 'Yes. One wallet is shared across the Telegram bot, the Mini App and this web portal — earn and spend anywhere, the balance follows you.',
+      },
+    ],
   },
   {
     title: 'Watchlist',
-    icon: List,
     items: [
       {
         q: 'What does the watchlist do?',
-        a: 'Your watchlist holds the pairs you care about most. Radar runs take your watchlist into account so the pairs you follow are always part of the analysis scope.'
+        a: 'Your watchlist holds the pairs you care about most. Radar runs can be scoped to your watchlist so the pairs you follow are the ones analysed.',
       },
       {
         q: 'How do I change my watchlist?',
-        a: 'Open the Watchlist page, add or remove pairs, and save. The change applies to your next Radar run in every channel — bot, Mini App and browser.'
-      }
-    ]
+        a: 'Open the Watchlist page, add, remove or reorder pairs — every change saves automatically. The change applies to your next Radar run in every channel — bot, Mini App and browser.',
+      },
+    ],
   },
   {
     title: 'Payments & verification',
-    icon: CreditCard,
     items: [
       {
         q: 'How do I pay?',
-        a: 'Payments are manual: send money via bKash, Nagad or USDT (TRC20), then submit the transaction ID (and a screenshot for bKash/Nagad) on the Payments page. Keep the transaction ID exactly as shown in your payment app.'
+        a: 'Payments are manual: send money via bKash, Nagad or USDT (TRC20), then submit the transaction ID (and optionally a screenshot link) from Membership → Submit a payment. Keep the transaction ID exactly as shown in your payment app.',
       },
       {
         q: 'How long does verification take?',
-        a: 'Every payment is checked by an admin against the transaction records — there is no instant activation. While you wait, the receipt shows as Pending in Billing; it changes to Verified (or Rejected) once the review is done.'
+        a: 'Every payment is checked by an admin against the transaction records — there is no instant activation. While you wait, the receipt shows as Pending verification in Payment History; it changes to Verified (or Rejected) once the review is done.',
       },
       {
         q: 'My payment was rejected — what now?',
-        a: 'Double-check that the transaction ID matches your payment app and that the screenshot is readable, then submit again from the Payments page. If it still fails, contact support through the Telegram bot with your transaction ID.'
-      }
-    ]
+        a: 'Double-check that the transaction ID matches your payment app, then submit again from the payment page. If it still fails, contact support through the Telegram bot with your transaction ID.',
+      },
+    ],
   },
   {
     title: 'Referrals',
-    icon: Gift,
     items: [
       {
         q: 'How do referrals work?',
-        a: 'Share your referral code or link from the Referral page. When a friend signs up with it, you both earn free Pro days for every successful referral.'
+        a: 'Share your referral code or link from the Referrals page. When a friend signs up with it and the referral is credited, you both earn 7 days of free Pro.',
       },
       {
         q: 'Where do I see my referrals?',
-        a: 'The Referral page lists everyone who joined with your code and whether each referral is pending or credited.'
-      }
-    ]
+        a: 'The Referrals page lists everyone who joined with your code and whether each referral is pending or credited.',
+      },
+    ],
   },
   {
-    title: 'Login via Telegram',
-    icon: KeyRound,
+    title: 'Account & login',
     items: [
       {
         q: 'How do I log in?',
-        a: 'Open the Telegram bot and use /app to launch the app (you are signed in automatically inside Telegram), or use /login in the bot to get a one-time code for signing in here in the browser.'
+        a: 'Open the Telegram bot and use /app to launch the app (you are signed in automatically inside Telegram), or use /login in the bot to get a one-time code for signing in here in the browser. Codes expire after 5 minutes.',
       },
       {
         q: 'I opened the portal in a browser and I am logged out. Why?',
-        a: 'Browser sessions can expire for security. Just request a fresh one-time code with /login in the Telegram bot and sign in again — your credits, watchlist and history are all tied to your account, not the session.'
-      }
-    ]
-  }
+        a: 'Browser sessions can expire for security. Just request a fresh one-time code with /login in the Telegram bot and sign in again — your credits, watchlist and history are all tied to your account, not the session.',
+      },
+    ],
+  },
 ];
 
-function FaqAccordionItem({ item, isOpen, onToggle }: { item: FaqItem; isOpen: boolean; onToggle: () => void }) {
+function FaqAccordionItem({
+  item,
+  isOpen,
+  onToggle,
+}: {
+  item: FaqItem;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
   return (
-    <div className="border border-[var(--color-border)] rounded-lg overflow-hidden">
+    <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)]">
       <button
         onClick={onToggle}
         aria-expanded={isOpen}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left bg-[var(--color-bg)] hover:bg-[var(--color-surface-elevated)] transition-colors"
+        className="flex w-full items-center justify-between gap-3 bg-[var(--color-surface-elevated)] px-4 py-3 text-left transition-colors hover:bg-[var(--color-surface-hover)]"
       >
-        <span className="font-medium text-sm">{item.q}</span>
-        <ChevronDown
-          className={`w-4 h-4 flex-shrink-0 text-[var(--color-text-muted)] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-        />
+        <span className="text-sm font-medium">{item.q}</span>
+        <span
+          aria-hidden="true"
+          className={`shrink-0 text-[var(--color-text-muted)] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+        >
+          ▾
+        </span>
       </button>
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.22, ease: 'easeInOut' }}
-          >
-            <p className="px-4 py-3 text-sm text-[var(--color-text-muted)] border-t border-[var(--color-border)]">
-              {item.a}
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {isOpen && (
+        <p className="border-t border-[var(--color-border)] px-4 py-3 text-sm text-[var(--color-text-muted)]">
+          {item.a}
+        </p>
+      )}
     </div>
   );
 }
 
 export default function Help() {
-  const [openKey, setOpenKey] = useState<string | null>('Credits-0');
-  const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME as string | undefined;
-  const botUrl = botUsername && botUsername !== 'your_bot' ? `https://t.me/${botUsername}` : null;
+  const [openKey, setOpenKey] = useState<string | null>('Scores & the Focus Radar-0');
+  const [query, setQuery] = useState('');
+  const botUsername = useBotUsername();
+  const supportUrl = botUrl(botUsername);
+
+  const sections = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return FAQ;
+    return FAQ.map((section) => ({
+      ...section,
+      items: section.items.filter(
+        (item) =>
+          item.q.toLowerCase().includes(q) || item.a.toLowerCase().includes(q),
+      ),
+    })).filter((section) => section.items.length > 0);
+  }, [query]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="font-display text-2xl font-bold">Help & FAQ</h1>
-        <p className="text-[var(--color-text-muted)]">Answers about credits, the Radar, payments and your account</p>
+    <div className="space-y-4">
+      <PageHeader
+        title="Help & FAQ"
+        subtitle="Answers about scores, data age, credits, payments and your account."
+      />
+
+      <div className="max-w-md">
+        <FormField label="Search the FAQ">
+          <Input
+            type="search"
+            placeholder="Search questions and answers…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </FormField>
       </div>
 
-      {/* FAQ sections */}
-      {FAQ.map((section) => (
-        <section key={section.title} className="card">
-          <h2 className="font-medium mb-4 flex items-center gap-2">
-            <section.icon className="w-5 h-5 text-[var(--color-accent)]" />
-            {section.title}
-          </h2>
-          <div className="space-y-2">
-            {section.items.map((item, i) => {
-              const key = `${section.title}-${i}`;
-              return (
-                <FaqAccordionItem
-                  key={key}
-                  item={item}
-                  isOpen={openKey === key}
-                  onToggle={() => setOpenKey(openKey === key ? null : key)}
-                />
-              );
-            })}
-          </div>
-        </section>
-      ))}
+      {sections.length === 0 ? (
+        <Card>
+          <EmptyState
+            title="No answers match your search"
+            message="Try different words — for example “credits”, “score” or “payment”."
+          />
+        </Card>
+      ) : (
+        sections.map((section) => (
+          <Card key={section.title}>
+            <h2 className="mb-4 font-bold">{section.title}</h2>
+            <div className="space-y-2">
+              {section.items.map((item, i) => {
+                const key = `${section.title}-${i}`;
+                return (
+                  <FaqAccordionItem
+                    key={key}
+                    item={item}
+                    isOpen={openKey === key}
+                    onToggle={() => setOpenKey(openKey === key ? null : key)}
+                  />
+                );
+              })}
+            </div>
+          </Card>
+        ))
+      )}
 
-      {/* Support contact */}
-      <div className="card-elevated">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-[var(--color-accent)]/15 flex items-center justify-center flex-shrink-0">
-            <Send className="w-6 h-6 text-[var(--color-accent)]" />
-          </div>
+      <Card elevated>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <div className="flex-1">
-            <h2 className="font-medium">Still need help?</h2>
-            <p className="text-sm text-[var(--color-text-muted)]">
-              Support runs through the Telegram bot. Send your question there — and include your transaction
-              ID if it is about a payment.
+            <h2 className="font-bold">Still need help?</h2>
+            <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+              Support runs through the Telegram bot. Send your question there — and include your
+              transaction ID if it is about a payment.
             </p>
           </div>
-          {botUrl ? (
-            <a href={botUrl} target="_blank" rel="noreferrer" className="btn btn-primary whitespace-nowrap">
-              <Send className="w-4 h-4" />
-              Open the bot
+          {supportUrl && (
+            <a href={supportUrl} target="_blank" rel="noreferrer">
+              <Button>Open the bot</Button>
             </a>
-          ) : (
-            <Link to="/dashboard" className="btn btn-primary whitespace-nowrap">
-              <Send className="w-4 h-4" />
-              Open via the app menu
-            </Link>
           )}
         </div>
-      </div>
+      </Card>
 
-      {/* Risk disclaimer */}
-      <div className="card border-[var(--color-warning)]/40 bg-[var(--color-warning)]/5">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-[var(--color-warning)] flex-shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <p className="font-medium mb-1">Risk disclaimer</p>
-            <p className="text-[var(--color-text-muted)]">
-              TradingBeast is a market analysis tool only. Nothing in the app — including Focus, Watch and
-              Avoid lists — is investment advice, a trading signal, or a recommendation to buy or sell any
-              instrument. Forex and CFD trading involves substantial risk of loss; only trade with money you
-              can afford to lose and make your own decisions.
-            </p>
-          </div>
-        </div>
-      </div>
+      <Card className="border-[var(--color-warning)]">
+        <p className="font-semibold">Risk disclaimer</p>
+        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+          TradingBeast is a market analysis tool only. Nothing in the app — including Focus,
+          Watch and Avoid lists — is investment advice, a trading signal, or a recommendation to
+          buy or sell any instrument. Forex and CFD trading involves substantial risk of loss;
+          only trade with money you can afford to lose and make your own decisions.
+        </p>
+      </Card>
     </div>
   );
 }
