@@ -47,7 +47,7 @@ export function Button({
       disabled={isDisabled}
       aria-label={ariaLabel}
       aria-busy={loading || undefined}
-      className={`inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-semibold transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-semibold transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       {...rest}
     >
       {loading && (

@@ -6,7 +6,7 @@ import { PageHeader } from '@shared/components/PageHeader';
 import { Input, Textarea, FormField } from '@shared/components/FormField';
 import { FlagTile } from '@shared/components/PairFlags';
 import { StatusPill } from '@shared/components/StatusPill';
-import { CheckIcon, CrosshairIcon, ShieldCheckIcon } from '@shared/components/icons';
+import { CheckIcon, CrosshairIcon, ShieldCheckIcon, XIcon } from '@shared/components/icons';
 import { nextOpening } from '@shared/radar/adapter';
 import { ScoreEvidence } from '@shared/components/ScoreEvidence';
 import { DataFreshness } from '@shared/components/DataFreshness';
@@ -249,7 +249,7 @@ export default function Plan() {
         />
         <div className="relative flex flex-wrap items-end justify-between gap-5">
           <div className="min-w-0 max-w-[380px]">
-            <p className="text-[13px] font-bold tracking-[0.22em] text-[#a9ecc9]">
+            <p className="text-[13px] font-bold tracking-[0.22em] text-[var(--color-hero-text-soft)]">
               {session.toUpperCase()} SESSION
             </p>
             <h2 className="mt-1.5 text-[34px] leading-none font-extrabold tracking-tight">
@@ -265,8 +265,8 @@ export default function Plan() {
           <div className="w-full max-w-[280px] space-y-2.5">
             {nextOpen && (
               <div className="rounded-[var(--radius-lg)] bg-white p-3.5 text-[var(--color-text)] shadow-[var(--shadow-md)]">
-                <p className="text-[11px] font-bold tracking-[0.14em] text-[var(--color-text-faint)]">
-                  NEXT SESSION
+                <p className="text-[11px] font-bold text-[var(--color-text-faint)]">
+                  Next session
                 </p>
                 <p className="mt-0.5 text-[17px] font-extrabold">{nextOpen.session}</p>
                 <p className="tnum text-[13px] text-[var(--color-text-muted)]">
@@ -543,7 +543,7 @@ export default function Plan() {
                             }
                             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)]"
                           >
-                            ✕
+                            <XIcon size={16} />
                           </button>
                         </li>
                       ))}
@@ -558,7 +558,7 @@ export default function Plan() {
                         aria-label="Checklist progress"
                       >
                         <div
-                          className="h-full rounded-full transition-all"
+                          className="h-full rounded-full transition-[width]"
                           style={{
                             width: `${(checklist.filter((i) => i.done).length / checklist.length) * 100}%`,
                             background: 'var(--gradient-primary-action)',

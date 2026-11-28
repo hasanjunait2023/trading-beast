@@ -256,7 +256,7 @@ export default function Referral() {
         disabled={!referralLink}
         onClick={() => {
           haptics.impact('light');
-          shareViaTelegram(referralLink, 'Join me on TradingBeast — Session Focus Radar. We both get 7 days of Pro when you join with my link!');
+          shareViaTelegram(referralLink, 'Join me on TradingBeast — Session Focus Radar. We both get 7 days of Pro when you join with my link.');
         }}
       >
         <SendIcon size={19} /> Invite Friends <ArrowRightIcon size={19} />

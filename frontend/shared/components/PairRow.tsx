@@ -74,7 +74,7 @@ function HomeRow({
             {status.toUpperCase()}
           </span>
           {typeof score === 'number' && (
-            <span className="tnum text-[26px] leading-none font-extrabold text-[var(--color-accent)]">{score}</span>
+            <span className="tnum text-[23px] leading-none font-extrabold text-[var(--color-accent)]">{score}</span>
           )}
           {freshness}
         </span>
@@ -139,7 +139,7 @@ function MarketsRow({
         ) : (
           <>
             {typeof score === 'number' && (
-              <span className="tnum text-[30px] leading-none font-extrabold text-[var(--color-accent)]">
+              <span className="tnum text-[26px] leading-none font-extrabold text-[var(--color-accent)]">
                 {score}
               </span>
             )}

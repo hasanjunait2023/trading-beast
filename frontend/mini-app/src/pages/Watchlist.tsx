@@ -8,7 +8,7 @@ import { ErrorState } from '@shared/components/ErrorState';
 import { useToast } from '@shared/components/Toast';
 import { PairFlags } from '@shared/components/PairFlags';
 import { Sparkline } from '@shared/components/Sparkline';
-import { GripIcon } from '@shared/components/icons';
+import { GripIcon, XIcon } from '@shared/components/icons';
 import { parsePairCurrencies } from '@shared/radar/flags';
 import type { Bias } from '@shared/design-tokens';
 import { analysisApi, userApi } from '../services/api';
@@ -281,7 +281,7 @@ export default function Watchlist() {
                         className="flex h-8 w-8 items-center justify-center rounded text-[var(--color-text-muted)] disabled:opacity-30">▲</button>
                       <button type="button" aria-label={`Move ${pair} down`} disabled={i === list.length - 1} onClick={() => move(i, 1)}
                         className="flex h-8 w-8 items-center justify-center rounded text-[var(--color-text-muted)] disabled:opacity-30">▼</button>
-                      <Button variant="ghost" size="sm" ariaLabel={`Remove ${pair}`} onClick={() => remove(pair)}>✕</Button>
+                      <Button variant="ghost" size="sm" ariaLabel={`Remove ${pair}`} onClick={() => remove(pair)}><XIcon size={16} /></Button>
                     </div>
                   </div>
                 </div>

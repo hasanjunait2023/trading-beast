@@ -87,10 +87,10 @@ export function RankTable({ rows, onRowSelect, caption, variant = 'default', lea
           {caption && <caption className="sr-only">{caption}</caption>}
           <thead>
             <tr className="bg-[var(--color-mint-wash)] text-[15px] text-[var(--color-text)]">
-              <th scope="col" className="px-5 py-4 font-bold">Instrument</th>
-              <th scope="col" className="px-5 py-4 font-bold">Status</th>
-              <th scope="col" className="px-5 py-4 font-bold">Bias</th>
-              <th scope="col" className="px-5 py-4 text-right font-bold">Score</th>
+              <th scope="col" className="px-4 py-3 font-bold">Instrument</th>
+              <th scope="col" className="px-4 py-3 font-bold">Status</th>
+              <th scope="col" className="px-4 py-3 font-bold">Bias</th>
+              <th scope="col" className="px-4 py-3 text-right font-bold">Score</th>
             </tr>
           </thead>
           <tbody>
@@ -108,25 +108,25 @@ export function RankTable({ rows, onRowSelect, caption, variant = 'default', lea
                   onRowSelect && !row.unranked ? 'cursor-pointer hover:bg-[var(--color-surface-hover)]' : ''
                 }`}
               >
-                <td className="px-5 py-4">
+                <td className="px-4 py-3">
                   <span className="flex items-center gap-3">
                     {leading?.(row)}
-                    <span className="text-[17px] font-extrabold tracking-tight text-[var(--color-text)]">
+                    <span className="text-[16px] font-extrabold tracking-tight text-[var(--color-text)]">
                       {row.pair}
                     </span>
                   </span>
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-4 py-3">
                   <ReferencePill row={row} />
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-4 py-3">
                   {row.bias && !row.unranked ? (
                     <BiasText bias={row.bias} showArrow={false} className="text-base" />
                   ) : (
                     <span className="text-[var(--color-text-muted)]">—</span>
                   )}
                 </td>
-                <td className="tnum px-5 py-4 text-right text-2xl font-extrabold text-[var(--color-text)]">
+                <td className="tnum px-4 py-3 text-right text-2xl font-extrabold text-[var(--color-text)]">
                   {typeof row.score === 'number' && !row.unranked ? (
                     row.score
                   ) : (

@@ -434,15 +434,16 @@ export default function App() {
         <div className="grid gap-4 lg:grid-cols-2">
           <Card>
             <p className="mb-3 text-sm font-semibold text-[var(--color-text)]">
-              Type — Sora display / Manrope UI
+              Type — Inter (UI + display)
             </p>
             <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
-              Both families are self-hosted from <code>shared/fonts/</code> via{' '}
-              <code>shared/fonts.css</code> (font-display: swap, ~14 KB per weight, no
-              runtime CDN). Headings take <code>--font-display</code> automatically; body
-              text uses <code>--font-sans</code>. Use <code>.tb-font-display</code> for
-              display type on non-heading elements and <code>.tnum</code> for tabular
-              numerals (scores, prices, credits).
+              One family, self-hosted from <code>shared/fonts/</code> via{' '}
+              <code>shared/fonts.css</code> (font-display: swap, ~24 KB per weight, no
+              runtime CDN). Headings take <code>--font-display</code> automatically
+              (Inter with -0.015em tracking); body text uses <code>--font-sans</code>.
+              Use <code>.tb-font-display</code> for display type on non-heading
+              elements and <code>.tnum</code> for tabular numerals (scores, prices,
+              credits). Rationale: docs/brand/TYPE-AND-SCALE.md.
             </p>
             <div className="mt-4 space-y-2">
               <p className="tb-font-display text-3xl font-bold text-[var(--color-text)]">
@@ -452,7 +453,7 @@ export default function App() {
                 London session is live
               </p>
               <p className="text-sm text-[var(--color-text)]">
-                Manrope carries body copy, labels and controls across every app.
+                Inter carries body copy, labels and controls across every app.
               </p>
               <p className="tnum text-sm text-[var(--color-text-muted)]">
                 EUR/USD 1.0864 · Score 78/100 · Balance 1,240 credits

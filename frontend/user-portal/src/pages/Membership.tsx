@@ -287,7 +287,7 @@ export default function Membership({ initialSection }: { initialSection: Members
                     <ul className="mt-4 flex-1 space-y-2">
                       {plan.features.map((feature) => (
                         <li key={feature} className="flex items-start gap-2 text-sm">
-                          <span aria-hidden="true" className="mt-0.5 text-[var(--color-accent)]">✓</span>
+                          <CheckIcon size={16} className="mt-0.5 shrink-0 text-[var(--color-accent)]" />
                           <span>
                             {feature}
                             {plan.planned && (

@@ -286,8 +286,8 @@ export default function PairDetail() {
                   }`}
                 >
                   <span
-                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
-                      orBands ? 'left-[22px]' : 'left-0.5'
+                    className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                      orBands ? 'translate-x-[20px]' : 'translate-x-0'
                     }`}
                   />
                 </span>
@@ -398,7 +398,7 @@ export default function PairDetail() {
                 <br />
                 Analysis Score
               </p>
-              <span className="mt-2.5 inline-flex items-center rounded-full bg-[#d9f5e6] px-3 py-1 text-[13px] font-bold text-[#04503a]">
+              <span className="mt-2.5 inline-flex items-center rounded-full bg-[var(--color-hero-chip-bg)] px-3 py-1 text-[13px] font-bold text-[var(--color-hero-chip-text)]">
                 {STATUS_LABEL[pair.status] ?? pair.status}
               </span>
               <p className="mt-2 text-[13px] text-white/80">

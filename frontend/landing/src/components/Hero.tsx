@@ -60,7 +60,7 @@ export function Hero() {
               <a
                 href={telegram.primaryHref}
                 {...telegramLinkProps(telegram)}
-                className="tb-press inline-flex min-h-[52px] items-center gap-2 rounded-full bg-white px-7 text-base font-semibold transition-transform hover:-translate-y-0.5"
+                className="tb-press inline-flex min-h-[52px] items-center gap-2 rounded-full bg-white px-7 text-base font-semibold transition-transform"
                 style={{ color: '#054333' }}
               >
                 <Send className="h-5 w-5" aria-hidden="true" />

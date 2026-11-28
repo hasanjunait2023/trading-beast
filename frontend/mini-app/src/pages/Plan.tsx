@@ -8,7 +8,7 @@ import { Skeleton } from '@shared/components/Skeleton';
 import { FlagTile } from '@shared/components/PairFlags';
 import { StatusPill } from '@shared/components/StatusPill';
 import { Input, Textarea } from '@shared/components/FormField';
-import { CheckIcon, CrosshairIcon, ShieldCheckIcon } from '@shared/components/icons';
+import { CheckIcon, CrosshairIcon, ShieldCheckIcon, XIcon } from '@shared/components/icons';
 import { adaptSessions, nextOpening, type SessionsOverviewView } from '@shared/radar/adapter';
 import {
   analysisApi,
@@ -202,7 +202,7 @@ export default function Plan({ goToTab }: { goToTab: (tab: Tab) => void }) {
           }}
         />
         <div className="relative">
-          <p className="text-[12px] font-bold tracking-[0.22em] text-[#a9ecc9]">
+          <p className="text-[12px] font-bold tracking-[0.22em] text-[var(--color-hero-text-soft)]">
             {session.toUpperCase()} SESSION
           </p>
           <h2 className="mt-1.5 text-[30px] leading-none font-extrabold tracking-tight">
@@ -383,7 +383,7 @@ export default function Plan({ goToTab }: { goToTab: (tab: Tab) => void }) {
                         onClick={() => setChecklist((prev) => prev.filter((i) => i.id !== item.id))}
                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--color-text-muted)]"
                       >
-                        ✕
+                        <XIcon size={16} />
                       </button>
                     </li>
                   ))}
@@ -398,7 +398,7 @@ export default function Plan({ goToTab }: { goToTab: (tab: Tab) => void }) {
                     aria-label="Checklist progress"
                   >
                     <div
-                      className="h-full rounded-full transition-all"
+                      className="h-full rounded-full transition-[width]"
                       style={{
                         width: `${(doneCount / checklist.length) * 100}%`,
                         background: 'var(--gradient-primary-action)',

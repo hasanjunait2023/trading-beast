@@ -1,10 +1,7 @@
 // TradingBeast shared components — Z0 primitive library.
-// Legacy (pre-Z0) components are re-exported from ./legacy and kept working
-// for landing/admin-portal; new surfaces use the Z0 primitives below.
-
-export * from './legacy';
-import { NeonRing, GlassCard, GradientButton, StatCard } from './legacy';
-export default { NeonRing, GlassCard, GradientButton, StatCard };
+// The pre-Z0 legacy kit (NeonRing, GlassCard, GradientButton, StatCard)
+// was removed in the unslop pass: it had zero consumers and carried the
+// old neon/glass styling. New surfaces use the Z0 primitives below.
 
 export * from './Button';
 export * from './Card';

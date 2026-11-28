@@ -1,10 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#054333"/>
-      <stop offset="1" stop-color="#007959"/>
-    </linearGradient>
-  </defs>
-  <rect width="48" height="48" rx="11" fill="url(#g)"/>
-  <path d="M11 37V21M20 37V11M29 37V25M40 37H7" stroke="#ffffff" stroke-width="4" stroke-linecap="round" fill="none"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"><title>TradingBeast</title><g transform="translate(-8.18 -8.09) scale(1.062)">
+  <title id="title">TradingBeast mark (small-size cut)</title>
+  <path fill="#00664B" d="M190.8 102 A68 68 0 1 1 142.7 61.6 L136.7 88.9 A40 40 0 1 0 165 112.7 Z M30.2 190.3 A116 116 0 1 1 122.9 243.9 L124.2 213.9 A86 86 0 1 0 55.5 174.2 Z"/><circle cx="128" cy="128" r="22" fill="#00664B"/>
+</g></svg>

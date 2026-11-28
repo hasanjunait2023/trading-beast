@@ -164,9 +164,8 @@ export function SessionClockView({
               'linear-gradient(90deg, rgba(3,40,28,0.6) 0%, rgba(3,40,28,0.25) 55%, rgba(3,40,28,0) 82%)',
           }}
         />
-        <div className="relative p-5 sm:p-6">
-          <p className="text-[13px] font-bold tracking-[0.22em] text-[#a9ecc9]">SESSION CLOCK</p>
-          <h1 className="mt-1.5 text-[34px] leading-none font-extrabold tracking-tight sm:text-[40px]">
+        <div className="relative p-5">
+          <h1 className="text-[30px] leading-none font-extrabold tracking-tight sm:text-[34px]">
             Session Clock
           </h1>
           <p className="mt-2.5 max-w-[420px] text-[15px] leading-snug text-white/90">
@@ -186,7 +185,7 @@ export function SessionClockView({
               <p className="text-[15px] font-medium text-[var(--color-text-muted)]">
                 Local Time ({zone})
               </p>
-              <p className="tnum mt-0.5 text-[40px] leading-none font-extrabold tracking-tight">
+              <p className="tnum mt-0.5 text-[34px] leading-none font-extrabold tracking-tight">
                 {fmtTime(now, zone)}
               </p>
               <p className="mt-2 text-[13px] text-[var(--color-text-muted)]">
@@ -226,13 +225,13 @@ export function SessionClockView({
               <div key={s.session} className="min-w-0 flex-1">
                 {state === 'live' ? (
                   <div
-                    className="relative rounded-[18px] px-2 py-2.5 text-center text-white shadow-[var(--shadow-hero)]"
+                    className="relative rounded-[16px] px-2 py-2.5 text-center text-white shadow-[var(--shadow-hero)]"
                     style={{ background: 'var(--gradient-primary-action)' }}
                   >
                     <span
                       aria-hidden="true"
                       className="absolute -top-[5px] left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45"
-                      style={{ background: '#087a4b' }}
+                      style={{ background: 'var(--color-primary-500)' }}
                     />
                     <p className="flex items-center justify-center gap-1.5 text-[15px] font-bold">
                       <span aria-hidden="true" className="h-2 w-2 rounded-full bg-white" />
@@ -298,7 +297,7 @@ export function SessionClockView({
               </p>
             </div>
             <div className="shrink-0 text-right">
-              <p className="tnum text-[26px] leading-none font-extrabold text-[var(--color-accent)]">
+              <p className="tnum text-[23px] leading-none font-extrabold text-[var(--color-accent)]">
                 {orQuarters} / 4
               </p>
               <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">quarters elapsed</p>
