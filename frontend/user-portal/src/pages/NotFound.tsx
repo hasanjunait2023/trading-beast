@@ -16,7 +16,7 @@ export default function NotFound() {
     <div className="mx-auto w-full max-w-md space-y-4 px-4 py-8">
       <section
         aria-label="Page not found"
-        className="relative overflow-hidden rounded-[var(--radius-hero)] p-6 text-white shadow-[var(--shadow-hero)]"
+        className="relative overflow-hidden rounded-[var(--radius-hero)] p-5 text-white shadow-[var(--shadow-hero)]"
         style={{ background: 'var(--gradient-session-hero)' }}
       >
         <h1 className="relative text-[34px] leading-tight font-extrabold tracking-tight">

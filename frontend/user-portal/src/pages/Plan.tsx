@@ -236,7 +236,7 @@ export default function Plan() {
       {/* Plan hero (reference 09). */}
       <section
         aria-label={`${session} session plan`}
-        className="relative overflow-hidden rounded-[var(--radius-hero)] p-6 text-white shadow-[var(--shadow-hero)]"
+        className="relative overflow-hidden rounded-[var(--radius-hero)] p-5 text-white shadow-[var(--shadow-hero)]"
         style={{ background: 'var(--gradient-session-hero)' }}
       >
         <div

@@ -178,7 +178,7 @@ export default function Home({
   };
 
   return (
-    <div className="space-y-5 px-4">
+    <div className="space-y-4 px-4">
       {/* Brand row — credits pill takes the reference's top-right slot
           (no DEMO badge: no production demo state exists to label). */}
       <div className="flex items-center justify-between gap-3 pt-1">
@@ -245,8 +245,8 @@ export default function Home({
       )}
 
       {/* Analysis freshness strip (reference 03). */}
-      <div className="flex items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--color-mint-wash)] px-4 py-3.5">
-        <RefreshIcon size={26} className="shrink-0 text-[var(--color-accent)]" />
+      <div className="flex items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--color-mint-wash)] px-3.5 py-3">
+        <RefreshIcon size={22} className="shrink-0 text-[var(--color-accent)]" />
         <span className="text-[15px] font-bold text-[var(--color-text)]">Analysis Freshness</span>
         <span aria-hidden="true" className="h-8 w-px bg-[var(--color-border)]" />
         {lastResult ? (
@@ -316,21 +316,21 @@ export default function Home({
         <button
           type="button"
           onClick={() => setSheetOpen(true)}
-          className="flex min-h-[64px] flex-[1.2] items-center justify-center gap-2.5 rounded-[var(--radius-lg)] px-4 text-lg font-bold text-white shadow-[var(--shadow-hero)] transition-transform active:scale-[0.99]"
+          className="flex min-h-[56px] flex-[1.2] items-center justify-center gap-2 rounded-[var(--radius-lg)] px-4 text-[17px] font-bold text-white shadow-[var(--shadow-hero)] transition-transform active:scale-[0.99]"
           style={{ background: 'var(--gradient-primary-action)' }}
         >
-          <CrosshairIcon size={26} />
+          <CrosshairIcon size={22} />
           Open Radar
-          <ArrowRightIcon size={22} />
+          <ArrowRightIcon size={20} />
         </button>
         <button
           type="button"
           onClick={() => goToTab('plan')}
-          className="flex min-h-[64px] flex-1 items-center justify-center gap-2.5 rounded-[var(--radius-lg)] bg-[var(--color-mint-wash)] px-4 text-lg font-bold text-[var(--color-text)] transition-transform active:scale-[0.99]"
+          className="flex min-h-[56px] flex-1 items-center justify-center gap-2 rounded-[var(--radius-lg)] bg-[var(--color-mint-wash)] px-4 text-[17px] font-bold text-[var(--color-text)] transition-transform active:scale-[0.99]"
         >
-          <CalendarCheckIcon size={26} className="text-[var(--color-accent)]" />
+          <CalendarCheckIcon size={22} className="text-[var(--color-accent)]" />
           Continue Plan
-          <ArrowRightIcon size={22} className="text-[var(--color-accent)]" />
+          <ArrowRightIcon size={20} className="text-[var(--color-accent)]" />
         </button>
       </div>
 

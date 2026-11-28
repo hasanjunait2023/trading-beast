@@ -105,7 +105,7 @@ function CellView({ cell, highlight }: { cell: Cell; highlight?: boolean }) {
 
 export default function Comparison() {
   return (
-    <section id="comparison" className="py-20 sm:py-24" aria-labelledby="comparison-heading">
+    <section id="comparison" className="py-16 sm:py-20" aria-labelledby="comparison-heading">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <Reveal className="mb-14 text-center">
           <p

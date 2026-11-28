@@ -320,7 +320,7 @@ export default function Markets({
               'linear-gradient(90deg, rgba(3,40,28,0.55) 0%, rgba(3,40,28,0.15) 55%, rgba(3,40,28,0) 80%)',
           }}
         />
-        <div className="relative p-5">
+        <div className="relative p-4">
           <h1 className="text-[42px] leading-none font-extrabold tracking-tight">Markets</h1>
           <p className="mt-2.5 max-w-[250px] text-[15px] leading-snug text-white/90">
             Professional discretionary FX analysis, with context, setups and clear bias.

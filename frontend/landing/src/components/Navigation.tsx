@@ -34,7 +34,7 @@ export default function Navigation() {
     >
       <nav
         aria-label="Main"
-        className="mx-auto flex h-[68px] max-w-7xl items-center justify-between px-4 sm:px-6"
+        className="mx-auto flex h-[60px] max-w-7xl items-center justify-between px-4 sm:px-6"
       >
         <a href="#top" aria-label="TradingBeast — back to top" className="rounded-lg">
           <Brand />
@@ -45,7 +45,7 @@ export default function Navigation() {
             <li key={l.href}>
               <a
                 href={l.href}
-                className="flex min-h-[44px] items-center rounded-full px-4 text-sm font-medium transition-colors hover:bg-[var(--color-surface-hover)]"
+                className="flex min-h-[40px] items-center rounded-full px-3.5 text-sm font-medium transition-colors hover:bg-[var(--color-surface-hover)]"
                 style={{ color: 'var(--color-text-muted)' }}
               >
                 {l.label}
@@ -58,7 +58,7 @@ export default function Navigation() {
           <a
             href={telegram.primaryHref}
             {...telegramLinkProps(telegram)}
-            className="hidden min-h-[44px] items-center gap-2 rounded-full px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90 sm:inline-flex"
+            className="hidden min-h-[40px] items-center gap-2 rounded-full px-4.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 sm:inline-flex"
             style={{ background: 'var(--grad-accent)' }}
           >
             <Send className="h-4 w-4" aria-hidden="true" />

@@ -41,7 +41,7 @@ export default function AppShowcase() {
   return (
     <section
       id="showcase"
-      className="overflow-hidden py-20 sm:py-24"
+      className="overflow-hidden py-16 sm:py-20"
       style={{ background: 'var(--color-accent-soft)' }}
       aria-labelledby="showcase-heading"
     >

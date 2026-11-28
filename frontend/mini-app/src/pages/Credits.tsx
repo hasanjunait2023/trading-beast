@@ -59,7 +59,7 @@ export default function Credits({
         <ErrorState message={error} onRetry={() => void load()} />
       ) : credits ? (
         <>
-          <div className="rounded-[var(--radius-lg)] p-5 text-white shadow-[var(--shadow-md)]" style={{ background: 'var(--grad-hero)' }}>
+          <div className="rounded-[var(--radius-lg)] p-4 text-white shadow-[var(--shadow-md)]" style={{ background: 'var(--grad-hero)' }}>
             <p className="text-sm opacity-80">Your wallet</p>
             <p className="tnum mt-1 text-4xl font-bold">{credits.balance} credits</p>
             <p className="mt-1 text-sm opacity-90">

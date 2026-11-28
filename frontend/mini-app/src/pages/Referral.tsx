@@ -121,7 +121,7 @@ export default function Referral() {
       {/* Referral code card (study 26). */}
       <section
         aria-label="Your referral code"
-        className="relative overflow-hidden rounded-[var(--radius-hero)] p-5 text-white shadow-[var(--shadow-hero)]"
+        className="relative overflow-hidden rounded-[var(--radius-hero)] p-4 text-white shadow-[var(--shadow-hero)]"
         style={{ background: 'var(--gradient-session-hero)' }}
       >
         <MarketsHeroArt />

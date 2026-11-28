@@ -88,7 +88,7 @@ export default function Profile({
       {/* Profile hero (study 15). */}
       <section
         aria-label="Profile"
-        className="relative overflow-hidden rounded-[var(--radius-hero)] p-5 text-white shadow-[var(--shadow-hero)]"
+        className="relative overflow-hidden rounded-[var(--radius-hero)] p-4 text-white shadow-[var(--shadow-hero)]"
         style={{ background: 'var(--gradient-session-hero)' }}
       >
         <MarketsHeroArt />

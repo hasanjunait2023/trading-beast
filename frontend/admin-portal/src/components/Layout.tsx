@@ -58,7 +58,7 @@ export default function Layout() {
             to={item.path}
             onClick={() => setOpen(false)}
             aria-current={active ? 'page' : undefined}
-            className={`flex min-h-[44px] items-center gap-3 rounded-[var(--radius-md)] px-3 text-[15px] font-medium transition-colors ${
+            className={`flex min-h-[40px] items-center gap-2.5 rounded-[var(--radius-md)] px-3 text-sm font-medium transition-colors ${
               active
                 ? 'bg-[var(--color-accent-soft)] font-semibold text-[var(--color-text)]'
                 : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]'
