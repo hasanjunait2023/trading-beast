@@ -18,6 +18,8 @@ export interface ApiEnvelope<T = unknown> {
   data?: T;
   error?: string;
   details?: unknown;
+  /** Present on a 409 VERSION_CONFLICT plan update: the server's plan copy. */
+  current?: SessionPlan;
   meta?: { page?: number; limit?: number; [key: string]: unknown };
 }
 
@@ -139,6 +141,42 @@ export interface RadarRunPayload {
   result: unknown;
 }
 
+export interface UserPreferences {
+  timezone: string | null;
+  preferredSessions: string[];
+}
+
+export interface ChecklistItem {
+  id: string;
+  label: string;
+  done: boolean;
+}
+
+export interface SessionPlan {
+  id: string;
+  session: string;
+  /** YYYY-MM-DD */
+  planDate: string;
+  status: 'DRAFT' | 'READY';
+  pinnedRunId: string | null;
+  checklist: ChecklistItem[];
+  invalidation: string | null;
+  riskNotes: string | null;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlanPatch {
+  checklist?: ChecklistItem[];
+  invalidation?: string | null;
+  riskNotes?: string | null;
+  status?: 'DRAFT' | 'READY';
+  pinnedRunId?: string | null;
+  /** Required: the version the edits are based on (optimistic concurrency). */
+  version: number;
+}
+
 export interface TelegramConfig {
   botUsername?: string;
   miniAppUrl?: string;
@@ -179,6 +217,22 @@ export const userApi = {
     request<Payment[]>('GET', `/user/payments?page=${page}&limit=${limit}`),
   getReferrals: (page = 1, limit = 20) =>
     request<ReferralEntry[]>('GET', `/user/referrals?page=${page}&limit=${limit}`),
+  // Server preferences (account-level timezone + preferred sessions).
+  getPreferences: () => request<UserPreferences>('GET', '/user/preferences'),
+  updatePreferences: (data: { timezone?: string | null; preferredSessions?: string[] }) =>
+    request<UserPreferences>('PUT', '/user/preferences', data),
+  // Session plans (owner-scoped; PATCH uses optimistic-concurrency version).
+  getPlans: (date: string) =>
+    request<SessionPlan[]>('GET', `/user/plans?date=${encodeURIComponent(date)}`),
+  getCurrentPlan: (session: string, date: string) =>
+    request<SessionPlan | null>(
+      'GET',
+      `/user/plans/current?session=${encodeURIComponent(session)}&date=${encodeURIComponent(date)}`,
+    ),
+  createPlan: (session: string, planDate: string) =>
+    request<SessionPlan>('POST', '/user/plans', { session, planDate }),
+  updatePlan: (id: string, patch: PlanPatch) =>
+    request<SessionPlan>('PATCH', `/user/plans/${encodeURIComponent(id)}`, patch),
 };
 
 export const analysisApi = {

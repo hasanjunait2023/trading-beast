@@ -8,14 +8,16 @@ import { Skeleton } from '@shared/components/Skeleton';
 import { useTheme } from '@shared/theme';
 import { useAuth } from '../hooks/useAuth';
 import { userApi, type User } from '../services/api';
-import { usePrefsStore, effectiveZone } from '../store/prefs';
+import { usePrefsStore, effectiveZone, KNOWN_SESSIONS, type KnownSession } from '../store/prefs';
 import { isTelegram } from '../telegram';
 
 /**
  * Settings / Profile (study 15). The profile is read-only — the API exposes
- * no profile mutations. Theme uses the shared theme preference; timezone is
- * the same device-local preference as Setup (labelled as device scope).
- * Sign out calls POST /auth/logout, sign out everywhere POST
+ * no profile mutations. Theme uses the shared theme preference. Timezone and
+ * preferred sessions are SERVER account preferences (GET/PUT
+ * /user/preferences, same as Setup): the device-local store seeds the form
+ * and is the labelled fallback only while loading or if the server cannot
+ * be reached. Sign out calls POST /auth/logout, sign out everywhere POST
  * /auth/logout-all; both clear all account-scoped state. Aliased at /settings.
  */
 export default function Settings() {
@@ -26,7 +28,12 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const savedTz = usePrefsStore((s) => s.timezone);
   const setTimezone = usePrefsStore((s) => s.setTimezone);
+  const savedSessions = usePrefsStore((s) => s.preferredSessions);
+  const setPreferredSessions = usePrefsStore((s) => s.setPreferredSessions);
+  const hydrateFromServer = usePrefsStore((s) => s.hydrateFromServer);
   const deviceZone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
+  /** '' = in sync with the server; otherwise an honest sync note. */
+  const [prefsNote, setPrefsNote] = useState('Loading your account preferences…');
 
   useEffect(() => {
     let alive = true;
@@ -39,10 +46,38 @@ export default function Settings() {
       .finally(() => {
         if (alive) setLoading(false);
       });
+    userApi
+      .getPreferences()
+      .then((res) => {
+        if (alive && res.data.data) {
+          hydrateFromServer(res.data.data);
+          setPrefsNote('');
+        }
+      })
+      .catch(() => {
+        if (alive) {
+          setPrefsNote('Could not reach the server — showing this device’s saved preferences. Changes will be kept on this device only until the server is reachable.');
+        }
+      });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [hydrateFromServer]);
+
+  /** Persist a preference change: local mirror immediately, then the server. */
+  const savePreferences = (patch: { timezone?: string | null; preferredSessions?: KnownSession[] }) => {
+    if (patch.timezone !== undefined) setTimezone(patch.timezone);
+    if (patch.preferredSessions !== undefined) setPreferredSessions(patch.preferredSessions);
+    userApi
+      .updatePreferences(patch)
+      .then((res) => {
+        if (res.data.data) hydrateFromServer(res.data.data);
+        setPrefsNote('');
+      })
+      .catch(() => {
+        setPrefsNote('Could not sync to your account — the change is saved on this device only for now.');
+      });
+  };
 
   const user = me ?? cachedUser;
   const zones = useMemo(() => {
@@ -131,16 +166,21 @@ export default function Settings() {
       </Card>
 
       <Card>
-        <h2 className="font-bold">Timezone</h2>
+        <h2 className="font-bold">Timezone &amp; sessions</h2>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          Display timezone for session times on <strong>this device only</strong> — stored in
-          this browser, not on your account. The same preference as in Setup.
+          Display timezone and preferred sessions are saved to your account (the same
+          preferences as in Setup) and follow you across devices.
         </p>
+        {prefsNote && (
+          <p className="mt-2 text-sm text-[var(--color-text-muted)]" role="status">
+            {prefsNote}
+          </p>
+        )}
         <div className="mt-3 max-w-sm">
           <FormField label="Display timezone">
             <Select
               value={effectiveZone(savedTz)}
-              onChange={(e) => setTimezone(e.target.value === deviceZone ? null : e.target.value)}
+              onChange={(e) => savePreferences({ timezone: e.target.value })}
               aria-label="Display timezone"
             >
               {zones.map((z) => (
@@ -150,6 +190,34 @@ export default function Settings() {
               ))}
             </Select>
           </FormField>
+        </div>
+        <p className="mt-4 text-sm font-semibold">Preferred sessions</p>
+        <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Preferred sessions">
+          {KNOWN_SESSIONS.map((s) => {
+            const active = savedSessions.includes(s);
+            return (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={active}
+                onClick={() =>
+                  savePreferences({
+                    preferredSessions: active
+                      ? savedSessions.filter((x) => x !== s)
+                      : [...savedSessions, s],
+                  })
+                }
+                className={`min-h-[44px] rounded-full border px-4 text-sm font-semibold ${
+                  active
+                    ? 'border-transparent bg-[var(--color-accent)] text-[var(--color-accent-text)]'
+                    : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]'
+                }`}
+              >
+                {active ? '✓ ' : ''}
+                {s}
+              </button>
+            );
+          })}
         </div>
         <Button variant="secondary" className="mt-3" onClick={() => navigate('/app/setup')}>
           Revisit setup

@@ -9,6 +9,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Setup = lazy(() => import('./pages/Setup'));
 const Home = lazy(() => import('./pages/Home'));
 const Markets = lazy(() => import('./pages/Markets'));
+const Plan = lazy(() => import('./pages/Plan'));
 const PairDetail = lazy(() => import('./pages/PairDetail'));
 const SessionsPage = lazy(() => import('./pages/SessionsPage'));
 const WatchlistPage = lazy(() => import('./pages/WatchlistPage'));
@@ -72,6 +73,8 @@ function App() {
           <Route path="/app/markets" element={<Markets />} />
           <Route path="/focus" element={<Markets />} />
           <Route path="/app/markets/:symbol" element={<PairDetail />} />
+          {/* Session Plan (09) — canonical only; no legacy alias exists */}
+          <Route path="/app/plan" element={<Plan />} />
           {/* Session Clock (06) */}
           <Route path="/app/sessions" element={<SessionsPage />} />
           {/* Watchlist (08) */}

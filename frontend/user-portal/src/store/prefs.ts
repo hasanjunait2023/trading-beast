@@ -1,10 +1,13 @@
 import { create } from 'zustand';
 
 /**
- * Device-local presentation preferences (handoff §3 row 02): the backend has
- * NO server field for timezone or preferred sessions, so these live only in
- * this browser's localStorage and are labelled as device scope in the UI.
- * They are never sent to the API as account settings.
+ * Presentation preferences (handoff §3 row 02 + §5): timezone and preferred
+ * sessions are SERVER-backed account settings (GET/PUT /user/preferences).
+ * This store is the local cache of those values: it seeds the UI instantly,
+ * is refreshed from the server by Setup/Settings via hydrateFromServer, and
+ * is the honest fallback (labelled "device only") only while the server
+ * value is loading or unreachable. The setup-completion flag stays local —
+ * it is a per-device UX concern, not an account setting.
  */
 
 const TZ_KEY = 'tb-pref-timezone';
@@ -52,6 +55,8 @@ interface PrefsState {
   setupDone: boolean;
   setTimezone: (tz: string | null) => void;
   setPreferredSessions: (sessions: KnownSession[]) => void;
+  /** Mirror a server preferences payload into the local cache. */
+  hydrateFromServer: (prefs: { timezone: string | null; preferredSessions: string[] }) => void;
   markSetupDone: () => void;
 }
 
@@ -66,6 +71,14 @@ export const usePrefsStore = create<PrefsState>((set) => ({
   setPreferredSessions: (sessions) => {
     write(SESSIONS_KEY, JSON.stringify(sessions));
     set({ preferredSessions: sessions });
+  },
+  hydrateFromServer: (prefs) => {
+    const sessions = prefs.preferredSessions.filter((s): s is KnownSession =>
+      (KNOWN_SESSIONS as readonly string[]).includes(s),
+    );
+    write(TZ_KEY, prefs.timezone);
+    write(SESSIONS_KEY, JSON.stringify(sessions));
+    set({ timezone: prefs.timezone, preferredSessions: sessions });
   },
   markSetupDone: () => {
     write(SETUP_KEY, '1');

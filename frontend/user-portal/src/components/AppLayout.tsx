@@ -31,6 +31,8 @@ interface Dest {
 const DESTINATIONS: Dest[] = [
   { id: 'home', label: 'Home', path: '/app', mobile: true, match: (p) => p === '/app' || p === '/dashboard' || p === '/' },
   { id: 'markets', label: 'Markets', path: '/app/markets', mobile: true, match: (p) => p.startsWith('/app/markets') || p === '/focus' },
+  // Plan is sidebar-only: the mobile bottom nav stays at its five slots.
+  { id: 'plan', label: 'Plan', path: '/app/plan', match: (p) => p.startsWith('/app/plan') },
   { id: 'watchlist', label: 'Watchlist', path: '/app/watchlist', mobile: true, match: (p) => p.startsWith('/app/watchlist') || p === '/watchlist' },
   { id: 'sessions', label: 'Sessions', path: '/app/sessions', match: (p) => p.startsWith('/app/sessions') },
   { id: 'credits', label: 'Credits', path: '/app/credits', mobile: true, match: (p) => p.startsWith('/app/credits') },

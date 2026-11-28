@@ -8,6 +8,11 @@ import { z } from 'zod';
 import { AuthRequest } from '../middleware/auth.js';
 
 import { prisma } from '../services/db.js';
+import { getPreferences, upsertPreferences, isValidTimezone, KNOWN_SESSIONS } from '../services/preferences.js';
+import {
+  listPlansForDate, getPlan, createPlan, updatePlan, parsePlanDate, todayUtc,
+  PlanAlreadyExistsError, PlanNotFoundError, VersionConflictError, InvalidPinnedRunError,
+} from '../services/plans.js';
 const router: Router = asyncRouter();
 
 const watchlistSchema = z.object({
@@ -129,6 +134,116 @@ router.get('/payments', async (req: AuthRequest, res) => {
     orderBy: [{createdAt:'desc'},{id:'desc'}]
   });
   res.json({ success: true, data: payments,meta:{page:p.page,limit:p.limit} });
+});
+
+// --- Server preferences (handoff §5): account-level timezone + sessions ---
+
+const preferencesSchema = z.object({
+  timezone: z.string().max(64).nullable().optional(),
+  preferredSessions: z.array(z.enum(KNOWN_SESSIONS)).max(3).optional()
+});
+
+router.get('/preferences', async (req: AuthRequest, res) => {
+  res.json({ success: true, data: await getPreferences(req.user!.id) });
+});
+
+router.put('/preferences', async (req: AuthRequest, res) => {
+  const parsed = preferencesSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: 'Invalid preferences', details: parsed.error.errors });
+  }
+  const { timezone, preferredSessions } = parsed.data;
+  if (timezone !== undefined && timezone !== null && !isValidTimezone(timezone)) {
+    return res.status(400).json({ success: false, error: 'Invalid timezone: not an IANA time zone' });
+  }
+  const data = await upsertPreferences(req.user!.id, { timezone, preferredSessions });
+  res.json({ success: true, data });
+});
+
+// --- Session plans (handoff §3 row 09): owner-scoped, optimistic concurrency ---
+
+const planDateSchema = z.string().refine((v) => parsePlanDate(v) !== null, 'Expected a YYYY-MM-DD date');
+
+const createPlanSchema = z.object({
+  session: z.enum(KNOWN_SESSIONS),
+  planDate: planDateSchema.optional(),
+  date: planDateSchema.optional()
+});
+
+const checklistItemSchema = z.object({
+  id: z.string().min(1).max(64),
+  label: z.string().min(1).max(200),
+  done: z.boolean()
+});
+
+const patchPlanSchema = z.object({
+  checklist: z.array(checklistItemSchema).max(50).optional(),
+  invalidation: z.string().max(2000).nullable().optional(),
+  riskNotes: z.string().max(2000).nullable().optional(),
+  status: z.enum(['DRAFT', 'READY']).optional(),
+  pinnedRunId: z.string().min(1).max(128).nullable().optional(),
+  version: z.number().int().min(1)
+});
+
+router.get('/plans', async (req: AuthRequest, res) => {
+  const date = typeof req.query.date === 'string' ? req.query.date : todayUtc();
+  if (!parsePlanDate(date)) {
+    return res.status(400).json({ success: false, error: 'Invalid date: expected YYYY-MM-DD' });
+  }
+  res.json({ success: true, data: await listPlansForDate(req.user!.id, date) });
+});
+
+router.get('/plans/current', async (req: AuthRequest, res) => {
+  const session = typeof req.query.session === 'string' ? req.query.session : '';
+  const date = typeof req.query.date === 'string' ? req.query.date : todayUtc();
+  if (!(KNOWN_SESSIONS as readonly string[]).includes(session)) {
+    return res.status(400).json({ success: false, error: 'Invalid session' });
+  }
+  if (!parsePlanDate(date)) {
+    return res.status(400).json({ success: false, error: 'Invalid date: expected YYYY-MM-DD' });
+  }
+  res.json({ success: true, data: await getPlan(req.user!.id, session, date) });
+});
+
+router.post('/plans', async (req: AuthRequest, res) => {
+  const parsed = createPlanSchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: 'Invalid plan', details: parsed.error.errors });
+  }
+  const planDate = parsed.data.planDate ?? parsed.data.date ?? todayUtc();
+  try {
+    const plan = await createPlan(req.user!.id, { session: parsed.data.session, planDate });
+    res.status(201).json({ success: true, data: plan });
+  } catch (err) {
+    if (err instanceof PlanAlreadyExistsError) {
+      // Documented contract: 409 with the existing plan in `data`, so the
+      // client can adopt it without a second round-trip.
+      return res.status(409).json({ success: false, error: 'PLAN_EXISTS', data: err.existing });
+    }
+    throw err;
+  }
+});
+
+router.patch('/plans/:id', async (req: AuthRequest, res) => {
+  const parsed = patchPlanSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: 'Invalid plan update', details: parsed.error.errors });
+  }
+  try {
+    const plan = await updatePlan(req.user!.id, req.params.id, parsed.data);
+    res.json({ success: true, data: plan });
+  } catch (err) {
+    if (err instanceof PlanNotFoundError) {
+      return res.status(404).json({ success: false, error: 'Plan not found' });
+    }
+    if (err instanceof VersionConflictError) {
+      return res.status(409).json({ success: false, error: 'VERSION_CONFLICT', current: err.current });
+    }
+    if (err instanceof InvalidPinnedRunError) {
+      return res.status(400).json({ success: false, error: err.message });
+    }
+    throw err;
+  }
 });
 
 router.get('/referrals', async (req: AuthRequest, res) => {

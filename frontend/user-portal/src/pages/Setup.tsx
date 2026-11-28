@@ -14,10 +14,14 @@ import { usePrefsStore, effectiveZone, KNOWN_SESSIONS, type KnownSession } from 
 /**
  * First-run setup (study 02). Only fields with a real home are saved:
  *  - starter symbols → the account watchlist via PATCH /user/watchlist;
- *  - timezone + preferred sessions → LOCAL device preferences only (no
- *    server field exists) and labelled as such;
+ *  - timezone + preferred sessions → SERVER account preferences via
+ *    GET/PUT /user/preferences. The device-local prefs store is the initial
+ *    fallback only: it seeds the form before the GET resolves and is what
+ *    remains if the GET fails (labelled honestly in that case). Skipping
+ *    keeps the choices device-local only — nothing is sent to the server.
  *  - session alerts have no API yet, so the toggle is shown disabled with
  *    an honest note — it is never fake-saved.
+ * The setup-completion flag stays local (a per-device UX concern).
  * Skippable; Finish opens Home; the return path is Settings → Setup.
  */
 export default function Setup() {
@@ -28,7 +32,10 @@ export default function Setup() {
   const setTimezone = usePrefsStore((s) => s.setTimezone);
   const savedSessions = usePrefsStore((s) => s.preferredSessions);
   const setPreferredSessions = usePrefsStore((s) => s.setPreferredSessions);
+  const hydrateFromServer = usePrefsStore((s) => s.hydrateFromServer);
   const markSetupDone = usePrefsStore((s) => s.markSetupDone);
+  /** True when the server preferences could not be loaded (device fallback). */
+  const [prefsFallback, setPrefsFallback] = useState(false);
 
   const deviceZone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
   const [zone, setZone] = useState(() => effectiveZone(savedTz));
@@ -63,7 +70,26 @@ export default function Setup() {
     } finally {
       setLoading(false);
     }
-  }, []);
+    // Server preferences win over the device-local seed when they load.
+    try {
+      const res = await userApi.getPreferences();
+      if (res.data.data) {
+        hydrateFromServer(res.data.data);
+        if (res.data.data.timezone) setZone(res.data.data.timezone);
+        if (res.data.data.preferredSessions.length) {
+          setSessions(
+            res.data.data.preferredSessions.filter((s): s is KnownSession =>
+              (KNOWN_SESSIONS as readonly string[]).includes(s),
+            ),
+          );
+        }
+        setPrefsFallback(false);
+      }
+    } catch {
+      // Device-local values (already seeded) remain — labelled as fallback.
+      setPrefsFallback(true);
+    }
+  }, [hydrateFromServer]);
 
   useEffect(() => {
     void load();
@@ -79,17 +105,30 @@ export default function Setup() {
 
   const finish = async () => {
     setSaving(true);
-    // Local presentation preferences first (device scope only).
+    // Mirror locally first so the choice survives even if a save fails.
     setTimezone(zone === deviceZone ? null : zone);
     setPreferredSessions(sessions);
+    let prefsSaved = true;
+    try {
+      const res = await userApi.updatePreferences({
+        timezone: zone,
+        preferredSessions: sessions,
+      });
+      if (res.data.data) hydrateFromServer(res.data.data);
+    } catch {
+      prefsSaved = false;
+    }
     try {
       const res = await userApi.updateWatchlist(selected);
       const saved = res.data.data?.watchlist ?? selected;
       setWatchlistLocal(saved);
       markSetupDone();
+      if (!prefsSaved) {
+        toast.info('Watchlist saved. Timezone and sessions could not be synced to your account, so they are saved on this device only for now.');
+      }
       navigate('/app', { replace: true });
     } catch {
-      toast.error('Could not save your starter watchlist. Your device preferences were saved — try the watchlist again from the Watchlist page.');
+      toast.error('Could not save your starter watchlist. Your preferences were saved — try the watchlist again from the Watchlist page.');
     } finally {
       setSaving(false);
     }
@@ -120,9 +159,9 @@ export default function Setup() {
       <Card>
         <h2 className="font-bold">Timezone</h2>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          Used to display session times on <strong>this device only</strong>. There is no
-          account-level timezone setting yet, so this preference is stored in this browser
-          and is not synced.
+          {prefsFallback
+            ? 'Could not load your account preference, so the value below is this device’s saved choice. Finishing setup will try to sync it to your account.'
+            : 'Used to display session times. Saved to your account when you finish setup, so it follows you across devices.'}
         </p>
         <div className="mt-3">
           <FormField label="Display timezone">
@@ -140,7 +179,8 @@ export default function Setup() {
       <Card>
         <h2 className="font-bold">Preferred sessions</h2>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          Sessions you want to track. Saved on this device as your default view preference.
+          Sessions you want to track. Saved to your account when you finish setup and used
+          as your default view preference.
         </p>
         <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Preferred sessions">
           {KNOWN_SESSIONS.map((s) => (

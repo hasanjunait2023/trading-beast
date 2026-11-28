@@ -27,6 +27,8 @@ model User {
   creditWallet    CreditWallet?
   creditEntries   CreditEntry[]
   radarRuns       RadarRun[]
+  preference      UserPreference?
+  sessionPlans    SessionPlan[]
   subscriptions   Subscription[]
   payments        Payment[]
   referrals       Referral[] @relation("Referrer")
@@ -183,6 +185,7 @@ model RadarRun {
   requestKey String
   fingerprint String
   status RadarRunStatus @default(RUNNING)
+  pinnedInPlans SessionPlan[] @relation("PinnedRun")
   result Json?
   startedAt DateTime @default(now())
   expiresAt DateTime
@@ -220,4 +223,31 @@ model TelegramDelivery {
   failedAt DateTime?
   createdAt DateTime @default(now())
   @@index([sentAt,failedAt,nextAttemptAt])
+}
+
+model UserPreference {
+  userId String @id
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timezone String?
+  preferredSessions String[] @default([])
+  updatedAt DateTime @updatedAt
+}
+
+model SessionPlan {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session String
+  planDate DateTime @db.Date
+  status String @default("DRAFT")
+  pinnedRunId String?
+  pinnedRun RadarRun? @relation("PinnedRun", fields: [pinnedRunId], references: [id], onDelete: SetNull)
+  checklist Json @default("[]")
+  invalidation String?
+  riskNotes String?
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([userId, session, planDate])
+  @@index([userId, planDate])
 }
