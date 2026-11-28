@@ -10,6 +10,7 @@ import { EmptyState } from '@shared/components/EmptyState';
 import { useAuth } from '../hooks/useAuth';
 import { useSessions } from '../hooks/useSessions';
 import { userApi, type CreditsData } from '../services/api';
+import { hydrateLatestRadar } from '../services/radarHydration';
 import { useRadarStore } from '../store/radarStore';
 import { usePrefsStore, effectiveZone } from '../store/prefs';
 
@@ -29,6 +30,11 @@ export default function Home() {
   const setupDone = usePrefsStore((s) => s.setupDone);
   const savedTz = usePrefsStore((s) => s.timezone);
   const zone = effectiveZone(savedTz);
+
+  // GET-only history hydration, once per account (see radarHydration).
+  useEffect(() => {
+    if (user?.id) void hydrateLatestRadar(user.id);
+  }, [user?.id]);
 
   useEffect(() => {
     let alive = true;

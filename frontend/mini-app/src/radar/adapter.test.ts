@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   adaptFocusResult,
+  adaptRadarRun,
   adaptSessions,
   mapBias,
   toEpochMs,
@@ -173,6 +174,40 @@ describe('sessions adapter (seconds -> ms)', () => {
       atMs: 1_700_056_800_000,
       kind: 'opens',
     });
+  });
+});
+
+describe('run history adaptation', () => {
+  it('defaults runId to null for a fresh POST result', () => {
+    expect(adaptFocusResult(result({})).runId).toBeNull();
+  });
+
+  it('attaches the runId and keeps the stored scan timestamp (never "now")', () => {
+    const view = adaptRadarRun({
+      runId: 'run-42',
+      session: 'London',
+      scope: 'watchlist',
+      completedAt: '2023-11-14T22:14:00.000Z',
+      startedAt: '2023-11-14T22:13:00.000Z',
+      result: result({ focus: [pair({})] }),
+    });
+    expect(view?.runId).toBe('run-42');
+    expect(view?.timestampMs).toBe(1_700_000_000_000);
+    expect(view?.focus[0].pair).toBe('EUR/USD');
+  });
+
+  it('returns null when the run payload has no usable result', () => {
+    const base = {
+      runId: 'run-1',
+      session: null,
+      scope: null,
+      completedAt: null,
+      startedAt: '2023-11-14T22:13:00.000Z',
+    };
+    expect(adaptRadarRun({ ...base, result: null })).toBeNull();
+    expect(
+      adaptRadarRun({ ...base, result: result({ session: '' }) }),
+    ).toBeNull();
   });
 });
 

@@ -3,10 +3,11 @@ import type { RadarPairView, RadarResultView } from '@shared/radar/adapter';
 
 /**
  * Account-scoped, in-memory store for Radar results (handoff §4): results
- * live ONLY here — there is no read endpoint (GET /analysis/focus/:session
- * is 405) and nothing is persisted to storage. Entries are keyed by
- * userId + session + scope and cleared on logout / identity change / 401.
- * Same pattern as the Mini App store (Z1).
+ * live ONLY here in memory (GET /analysis/focus/:session is still 405) and
+ * nothing is persisted to storage. On load, pages may hydrate the store
+ * once from the read-only run history (services/radarHydration). Entries
+ * are keyed by userId + session + scope and cleared on logout / identity
+ * change / 401. Same pattern as the Mini App store (Z1).
  */
 
 export type RadarScope = 'watchlist' | 'all';

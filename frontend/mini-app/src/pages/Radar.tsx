@@ -15,6 +15,7 @@ import {
   type SessionsOverviewView,
 } from '@shared/radar/adapter';
 import { analysisApi, userApi, type CreditsData } from '../services/api';
+import { hydrateLatestRadar } from '../services/radarHydration';
 import { useAuth } from '../hooks/useAuth';
 import { useRadarStore, radarKey, type RadarScope } from '../store/radarStore';
 import { RunRadarSheet } from '../components/RunRadarSheet';
@@ -138,6 +139,8 @@ export default function Radar({ goToTab }: { goToTab: (tab: 'credits') => void }
 
   useEffect(() => { void loadSessions(); }, [loadSessions]);
   useEffect(() => { void loadCredits(); }, [loadCredits]);
+  // GET-only history hydration, once per account (see radarHydration).
+  useEffect(() => { if (userId) void hydrateLatestRadar(userId); }, [userId]);
 
   const stored: RadarResultView | undefined = resultsVersion[radarKey(userId, session, scope)];
   const lastResult: RadarResultView | undefined = lastKey ? resultsVersion[lastKey] : undefined;

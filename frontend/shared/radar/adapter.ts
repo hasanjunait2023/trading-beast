@@ -104,6 +104,9 @@ export interface RadarPairView {
 }
 
 export interface RadarResultView {
+  /** Persisted run ID when this view came from run history; null for a
+   *  fresh in-memory POST result that has not been linked to a run. */
+  runId: string | null;
   session: string;
   scope: string;
   /** Scan timestamp, epoch ms. */
@@ -187,11 +190,15 @@ function toPairView(raw: RawAnalyzedPair, status: MarketStatus): RadarPairView {
 }
 
 /** Normalize a raw FocusResult payload into the Radar view model. */
-export function adaptFocusResult(raw: RawFocusResult): RadarResultView {
+export function adaptFocusResult(
+  raw: RawFocusResult,
+  opts?: { runId?: string | null },
+): RadarResultView {
   const focus = (raw.focus ?? []).map((p) => toPairView(p, 'focus'));
   const watch = (raw.watch ?? []).map((p) => toPairView(p, 'watch'));
   const avoid = (raw.avoid ?? []).map((p) => toPairView(p, 'avoid'));
   return {
+    runId: opts?.runId ?? null,
     session: raw.session,
     scope: raw.scope,
     timestampMs: timestampToMs(raw.timestamp),
@@ -205,6 +212,28 @@ export function adaptFocusResult(raw: RawFocusResult): RadarResultView {
     skippedCount: raw.skippedCount ?? 0,
     orReady: raw.orReady ?? false,
   };
+}
+
+/** One mapped run from GET /api/analysis/runs* (backend radar-history). */
+export interface RadarRunPayload {
+  runId: string;
+  session: string | null;
+  scope: string | null;
+  completedAt: string | null;
+  startedAt: string;
+  result: RawFocusResult | null;
+}
+
+/**
+ * Normalize a history run into the Radar view model. The stored `result` is
+ * a raw FocusResult, so this is the same normalization as a fresh POST
+ * response — freshness therefore reflects the run's real scan timestamp,
+ * never "now". Returns null when the payload carries no usable result.
+ */
+export function adaptRadarRun(run: RadarRunPayload): RadarResultView | null {
+  if (!run.result || typeof run.result !== 'object') return null;
+  if (typeof run.result.session !== 'string' || !run.result.session) return null;
+  return adaptFocusResult(run.result, { runId: run.runId });
 }
 
 // ---------------------------------------------------------------------------

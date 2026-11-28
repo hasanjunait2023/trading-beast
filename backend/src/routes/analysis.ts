@@ -7,6 +7,8 @@ import { runAnalysisForUser, getCachedAnalysis, runDailyPublishing } from '../se
 import { AuthRequest, requireAdmin } from '../middleware/auth.js';
 
 import { sessionOverview } from '../services/session-clock.js';
+import { pagination } from '../services/pagination.js';
+import { getLatestRadarRun, listRadarRuns, getRadarRunById } from '../services/radar-history.js';
 import { MarketDataUnavailable } from '../services/market-data.js';
 const router: Router = asyncRouter();
 
@@ -41,6 +43,25 @@ router.post('/focus', async (req: AuthRequest, res) => {
     console.error('Analysis error:', error);
     res.status(500).json({ success: false, error: 'Analysis failed' });
   }
+});
+
+// Read-only Radar history (handoff §5): owner-scoped SUCCEEDED runs, zero
+// credits — these handlers never touch the credits service.
+router.get('/runs/latest', async (req: AuthRequest, res) => {
+  const run = await getLatestRadarRun(req.user!.id);
+  res.json({ success: true, data: run });
+});
+
+router.get('/runs', async (req: AuthRequest, res) => {
+  const p = pagination(req.query);
+  const { runs, total } = await listRadarRuns(req.user!.id, p);
+  res.json({ success: true, data: runs, meta: { page: p.page, limit: p.limit, total } });
+});
+
+router.get('/runs/:id', async (req: AuthRequest, res) => {
+  const run = await getRadarRunById(req.user!.id, req.params.id);
+  if (!run) return res.status(404).json({ success: false, error: 'Run not found' });
+  res.json({ success: true, data: run });
 });
 
 router.get('/focus/:session', async (req: AuthRequest, res) => {

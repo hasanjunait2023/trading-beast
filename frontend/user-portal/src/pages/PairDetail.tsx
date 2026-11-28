@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Card } from '@shared/components/Card';
 import { Button } from '@shared/components/Button';
@@ -10,6 +10,7 @@ import { EmptyState } from '@shared/components/EmptyState';
 import { useToast } from '@shared/components/Toast';
 import { useAuth } from '../hooks/useAuth';
 import { userApi } from '../services/api';
+import { hydrateLatestRadar } from '../services/radarHydration';
 import { useRadarStore } from '../store/radarStore';
 import { evidenceFor } from '../components/evidence';
 
@@ -33,6 +34,13 @@ export default function PairDetail() {
   const inFlightRef = useRef(false);
 
   const hit = user ? findPair(user.id, symbol) : undefined;
+
+  // Deep link / refresh with an empty store: try the one-shot GET-only
+  // history hydration once before settling on the recovery state. The
+  // service guard makes this non-looping and it never fetches per-pair.
+  useEffect(() => {
+    if (user && !hit) void hydrateLatestRadar(user.id);
+  }, [user, hit]);
 
   const toggleWatchlist = useCallback(async () => {
     if (!user || inFlightRef.current) return;

@@ -130,6 +130,15 @@ export interface ReferralEntry {
   referred?: { firstName?: string; username?: string; telegramId?: string };
 }
 
+export interface RadarRunPayload {
+  runId: string;
+  session: string | null;
+  scope: string | null;
+  completedAt: string | null;
+  startedAt: string;
+  result: unknown;
+}
+
 export interface TelegramConfig {
   botUsername?: string;
   miniAppUrl?: string;
@@ -189,6 +198,14 @@ export const analysisApi = {
     }),
   getPairs: () => request<string[]>('GET', '/analysis/pairs'),
   getSessions: () => request<unknown>('GET', '/analysis/sessions'),
+  // Read-only run history (zero credits). Payloads are mapped RadarRuns:
+  // { runId, session, scope, completedAt, startedAt, result } where result
+  // is the stored raw FocusResult.
+  getLatestRun: () => request<RadarRunPayload | null>('GET', '/analysis/runs/latest'),
+  getRuns: (page = 1, limit = 20) =>
+    request<RadarRunPayload[]>('GET', `/analysis/runs?page=${page}&limit=${limit}`),
+  getRun: (id: string) =>
+    request<RadarRunPayload>('GET', `/analysis/runs/${encodeURIComponent(id)}`),
 };
 
 export const telegramApi = {
