@@ -241,7 +241,7 @@ export default function Journal({ goToTab }: { goToTab: (tab: Tab) => void }) {
           {/* Summary hero (reference 11) — figures describe the selected week. */}
           <section
             aria-label="Journal summary"
-            className="relative overflow-hidden rounded-[var(--radius-hero)] p-5 text-white shadow-[var(--shadow-hero)]"
+            className="relative overflow-hidden rounded-[var(--radius-hero)] p-4 text-white shadow-[var(--shadow-hero)]"
             style={{ background: 'var(--gradient-session-hero)' }}
           >
             <div className="relative flex items-center justify-between gap-3">

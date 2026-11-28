@@ -1,7 +1,7 @@
 import React, { useId } from 'react';
 
 const controlClasses =
-  'w-full min-h-[44px] rounded-[var(--radius-md)] border bg-[var(--color-surface)] px-3 text-[15px] text-[var(--color-text)] placeholder:text-[var(--color-text-faint)] transition-colors disabled:opacity-50';
+  'w-full min-h-[40px] rounded-[var(--radius-md)] border bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-faint)] transition-colors disabled:opacity-50';
 
 function borderClass(error?: string) {
   return error
@@ -57,7 +57,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
       <textarea
         ref={ref}
         aria-invalid={error ? true : undefined}
-        className={`${controlClasses} py-2.5 ${borderClass(error)} ${className}`}
+        className={`${controlClasses} py-2 ${borderClass(error)} ${className}`}
         {...rest}
       />
     );

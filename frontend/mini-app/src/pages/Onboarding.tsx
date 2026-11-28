@@ -170,7 +170,7 @@ export default function Onboarding({
           <div className="space-y-4">
             <section
               aria-label="Welcome to TradingBeast"
-              className="relative overflow-hidden rounded-[var(--radius-hero)] p-5 text-white shadow-[var(--shadow-hero)]"
+              className="relative overflow-hidden rounded-[var(--radius-hero)] p-4 text-white shadow-[var(--shadow-hero)]"
               style={{ background: 'var(--gradient-session-hero)' }}
             >
               <MarketsHeroArt />

@@ -40,7 +40,7 @@ export default function Docs() {
   return (
     <section
       id="how-it-works"
-      className="py-20 sm:py-24"
+      className="py-16 sm:py-20"
       style={{ background: 'var(--color-accent-soft)' }}
       aria-labelledby="how-heading"
     >

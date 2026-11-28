@@ -128,7 +128,7 @@ export default function Credits() {
       {/* Wallet card (study 21): gradient panel, real server balance. */}
       <section
         aria-label="Your wallet"
-        className="relative overflow-hidden rounded-[var(--radius-hero)] p-6 text-white shadow-[var(--shadow-hero)]"
+        className="relative overflow-hidden rounded-[var(--radius-hero)] p-5 text-white shadow-[var(--shadow-hero)]"
         style={{ background: 'var(--gradient-session-hero)' }}
       >
         <WalletArt />
@@ -152,7 +152,7 @@ export default function Credits() {
       {user && shouldShowUpgradePanel(credits.balance, user.tier) && (
         <section
           aria-label="Upgrade your plan"
-          className="relative overflow-hidden rounded-[var(--radius-hero)] p-6 text-white shadow-[var(--shadow-hero)]"
+          className="relative overflow-hidden rounded-[var(--radius-hero)] p-5 text-white shadow-[var(--shadow-hero)]"
           style={{ background: 'var(--gradient-session-hero)' }}
         >
           <div className="relative flex flex-wrap items-center gap-4">

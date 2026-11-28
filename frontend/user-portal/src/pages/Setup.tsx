@@ -185,7 +185,7 @@ export default function Setup() {
     <div className="mx-auto max-w-2xl space-y-4">
       <section
         aria-label="Set up your workspace"
-        className="relative overflow-hidden rounded-[var(--radius-hero)] p-6 text-white shadow-[var(--shadow-hero)]"
+        className="relative overflow-hidden rounded-[var(--radius-hero)] p-5 text-white shadow-[var(--shadow-hero)]"
         style={{ background: 'var(--gradient-session-hero)' }}
       >
         <MarketsHeroArt />

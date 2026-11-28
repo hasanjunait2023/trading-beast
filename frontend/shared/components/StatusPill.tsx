@@ -26,7 +26,7 @@ export interface StatusPillProps {
 export function StatusPill({ status, label, className = '' }: StatusPillProps) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide whitespace-nowrap ${STYLES[status]} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-[3px] text-[10.5px] font-bold tracking-wide whitespace-nowrap ${STYLES[status]} ${className}`}
     >
       {label ?? LABELS[status]}
     </span>

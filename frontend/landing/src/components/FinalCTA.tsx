@@ -17,7 +17,7 @@ export default function FinalCTA() {
   return (
     <section id="get-started" className="px-3 pb-20 sm:px-5 sm:pb-24" aria-labelledby="cta-heading">
       <div
-        className="mx-auto max-w-7xl rounded-[28px] px-6 py-16 text-center text-white sm:px-10 sm:py-20"
+        className="mx-auto max-w-7xl rounded-[24px] px-6 py-12 text-center text-white sm:px-10 sm:py-16"
         style={{ background: 'var(--grad-hero)' }}
       >
         <Reveal>

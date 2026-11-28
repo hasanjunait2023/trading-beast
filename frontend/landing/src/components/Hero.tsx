@@ -31,7 +31,7 @@ export function Hero() {
         className="mx-auto max-w-7xl overflow-hidden rounded-[28px] text-white"
         style={{ background: 'var(--grad-hero)' }}
       >
-        <div className="grid items-center gap-10 px-6 py-14 sm:px-10 lg:grid-cols-[1.05fr_0.95fr] lg:px-14 lg:py-20">
+        <div className="grid items-center gap-8 px-6 py-12 sm:px-10 lg:grid-cols-[1.05fr_0.95fr] lg:px-14 lg:py-16">
           <div className="tb-stagger">
             <p
               className="mb-5 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold tracking-wide uppercase"
@@ -42,7 +42,7 @@ export function Hero() {
             </p>
             <h1
               id="hero-heading"
-              className="text-4xl leading-[1.08] font-bold tracking-tight text-balance sm:text-5xl lg:text-[3.4rem]"
+              className="text-4xl leading-[1.08] font-bold tracking-tight text-balance sm:text-5xl lg:text-[3rem]"
             >
               Know which pairs deserve your focus — before the session starts.
             </h1>

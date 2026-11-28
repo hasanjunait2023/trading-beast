@@ -17,7 +17,7 @@ export function CreditPill({ credits, onClick, className = '' }: CreditPillProps
       <span>credits</span>
     </>
   );
-  const classes = `inline-flex min-h-[36px] items-center gap-1.5 rounded-full bg-[var(--color-accent-soft)] px-3 text-sm font-semibold text-[var(--color-text)] ${className}`;
+  const classes = `inline-flex min-h-[34px] items-center gap-1.5 rounded-full bg-[var(--color-accent-soft)] px-2.5 text-[13px] font-semibold text-[var(--color-text)] ${className}`;
   if (onClick) {
     return (
       <button type="button" onClick={onClick} aria-label={`${credits} credits`} className={classes}>

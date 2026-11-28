@@ -78,7 +78,7 @@ export function Sheet({ open, onClose, title, children, footer }: SheetProps) {
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        className="relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 pb-[max(20px,env(safe-area-inset-bottom))] shadow-[var(--shadow-lg)]"
+        className="relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 pb-[max(20px,env(safe-area-inset-bottom))] shadow-[var(--shadow-lg)]"
       >
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[var(--color-border-strong)]" aria-hidden="true" />
         <div className="mb-3 flex items-start justify-between gap-3">

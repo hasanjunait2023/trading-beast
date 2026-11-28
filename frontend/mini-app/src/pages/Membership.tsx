@@ -56,7 +56,7 @@ export default function Membership({
       {/* Current plan hero. */}
       <section
         aria-label="Your current plan"
-        className="rounded-[var(--radius-hero)] p-5 text-white shadow-[var(--shadow-hero)]"
+        className="rounded-[var(--radius-hero)] p-4 text-white shadow-[var(--shadow-hero)]"
         style={{ background: 'var(--grad-hero)' }}
       >
         <p className="text-sm opacity-80">Current plan</p>

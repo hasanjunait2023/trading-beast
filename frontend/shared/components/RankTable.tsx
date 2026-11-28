@@ -39,14 +39,14 @@ const REF_PILL: Record<MarketStatus, string> = {
 function ReferencePill({ row }: { row: RankRow }) {
   if (row.unranked) {
     return (
-      <span className="inline-flex h-10 min-w-[112px] items-center justify-center rounded-[10px] bg-[var(--color-unavailable-bg)] px-3 text-[13px] font-extrabold tracking-wider text-[var(--color-unavailable-text)]">
+      <span className="inline-flex h-9 min-w-[100px] items-center justify-center rounded-[8px] bg-[var(--color-unavailable-bg)] px-2.5 text-[12px] font-extrabold tracking-wider text-[var(--color-unavailable-text)]">
         UNRANKED
       </span>
     );
   }
   return (
     <span
-      className={`inline-flex h-10 min-w-[112px] items-center justify-center rounded-[10px] px-3 text-[13px] font-extrabold tracking-wider ${REF_PILL[row.status]}`}
+      className={`inline-flex h-9 min-w-[100px] items-center justify-center rounded-[8px] px-2.5 text-[12px] font-extrabold tracking-wider ${REF_PILL[row.status]}`}
     >
       {row.status.toUpperCase()}
     </span>
@@ -78,7 +78,7 @@ export function RankTable({ rows, onRowSelect, caption, variant = 'default', lea
   if (variant === 'reference') {
     return (
       <div
-        className="overflow-x-auto rounded-[16px] border border-[var(--color-border-soft)] bg-[var(--color-surface)] shadow-[var(--shadow-row)]"
+        className="overflow-x-auto rounded-[14px] border border-[var(--color-border-soft)] bg-[var(--color-surface)] shadow-[var(--shadow-row)]"
         role="region"
         aria-label={caption ? `${caption} — scroll horizontally on small screens` : 'Radar results table — scroll horizontally on small screens'}
         tabIndex={0}
@@ -86,11 +86,11 @@ export function RankTable({ rows, onRowSelect, caption, variant = 'default', lea
         <table className="w-full border-collapse text-left">
           {caption && <caption className="sr-only">{caption}</caption>}
           <thead>
-            <tr className="bg-[var(--color-mint-wash)] text-[15px] text-[var(--color-text)]">
-              <th scope="col" className="px-4 py-3 font-bold">Instrument</th>
-              <th scope="col" className="px-4 py-3 font-bold">Status</th>
-              <th scope="col" className="px-4 py-3 font-bold">Bias</th>
-              <th scope="col" className="px-4 py-3 text-right font-bold">Score</th>
+            <tr className="bg-[var(--color-mint-wash)] text-sm text-[var(--color-text)]">
+              <th scope="col" className="px-3.5 py-2 font-bold">Instrument</th>
+              <th scope="col" className="px-3.5 py-2 font-bold">Status</th>
+              <th scope="col" className="px-3.5 py-2 font-bold">Bias</th>
+              <th scope="col" className="px-3.5 py-2 text-right font-bold">Score</th>
             </tr>
           </thead>
           <tbody>
@@ -108,25 +108,25 @@ export function RankTable({ rows, onRowSelect, caption, variant = 'default', lea
                   onRowSelect && !row.unranked ? 'cursor-pointer hover:bg-[var(--color-surface-hover)]' : ''
                 }`}
               >
-                <td className="px-4 py-3">
-                  <span className="flex items-center gap-3">
+                <td className="px-3.5 py-2">
+                  <span className="flex items-center gap-2.5">
                     {leading?.(row)}
-                    <span className="text-[16px] font-extrabold tracking-tight text-[var(--color-text)]">
+                    <span className="text-[15px] font-extrabold tracking-tight text-[var(--color-text)]">
                       {row.pair}
                     </span>
                   </span>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-3.5 py-2">
                   <ReferencePill row={row} />
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-3.5 py-2">
                   {row.bias && !row.unranked ? (
-                    <BiasText bias={row.bias} showArrow={false} className="text-base" />
+                    <BiasText bias={row.bias} showArrow={false} className="text-[15px]" />
                   ) : (
                     <span className="text-[var(--color-text-muted)]">—</span>
                   )}
                 </td>
-                <td className="tnum px-4 py-3 text-right text-2xl font-extrabold text-[var(--color-text)]">
+                <td className="tnum px-3.5 py-2 text-right text-2xl font-extrabold text-[var(--color-text)]">
                   {typeof row.score === 'number' && !row.unranked ? (
                     row.score
                   ) : (
@@ -152,10 +152,10 @@ export function RankTable({ rows, onRowSelect, caption, variant = 'default', lea
         {caption && <caption className="sr-only">{caption}</caption>}
         <thead>
           <tr className="bg-[var(--color-surface-elevated)] text-[13px] text-[var(--color-text-muted)]">
-            <th scope="col" className="px-4 py-3 font-semibold">Instrument</th>
-            <th scope="col" className="px-4 py-3 font-semibold">Status</th>
-            <th scope="col" className="px-4 py-3 font-semibold">Bias</th>
-            <th scope="col" className="px-4 py-3 text-right font-semibold">Score</th>
+            <th scope="col" className="px-3.5 py-2 font-semibold">Instrument</th>
+            <th scope="col" className="px-3.5 py-2 font-semibold">Status</th>
+            <th scope="col" className="px-3.5 py-2 font-semibold">Bias</th>
+            <th scope="col" className="px-3.5 py-2 text-right font-semibold">Score</th>
           </tr>
         </thead>
         <tbody>
@@ -169,22 +169,22 @@ export function RankTable({ rows, onRowSelect, caption, variant = 'default', lea
               onClick={onRowSelect ? () => onRowSelect(row) : undefined}
               onKeyDown={(e) => handleKeyDown(e, i)}
               aria-label={onRowSelect ? `Open ${row.pair}` : undefined}
-              className={`border-t border-[var(--color-border)] text-[15px] ${
+              className={`border-t border-[var(--color-border)] text-sm ${
                 onRowSelect ? 'cursor-pointer hover:bg-[var(--color-surface-hover)]' : ''
               }`}
             >
-              <td className="px-4 py-3 font-bold text-[var(--color-text)]">{row.pair}</td>
-              <td className="px-4 py-3">
+              <td className="px-3.5 py-2 font-bold text-[var(--color-text)]">{row.pair}</td>
+              <td className="px-3.5 py-2">
                 <StatusPill status={row.status} />
               </td>
-              <td className="px-4 py-3">
+              <td className="px-3.5 py-2">
                 {row.bias ? (
                   <BiasText bias={row.bias} />
                 ) : (
                   <span className="text-[var(--color-text-muted)]">—</span>
                 )}
               </td>
-              <td className="tnum px-4 py-3 text-right font-bold text-[var(--color-text)]">
+              <td className="tnum px-3.5 py-2 text-right font-bold text-[var(--color-text)]">
                 {typeof row.score === 'number' ? (
                   <>
                     {row.score}

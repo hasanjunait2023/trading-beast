@@ -38,11 +38,11 @@ const Onboarding = lazy(() => import('./pages/Onboarding'));
 export type Tab = 'home' | 'markets' | 'plan' | 'journal' | 'more';
 
 const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
-  { id: 'home', label: 'Home', icon: <HomeIcon size={24} /> },
-  { id: 'markets', label: 'Markets', icon: <MarketsIcon size={24} /> },
-  { id: 'plan', label: 'Plan', icon: <PlanIcon size={24} /> },
-  { id: 'journal', label: 'Journal', icon: <JournalIcon size={24} /> },
-  { id: 'more', label: 'More', icon: <MoreIcon size={24} /> },
+  { id: 'home', label: 'Home', icon: <HomeIcon size={20} /> },
+  { id: 'markets', label: 'Markets', icon: <MarketsIcon size={20} /> },
+  { id: 'plan', label: 'Plan', icon: <PlanIcon size={20} /> },
+  { id: 'journal', label: 'Journal', icon: <JournalIcon size={20} /> },
+  { id: 'more', label: 'More', icon: <MoreIcon size={20} /> },
 ];
 
 function LoadingScreen() {

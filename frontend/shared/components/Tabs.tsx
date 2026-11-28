@@ -63,7 +63,7 @@ export function Tabs({ tabs, activeId, onChange, ariaLabel }: TabsProps) {
             disabled={tab.disabled}
             onClick={() => onChange(tab.id)}
             onKeyDown={(e) => handleKeyDown(e, i)}
-            className={`min-h-[40px] shrink-0 rounded-[var(--radius-sm)] px-4 text-sm font-semibold whitespace-nowrap transition-colors disabled:opacity-40 ${
+            className={`min-h-[40px] shrink-0 rounded-[var(--radius-sm)] px-3.5 text-[13.5px] font-semibold whitespace-nowrap transition-colors disabled:opacity-40 ${
               active
                 ? 'bg-[var(--color-surface)] text-[var(--color-text)] shadow-[var(--shadow-sm)]'
                 : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'

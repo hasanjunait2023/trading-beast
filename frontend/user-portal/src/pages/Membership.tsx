@@ -224,7 +224,7 @@ export default function Membership({ initialSection }: { initialSection: Members
           {/* Conversion hero — honest framing: free is live, paid tiers are
               planned, and nothing is ever charged automatically. */}
           <section
-            className="relative overflow-hidden rounded-[var(--radius-hero)] p-6 text-white shadow-[var(--shadow-hero)] sm:p-7"
+            className="relative overflow-hidden rounded-[var(--radius-hero)] p-5 text-white shadow-[var(--shadow-hero)] sm:p-5"
             style={{ background: 'var(--gradient-session-hero)' }}
           >
             <h2 className="max-w-[520px] text-[26px] leading-tight font-extrabold tracking-tight sm:text-[30px]">

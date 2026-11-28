@@ -167,7 +167,7 @@ export default function WatchlistPage() {
     <div className="mx-auto max-w-4xl space-y-4">
       <section
         aria-label="Professional FX Analysis"
-        className="relative overflow-hidden rounded-[var(--radius-hero)] p-6 text-white shadow-[var(--shadow-hero)]"
+        className="relative overflow-hidden rounded-[var(--radius-hero)] p-5 text-white shadow-[var(--shadow-hero)]"
         style={{ background: 'var(--gradient-session-hero)' }}
       >
         <MarketsHeroArt />
