@@ -396,3 +396,143 @@ export function ArrowUpDownIcon(props: IconProps) {
     </>,
   );
 }
+
+/* ---- R3b additions (studies 13/14/15/16/17/23/24/25/26) ---- */
+
+export function MoonIcon(props: IconProps) {
+  return base(props, <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />);
+}
+
+export function CrownIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <path d="m3 8 4.5 4L12 5l4.5 7L21 8l-1.6 10H4.6L3 8Z" />
+      <path d="M5 21h14" />
+    </>,
+  );
+}
+
+export function LeafIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <path d="M5 19C5 9 13 4 20 4c0 8-4 15-13 15" />
+      <path d="M5 19c3-5 7-8 11-10" />
+    </>,
+  );
+}
+
+export function MedalIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <circle cx="12" cy="14" r="5" />
+      <path d="m8.5 9.5-2-6h4L12 7l1.5-3.5h4l-2 6" />
+    </>,
+  );
+}
+
+export function GlobeIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18" />
+      <path d="M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+    </>,
+  );
+}
+
+export function CopyIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <rect x="9" y="9" width="12" height="12" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </>,
+  );
+}
+
+export function PlusIcon(props: IconProps) {
+  return base(props, <path d="M12 5v14M5 12h14" />);
+}
+
+export function PencilIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+      <path d="m15 5 4 4" />
+    </>,
+  );
+}
+
+export function HeadsetIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <path d="M4 13a8 8 0 0 1 16 0" />
+      <rect x="2.5" y="13" width="4" height="6" rx="2" />
+      <rect x="17.5" y="13" width="4" height="6" rx="2" />
+      <path d="M19.5 19a3 3 0 0 1-3 3h-3" />
+    </>,
+  );
+}
+
+export function DownloadIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <path d="M12 3v12" />
+      <path d="m7 11 5 5 5-5" />
+      <path d="M4 21h16" />
+    </>,
+  );
+}
+
+export function BankIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <path d="m3 9 9-6 9 6" />
+      <path d="M4 9v10M20 9v10M8 12v5M12 12v5M16 12v5" />
+      <path d="M2.5 19h19" />
+    </>,
+  );
+}
+
+export function HashIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <path d="M9 3 7 21M17 3l-2 18" />
+      <path d="M4 8h17M3 16h17" />
+    </>,
+  );
+}
+
+export function LogoutIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="m16 17 5-5-5-5" />
+      <path d="M21 12H9" />
+    </>,
+  );
+}
+
+export function GripIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <circle cx="9" cy="6" r="1" fill="currentColor" />
+      <circle cx="15" cy="6" r="1" fill="currentColor" />
+      <circle cx="9" cy="12" r="1" fill="currentColor" />
+      <circle cx="15" cy="12" r="1" fill="currentColor" />
+      <circle cx="9" cy="18" r="1" fill="currentColor" />
+      <circle cx="15" cy="18" r="1" fill="currentColor" />
+    </>,
+  );
+}
