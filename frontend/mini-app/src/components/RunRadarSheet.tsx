@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Sheet } from '@shared/components/Sheet';
 import { Button } from '@shared/components/Button';
+import { CheckIcon } from '@shared/components/icons';
+import { PRO_HIGHLIGHTS } from '@shared/membership/catalog';
 import { analysisApi, userApi, ApiError, type CreditsData } from '../services/api';
 import { adaptFocusResult, type RadarResultView } from '@shared/radar/adapter';
 import { haptics } from '../telegram';
@@ -40,6 +42,48 @@ export interface RunRadarSheetProps {
   onClose: () => void;
   onSuccess: (result: RadarResultView) => void;
   onOpenCredits: () => void;
+  /** Conversion path: open Membership (falls back to Credits when unset). */
+  onUpgrade?: () => void;
+}
+
+/**
+ * Upgrade panel shown when a run is blocked by insufficient credits
+ * (conversion chapter): the balance, what Pro gives, and a gradient CTA
+ * into Membership. Honest by construction — Pro's credit grant is a
+ * planned catalog item, and the copy says so; the referral path to free
+ * Pro days is real today.
+ */
+function UpgradePanel({ balance, cost }: { balance: number | null; cost: number | null }) {
+  return (
+    <div className="space-y-3">
+      <div
+        className="rounded-[var(--radius-lg)] p-4 text-white shadow-[var(--shadow-md)]"
+        style={{ background: 'var(--grad-hero)' }}
+      >
+        <p className="text-[16px] font-extrabold">You're out of Radar credits</p>
+        <p className="mt-1 text-sm text-white/90">
+          This run costs <span className="tnum font-bold">{cost ?? '—'} credits</span> and your
+          balance is <span className="tnum font-bold">{balance ?? '—'}</span>. Free credits arrive
+          daily — or step up with Pro.
+        </p>
+      </div>
+      <div>
+        <p className="text-sm font-bold">What Pro gives you</p>
+        <ul className="mt-1.5 space-y-1.5">
+          {PRO_HIGHLIGHTS.map((h) => (
+            <li key={h} className="flex gap-2 text-sm">
+              <CheckIcon size={16} className="mt-0.5 shrink-0 text-[var(--color-accent)]" />
+              {h}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-2 text-[13px] text-[var(--color-text-muted)]">
+          Paid plans launch soon — and right now you can earn 7 days of Pro free for every friend
+          who joins with your referral code. See Membership for details.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export function RunRadarSheet({
@@ -50,6 +94,7 @@ export function RunRadarSheet({
   onClose,
   onSuccess,
   onOpenCredits,
+  onUpgrade,
 }: RunRadarSheetProps) {
   const [credits, setCredits] = useState<CreditsData | null>(null);
   const [creditsError, setCreditsError] = useState('');
@@ -129,22 +174,32 @@ export function RunRadarSheet({
   const balance = credits?.balance ?? null;
   const cost = credits?.radarCost ?? null;
   const remaining = balance !== null && cost !== null ? balance - cost : null;
+  // Blocked by balance: known upfront in the confirm phase, or reported by
+  // the server as 402 — either way the sheet becomes an upgrade sheet.
+  const blocked = balance !== null && cost !== null && balance < cost;
+  const showUpgrade = phase === 'insufficient' || (phase === 'confirm' && blocked);
+
+  const goUpgrade = () => {
+    onClose();
+    if (onUpgrade) onUpgrade();
+    else onOpenCredits();
+  };
 
   const footer =
     phase === 'success' ? (
       <Button onClick={onClose}>View results</Button>
-    ) : phase === 'insufficient' ? (
+    ) : showUpgrade ? (
       <>
-        <Button
-          onClick={() => {
-            onClose();
-            onOpenCredits();
-          }}
+        <button
+          type="button"
+          onClick={goUpgrade}
+          className="flex min-h-[52px] w-full items-center justify-center rounded-[var(--radius-lg)] px-4 text-[16px] font-bold text-white shadow-[var(--shadow-hero)] transition-transform active:scale-[0.99]"
+          style={{ background: 'var(--gradient-primary-action)' }}
         >
-          Go to Credits
-        </Button>
+          See Membership — go Pro
+        </button>
         <Button variant="ghost" onClick={onClose}>
-          Close
+          Not now
         </Button>
       </>
     ) : phase === 'rateLimited' || phase === 'unavailable' || phase === 'ambiguous' || phase === 'error' ? (
@@ -194,7 +249,7 @@ export function RunRadarSheet({
             <dt className="text-[var(--color-text-muted)]">Current balance</dt>
             <dd className="tnum font-semibold">{balance !== null ? `${balance} credits` : '—'}</dd>
           </div>
-          {remaining !== null && phase === 'confirm' && (
+          {remaining !== null && phase === 'confirm' && !blocked && (
             <div className="flex justify-between gap-4">
               <dt className="text-[var(--color-text-muted)]">Balance after run</dt>
               <dd className="tnum font-semibold">{remaining} credits</dd>
@@ -211,26 +266,31 @@ export function RunRadarSheet({
           </p>
         )}
 
-        <p className="text-[var(--color-text-muted)]">
-          Viewing results, changing filters or switching sessions costs zero — only this
-          confirmed run spends credits.
-        </p>
+        {!showUpgrade && (
+          <p className="text-[var(--color-text-muted)]">
+            Viewing results, changing filters or switching sessions costs zero — only this
+            confirmed run spends credits.
+          </p>
+        )}
 
         {phase === 'running' && <p role="status">Scanning… keep this sheet open.</p>}
         {phase === 'success' && (
-          <p role="status" className="font-semibold text-[var(--color-success)]">
-            Scan complete — your results are updated below.
-          </p>
-        )}
-        {phase === 'insufficient' && (
-          <div role="alert" className="rounded-[var(--radius-md)] bg-[var(--color-danger-bg)] p-3">
-            <p className="font-semibold text-[var(--color-danger)]">Not enough credits</p>
-            <p className="mt-1">
-              This run costs {cost ?? '—'} credits and your balance is {balance ?? '—'}. Credits
-              are granted daily — see the Credits tab for your balance, daily grant and scan cost.
+          <div role="status" className="flex items-center gap-3">
+            <span
+              className="tb-success-pop flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white"
+              style={{ background: 'var(--gradient-primary-action)' }}
+              aria-hidden="true"
+            >
+              <span className="tb-check-draw inline-flex">
+                <CheckIcon size={20} />
+              </span>
+            </span>
+            <p className="font-semibold text-[var(--color-success)]">
+              Scan complete — your results are updated below.
             </p>
           </div>
         )}
+        {showUpgrade && <UpgradePanel balance={balance} cost={cost} />}
         {phase === 'rateLimited' && (
           <div role="alert" className="rounded-[var(--radius-md)] bg-[var(--color-warning-bg)] p-3">
             <p className="font-semibold">Too many requests</p>
