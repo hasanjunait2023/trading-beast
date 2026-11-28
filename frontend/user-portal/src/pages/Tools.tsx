@@ -108,19 +108,19 @@ function RiskRewardCalculator() {
           </div>
           <div className="rounded-[var(--radius-md)] bg-[var(--color-surface-elevated)] px-3 py-2">
             <dt className="text-[12px] text-[var(--color-text-muted)]">Risk (entry → stop)</dt>
-            <dd className="text-[15px] font-semibold tabular-nums">
+            <dd className="text-[15px] font-semibold tnum">
               {fmt(outcome.result.risk, 4)} price units
             </dd>
           </div>
           <div className="rounded-[var(--radius-md)] bg-[var(--color-surface-elevated)] px-3 py-2">
             <dt className="text-[12px] text-[var(--color-text-muted)]">Reward (entry → target)</dt>
-            <dd className="text-[15px] font-semibold tabular-nums">
+            <dd className="text-[15px] font-semibold tnum">
               {fmt(outcome.result.reward, 4)} price units
             </dd>
           </div>
           <div className="rounded-[var(--radius-md)] bg-[var(--color-surface-elevated)] px-3 py-2">
             <dt className="text-[12px] text-[var(--color-text-muted)]">Reward : Risk</dt>
-            <dd className="text-[15px] font-semibold tabular-nums">
+            <dd className="text-[15px] font-semibold tnum">
               {fmt(outcome.result.ratio)} : 1
             </dd>
           </div>
@@ -171,7 +171,7 @@ function RecoveryCalculator() {
           aria-live="polite"
         >
           <p className="text-[12px] text-[var(--color-text-muted)]">Gain needed to break even</p>
-          <p className="text-[15px] font-semibold tabular-nums">{fmt(gain)}%</p>
+          <p className="text-[15px] font-semibold tnum">{fmt(gain)}%</p>
         </div>
       ) : (
         <p role="status" className="text-sm text-[var(--color-text-muted)]">

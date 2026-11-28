@@ -229,7 +229,7 @@ export default function Help() {
             PROFESSIONAL FX ANALYSIS
           </p>
           <h2 className="mt-2 text-[28px] leading-tight font-extrabold tracking-tight">
-            Trade FX with Discretion and Clarity
+            Trade FX with discretion and clarity
           </h2>
           <p className="mt-2 text-[15px] leading-snug text-white/90">
             Expert analysis, radar insights, and actionable trade ideas.

@@ -265,8 +265,8 @@ export default function Plan() {
           <div className="w-full max-w-[280px] space-y-2.5">
             {nextOpen && (
               <div className="rounded-[var(--radius-lg)] bg-white p-3.5 text-[var(--color-text)] shadow-[var(--shadow-md)]">
-                <p className="text-[11px] font-bold tracking-[0.14em] text-[var(--color-text-faint)]">
-                  NEXT SESSION
+                <p className="text-[11px] font-bold text-[var(--color-text-faint)]">
+                  Next session
                 </p>
                 <p className="mt-0.5 text-[17px] font-extrabold">{nextOpen.session}</p>
                 <p className="tnum text-[13px] text-[var(--color-text-muted)]">
