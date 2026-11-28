@@ -1,0 +1,84 @@
+/*
+  TradingBeast self-hosted fonts (UX polish chapter).
+
+  Pairing: Sora (geometric grotesque) for display/headings, Manrope
+  (humanist grotesque) for UI/body. Both are served from THIS app's own
+  bundle — no Google Fonts or any other runtime request, so the UI never
+  depends on a third-party CDN being reachable.
+
+  Files: latin subsets, static weights, ~14 KB each. Browsers download
+  only the weights a page actually uses. `font-display: swap` keeps text
+  visible in the system fallback while a weight loads.
+
+  Numerals: Manrope and Sora both ship tabular figures; the shared
+  `.tnum` utility (theme.css) opts into them for quotes/scores/credits.
+
+  Imported by theme.css — apps never import this file directly.
+*/
+
+/* ---- Manrope — UI / body ---- */
+@font-face {
+  font-family: 'Manrope';
+  src: url('./fonts/manrope-latin-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Manrope';
+  src: url('./fonts/manrope-latin-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Manrope';
+  src: url('./fonts/manrope-latin-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Manrope';
+  src: url('./fonts/manrope-latin-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Manrope';
+  src: url('./fonts/manrope-latin-800.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---- Sora — display / headings ---- */
+@font-face {
+  font-family: 'Sora';
+  src: url('./fonts/sora-latin-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Sora';
+  src: url('./fonts/sora-latin-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Sora';
+  src: url('./fonts/sora-latin-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Sora';
+  src: url('./fonts/sora-latin-800.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
