@@ -1,12 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@shared/components/Card';
 import { Button } from '@shared/components/Button';
-import { PageHeader } from '@shared/components/PageHeader';
 import { Select, FormField } from '@shared/components/FormField';
 import { Skeleton } from '@shared/components/Skeleton';
 import { ErrorState } from '@shared/components/ErrorState';
 import { useToast } from '@shared/components/Toast';
+import { MarketsHeroArt } from '@shared/components/MarketsHeroArt';
+import { PairFlags } from '@shared/components/PairFlags';
+import {
+  ArrowRightIcon,
+  BellIcon,
+  CheckIcon,
+  ClockIcon,
+  MarketsIcon,
+  PlanIcon,
+} from '@shared/components/icons';
 import { analysisApi, userApi } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { usePrefsStore, effectiveZone, KNOWN_SESSIONS, type KnownSession } from '../store/prefs';
@@ -23,7 +32,38 @@ import { usePrefsStore, effectiveZone, KNOWN_SESSIONS, type KnownSession } from 
  *    an honest note — it is never fake-saved.
  * The setup-completion flag stays local (a per-device UX concern).
  * Skippable; Finish opens Home; the return path is Settings → Setup.
+ * R3b: presentation rebuilt to the study — gradient hero with the shared
+ * candlestick artwork, mint icon-chip section cards, gradient session
+ * pills and flag-pair starter rows. The study's live prices on the starter
+ * rows are NOT reproduced: the catalog API returns symbols only, so rows
+ * carry flags + symbol + the selection toggle and nothing else.
  */
+
+function SectionHeading({
+  icon,
+  title,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <span
+        aria-hidden="true"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-mint-wash)] text-[var(--color-accent)]"
+      >
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <h2 className="text-[17px] font-bold">{title}</h2>
+        <p className="mt-0.5 text-sm text-[var(--color-text-muted)]">{children}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function Setup() {
   const { user, setWatchlistLocal } = useAuth();
   const navigate = useNavigate();
@@ -143,27 +183,38 @@ export default function Setup() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <div
-        className="rounded-[var(--radius-lg)] p-5 text-white shadow-[var(--shadow-md)]"
-        style={{ background: 'var(--grad-hero)' }}
+      <section
+        aria-label="Set up your workspace"
+        className="relative overflow-hidden rounded-[var(--radius-hero)] p-6 text-white shadow-[var(--shadow-hero)]"
+        style={{ background: 'var(--gradient-session-hero)' }}
       >
-        <h1 className="text-2xl font-bold">Set up your workspace</h1>
-        <p className="mt-1 text-sm opacity-90">
-          Personalize your FX analysis environment to get started. Everything here can be
-          changed later in Settings.
-        </p>
-      </div>
-
-      <PageHeader title="Setup" subtitle="A few quick choices — all skippable." />
+        <MarketsHeroArt />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(90deg, rgba(3,40,28,0.55) 0%, rgba(3,40,28,0.2) 55%, rgba(3,40,28,0) 82%)',
+          }}
+        />
+        <div className="relative max-w-md">
+          <h1 className="text-[30px] leading-tight font-extrabold tracking-tight">
+            Set up your workspace
+          </h1>
+          <p className="mt-2 text-[15px] leading-snug text-white/90">
+            Personalize your FX analysis environment to get started. Everything here can be
+            changed later in Settings — and all of it is skippable.
+          </p>
+        </div>
+      </section>
 
       <Card>
-        <h2 className="font-bold">Timezone</h2>
-        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+        <SectionHeading icon={<ClockIcon size={22} />} title="Timezone">
           {prefsFallback
             ? 'Could not load your account preference, so the value below is this device’s saved choice. Finishing setup will try to sync it to your account.'
-            : 'Used to display session times. Saved to your account when you finish setup, so it follows you across devices.'}
-        </p>
-        <div className="mt-3">
+            : 'Set your working timezone for market analysis. Saved to your account when you finish setup, so it follows you across devices.'}
+        </SectionHeading>
+        <div className="mt-4">
           <FormField label="Display timezone">
             <Select value={zone} onChange={(e) => setZone(e.target.value)} aria-label="Display timezone">
               {zones.map((z) => (
@@ -177,98 +228,118 @@ export default function Setup() {
       </Card>
 
       <Card>
-        <h2 className="font-bold">Preferred sessions</h2>
-        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          Sessions you want to track. Saved to your account when you finish setup and used
-          as your default view preference.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Preferred sessions">
-          {KNOWN_SESSIONS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              aria-pressed={sessions.includes(s)}
-              onClick={() => toggleSession(s)}
-              className={`min-h-[44px] rounded-full border px-4 text-sm font-semibold ${
-                sessions.includes(s)
-                  ? 'border-transparent bg-[var(--color-accent)] text-[var(--color-accent-text)]'
-                  : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]'
-              }`}
-            >
-              {sessions.includes(s) ? '✓ ' : ''}
-              {s}
-            </button>
-          ))}
+        <SectionHeading icon={<MarketsIcon size={22} />} title="Trading Sessions">
+          Choose the market sessions you want to track. Saved to your account when you finish
+          setup and used as your default view preference.
+        </SectionHeading>
+        <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Preferred sessions">
+          {KNOWN_SESSIONS.map((s) => {
+            const active = sessions.includes(s);
+            return (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={active}
+                onClick={() => toggleSession(s)}
+                className={`inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-full px-5 text-[15px] font-bold transition-all active:scale-[0.98] ${
+                  active
+                    ? 'text-white shadow-[var(--shadow-sm)]'
+                    : 'bg-[var(--color-mint-wash)] text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]'
+                }`}
+                style={active ? { background: 'var(--gradient-primary-action)' } : undefined}
+              >
+                {active && <CheckIcon size={18} />}
+                {s}
+              </button>
+            );
+          })}
         </div>
       </Card>
 
       <Card>
-        <h2 className="font-bold">Starter watchlist</h2>
-        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          Pick the instruments to follow. This is saved to your account watchlist and used by
-          watchlist-scoped Radar runs.
-        </p>
+        <SectionHeading icon={<PlanIcon size={22} />} title="Starter Watchlist">
+          Select key instruments to follow for your analysis. This is saved to your account
+          watchlist and used by watchlist-scoped Radar runs.
+        </SectionHeading>
         {loading ? (
-          <div className="mt-3 space-y-2" role="status" aria-label="Loading symbols">
-            <Skeleton height={44} />
-            <Skeleton height={44} />
+          <div className="mt-4 space-y-2" role="status" aria-label="Loading symbols">
+            <Skeleton height={52} />
+            <Skeleton height={52} />
           </div>
         ) : loadError ? (
-          <div className="mt-3">
+          <div className="mt-4">
             <ErrorState message={loadError} onRetry={() => void load()} />
           </div>
         ) : (
-          <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Starter symbols">
-            {catalog.map((symbol) => (
-              <button
-                key={symbol}
-                type="button"
-                aria-pressed={selected.includes(symbol)}
-                onClick={() => toggleSymbol(symbol)}
-                className={`min-h-[40px] rounded-full border px-3 text-sm font-semibold ${
-                  selected.includes(symbol)
-                    ? 'border-transparent bg-[var(--color-accent-soft)] text-[var(--color-text)] outline outline-1 outline-[var(--color-accent)]'
-                    : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]'
-                }`}
-              >
-                {selected.includes(symbol) ? '✓ ' : ''}
-                {symbol}
-              </button>
-            ))}
+          <div className="mt-4 space-y-2" role="group" aria-label="Starter symbols">
+            {catalog.map((symbol) => {
+              const active = selected.includes(symbol);
+              return (
+                <button
+                  key={symbol}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => toggleSymbol(symbol)}
+                  className={`flex min-h-[52px] w-full items-center gap-3 rounded-[var(--radius-row)] border px-3 py-2 text-left transition-colors ${
+                    active
+                      ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]'
+                      : 'border-[var(--color-border-soft)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)]'
+                  }`}
+                >
+                  <PairFlags pair={symbol} size={34} />
+                  <span className="flex-1 text-[15px] font-bold">{symbol}</span>
+                  <span
+                    aria-hidden="true"
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] ${
+                      active
+                        ? 'text-white'
+                        : 'border-2 border-[var(--color-border-strong)] bg-[var(--color-surface)]'
+                    }`}
+                    style={active ? { background: 'var(--gradient-primary-action)' } : undefined}
+                  >
+                    {active && <CheckIcon size={16} />}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
-        <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+        <p className="mt-3 text-xs text-[var(--color-text-muted)]">
           {selected.length} selected (max 32).
         </p>
       </Card>
 
       <Card>
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="font-bold">Session alerts</h2>
-            <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-              Alerts are not available yet — there is no alerts service to save this to, so
-              this stays off and nothing is stored.
-            </p>
-          </div>
+          <SectionHeading icon={<BellIcon size={22} />} title="Session alerts">
+            Alerts are not available yet — there is no alerts service to save this to, so
+            this stays off and nothing is stored.
+          </SectionHeading>
           <button
             type="button"
             role="switch"
             aria-checked="false"
             aria-label="Session alerts (not available yet)"
             disabled
-            className="relative h-7 w-12 shrink-0 cursor-not-allowed rounded-full bg-[var(--color-border)] opacity-60"
+            className="relative mt-1 h-7 w-12 shrink-0 cursor-not-allowed rounded-full bg-[var(--color-border)] opacity-60"
           >
             <span className="absolute left-1 top-1 h-5 w-5 rounded-full bg-white" />
           </button>
         </div>
       </Card>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Button size="lg" className="flex-1" loading={saving} disabled={saving} onClick={() => void finish()}>
-          Finish setup
+      <div className="space-y-2">
+        <Button
+          size="lg"
+          className="w-full rounded-full text-white"
+          style={{ background: 'var(--gradient-primary-action)' }}
+          loading={saving}
+          disabled={saving}
+          onClick={() => void finish()}
+        >
+          Finish setup <ArrowRightIcon size={20} />
         </Button>
-        <Button size="lg" variant="ghost" className="flex-1" disabled={saving} onClick={skip}>
+        <Button size="lg" variant="ghost" className="w-full" disabled={saving} onClick={skip}>
           Skip for now
         </Button>
       </div>

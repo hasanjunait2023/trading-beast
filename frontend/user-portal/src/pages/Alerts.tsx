@@ -10,6 +10,13 @@ import { EmptyState } from '@shared/components/EmptyState';
 import { ErrorState } from '@shared/components/ErrorState';
 import { useToast } from '@shared/components/Toast';
 import {
+  BellIcon,
+  CheckIcon,
+  ClockIcon,
+  MoonIcon,
+  SendIcon,
+} from '@shared/components/icons';
+import {
   userApi,
   ApiError,
   type AlertRule,
@@ -25,6 +32,12 @@ import {
  * Other alert types are shown as unavailable, never as creatable options.
  * Toggles only show their new state after the server confirms the save
  * (handoff row 13).
+ * R3b: presentation rebuilt to the study — Telegram delivery card with a
+ * real linked/not-linked pill (the study's member count is not reproduced:
+ * no such figure exists), rules as divided rows with mint icon chips and
+ * gradient toggles, mint Quiet Hours card, full-width gradient Create
+ * button. The study's pair hero card is omitted: it would need a live
+ * price/zone for a specific pair, which no payload supplies here.
  */
 
 const SESSIONS = ['Asian', 'London', 'New York'] as const;
@@ -55,13 +68,14 @@ function Toggle({
       aria-label={label}
       disabled={busy}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
-        checked ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-border)]'
+      className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+        checked ? '' : 'bg-[var(--color-border)]'
       }`}
+      style={checked ? { background: 'var(--gradient-primary-action)' } : undefined}
     >
       <span
-        className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
-          checked ? 'translate-x-6' : 'translate-x-1'
+        className={`inline-block h-6 w-6 rounded-full bg-white shadow transition-transform ${
+          checked ? 'translate-x-7' : 'translate-x-1'
         }`}
       />
     </button>
@@ -206,13 +220,13 @@ export default function Alerts() {
   };
 
   const effectiveZone = prefs?.timezone ?? 'UTC';
+  const activeCount = rules.filter((r) => r.enabled).length;
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
       <PageHeader
         title="Alerts"
-        subtitle="Session-start alerts delivered to your Telegram. Checked every minute. Session-start alerts only for now — price alerts are not available yet."
-        actions={<Button onClick={() => setSheetOpen(true)}>Create Alert</Button>}
+        subtitle="Stay in sync with the FX market. Session-start alerts delivered to your Telegram — checked every minute. Session-start alerts only for now; price alerts are not available yet."
       />
 
       {loading ? (
@@ -225,10 +239,36 @@ export default function Alerts() {
         <ErrorState message={loadError} onRetry={() => void load()} />
       ) : (
         <>
-          {/* Delivery status — straight from the server status payload. */}
-          <Card>
-            <h2 className="text-[15px] font-semibold">Delivery status</h2>
-            <dl className="mt-3 space-y-2 text-sm">
+          {/* Delivery status — straight from the server status payload,
+              composed as the study's Telegram card. */}
+          <div className="rounded-[var(--radius-card-xl)] bg-[var(--color-mint-panel)] p-4 shadow-[var(--shadow-card-soft)] sm:p-5">
+            <div className="flex flex-wrap items-center gap-3.5">
+              <span
+                aria-hidden="true"
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] text-white"
+                style={{ background: 'linear-gradient(135deg, #2aabee, #1d7fc2)' }}
+              >
+                <SendIcon size={26} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-[19px] font-extrabold tracking-tight">TradingBeast Telegram</h2>
+                <p className="mt-0.5 text-sm text-[var(--color-text-muted)]">
+                  Session-start alerts are delivered to your Telegram account by the
+                  TradingBeast bot.
+                </p>
+              </div>
+              <span
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-bold ${
+                  status?.telegramLinked
+                    ? 'border-[var(--color-success)] bg-[var(--color-success-bg)] text-[var(--color-success)]'
+                    : 'border-[var(--color-border-strong)] bg-[var(--color-surface)] text-[var(--color-text-muted)]'
+                }`}
+              >
+                {status?.telegramLinked && <CheckIcon size={15} />}
+                {status?.telegramLinked ? 'Linked' : 'Not linked'}
+              </span>
+            </div>
+            <dl className="mt-4 space-y-2 border-t border-[var(--color-border-soft)] pt-3.5 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <dt className="text-[var(--color-text-muted)]">Telegram account</dt>
                 <dd className="font-medium">
@@ -252,9 +292,17 @@ export default function Alerts() {
                 Delivery is not configured on the server, so alerts cannot be sent yet. Your rules are saved and will be evaluated once delivery is configured.
               </p>
             )}
-          </Card>
+          </div>
 
           {/* Rules */}
+          <div className="flex items-end justify-between gap-3">
+            <h2 className="text-[22px] font-extrabold tracking-tight">My Alert Rules</h2>
+            {rules.length > 0 && (
+              <p className="tnum text-sm font-semibold text-[var(--color-accent)]">
+                {activeCount} active
+              </p>
+            )}
+          </div>
           {rules.length === 0 ? (
             <Card>
               <EmptyState
@@ -264,14 +312,20 @@ export default function Alerts() {
               />
             </Card>
           ) : (
-            <div className="space-y-2">
-              {rules.map((rule) => (
-                <Card key={rule.id}>
-                  <div className="flex flex-wrap items-center gap-3">
+            <Card className="py-1">
+              <div className="divide-y divide-[var(--color-border-soft)]">
+                {rules.map((rule) => (
+                  <div key={rule.id} className="flex flex-wrap items-center gap-3.5 py-3.5">
+                    <span
+                      aria-hidden="true"
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-mint-wash)] text-[var(--color-accent)]"
+                    >
+                      <ClockIcon size={24} />
+                    </span>
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold">{rule.session} session</p>
+                      <p className="text-[16px] font-bold">{rule.session} Session Start</p>
                       <p className="text-[13px] text-[var(--color-text-muted)]">
-                        Session start
+                        One Telegram message when the {rule.session} session opens
                         {rule.lastTriggeredAt
                           ? ` · Last sent ${fmtWhen(rule.lastTriggeredAt)}`
                           : ' · Not sent yet'}
@@ -292,17 +346,26 @@ export default function Alerts() {
                       Delete
                     </Button>
                   </div>
-                </Card>
-              ))}
-            </div>
+                ))}
+              </div>
+            </Card>
           )}
 
           {/* Quiet hours */}
-          <Card>
-            <div className="flex flex-wrap items-center gap-3">
+          <div className="rounded-[var(--radius-card-xl)] bg-[var(--color-mint-panel)] p-4 shadow-[var(--shadow-card-soft)] sm:p-5">
+            <div className="flex flex-wrap items-center gap-3.5">
+              <span
+                aria-hidden="true"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--color-mint-wash)] text-[var(--color-accent)]"
+              >
+                <MoonIcon size={24} />
+              </span>
               <div className="min-w-0 flex-1">
-                <h2 className="text-[15px] font-semibold">Quiet hours</h2>
+                <h2 className="text-[17px] font-bold">Quiet Hours</h2>
                 <p className="text-[13px] text-[var(--color-text-muted)]">
+                  {prefs?.quietHoursEnabled
+                    ? `Active: ${prefs.quietStart ?? '22:00'} – ${prefs.quietEnd ?? '06:00'} (${effectiveZone})`
+                    : 'Off — alerts are delivered at any hour.'}{' '}
                   Alerts are held while quiet hours are active, in your account timezone ({effectiveZone}
                   {prefs?.timezone ? '' : ' — no account timezone set, UTC is used'}).
                 </p>
@@ -332,7 +395,16 @@ export default function Alerts() {
                 {quietSaving ? 'Saving…' : 'Save quiet hours'}
               </Button>
             </div>
-          </Card>
+          </div>
+
+          <Button
+            size="lg"
+            className="w-full rounded-full text-white"
+            style={{ background: 'var(--gradient-primary-action)' }}
+            onClick={() => setSheetOpen(true)}
+          >
+            <BellIcon size={20} /> Create alert
+          </Button>
         </>
       )}
 

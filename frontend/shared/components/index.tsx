@@ -39,3 +39,4 @@ export * from './PairFlags';
 export * from './Sparkline';
 export * from './SessionHeroArt';
 export * from './SessionHero';
+export * from './RadarArt';

@@ -229,6 +229,103 @@ function InitialsMedallion({ label, size }: { label: string; size: number }) {
   );
 }
 
+export interface FlagTileProps {
+  pair: string;
+  base?: string | null;
+  quote?: string | null;
+  kind?: 'fx' | 'asset';
+  /** Display name used for asset detection / fallback initials. */
+  name?: string;
+  /** Tile edge length in px (references 09/11 use ~52). */
+  size?: number;
+  className?: string;
+}
+
+/**
+ * Rounded-square flag tile (references 09/11): the base currency's flag
+ * fills the tile for FX pairs; assets get their medallion palette as a
+ * tile with the asset glyph; unknown symbols fall back to initials. Used
+ * by the Session Plan shortlist and Journal trade rows, where the studies
+ * show a single-flag tile rather than the overlapping pair.
+ */
+export function FlagTile({ pair, base, quote, kind, name, size = 52, className = '' }: FlagTileProps) {
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const label = name ?? pair;
+  const radius = Math.round(size * 0.26);
+  const asset = kind === 'asset' || !pair.includes('/') ? (assetKindFor(label) ?? assetKindFor(pair)) : null;
+  if (asset) {
+    const palette: Record<AssetKind, [string, string]> = {
+      gold: ['#f6c453', '#d9930d'],
+      silver: ['#e8edf2', '#9aa8b5'],
+      oil: ['#3a4450', '#141a21'],
+      bitcoin: ['#f7931a', '#e2761b'],
+    };
+    const [from, to] = palette[asset];
+    return (
+      <span
+        role="img"
+        aria-label={label}
+        className={`inline-flex shrink-0 items-center justify-center shadow-[0_2px_8px_rgba(16,55,40,0.15)] ${className}`}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: radius,
+          background: `linear-gradient(135deg, ${from}, ${to})`,
+        }}
+      >
+        {asset === 'bitcoin' ? (
+          <span className="font-extrabold text-white" style={{ fontSize: Math.round(size * 0.5) }}>₿</span>
+        ) : asset === 'oil' ? (
+          <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 24 24" fill="none" stroke="#f2f5f7" strokeWidth="2" aria-hidden="true">
+            <path d="M12 3c3.5 4.4 5.5 7.6 5.5 10.2a5.5 5.5 0 1 1-11 0C6.5 10.6 8.5 7.4 12 3z" />
+          </svg>
+        ) : (
+          <svg width={size * 0.62} height={size * 0.62} viewBox="0 0 48 48" aria-hidden="true">
+            <g fill="#fff8e1" stroke={asset === 'gold' ? '#b97e0a' : '#7d8ea0'} strokeWidth="1">
+              <path d="M10 30h12l-2.4-6H12.4z" />
+              <path d="M26 30h12l-2.4-6h-7.2z" />
+              <path d="M18 22h12l-2.4-6h-7.2z" />
+            </g>
+          </svg>
+        )}
+      </span>
+    );
+  }
+  const currencies = parsePairCurrencies(pair, base, quote);
+  const baseFlag = currencies ? flagForCurrency(currencies[0]) : null;
+  if (!baseFlag) {
+    return (
+      <span
+        role="img"
+        aria-label={label}
+        className={`inline-flex shrink-0 items-center justify-center bg-[var(--color-mint-wash)] font-bold text-[var(--color-accent)] shadow-[0_2px_8px_rgba(16,55,40,0.12)] ${className}`}
+        style={{ width: size, height: size, borderRadius: radius, fontSize: Math.round(size * 0.34) }}
+      >
+        {label.replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase() || '?'}
+      </span>
+    );
+  }
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      role="img"
+      aria-label={label}
+      className={`shrink-0 shadow-[0_2px_8px_rgba(16,55,40,0.15)] ${className}`}
+      style={{ borderRadius: radius }}
+    >
+      <clipPath id={`tb-tile-${uid}`}>
+        <rect width="48" height="48" rx="12" />
+      </clipPath>
+      <g clipPath={`url(#tb-tile-${uid})`}>
+        <FlagArt code={baseFlag} />
+      </g>
+      <rect width="47" height="47" x="0.5" y="0.5" rx="12" fill="none" stroke="rgba(16,29,44,0.08)" strokeWidth="1" />
+    </svg>
+  );
+}
+
 export interface PairFlagsProps {
   pair: string;
   base?: string | null;

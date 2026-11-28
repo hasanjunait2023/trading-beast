@@ -4,7 +4,10 @@ import { Card } from '@shared/components/Card';
 import { Button } from '@shared/components/Button';
 import { PageHeader } from '@shared/components/PageHeader';
 import { Input, Textarea, FormField } from '@shared/components/FormField';
-import { PairRow } from '@shared/components/PairRow';
+import { FlagTile } from '@shared/components/PairFlags';
+import { StatusPill } from '@shared/components/StatusPill';
+import { CheckIcon, CrosshairIcon, ShieldCheckIcon } from '@shared/components/icons';
+import { nextOpening } from '@shared/radar/adapter';
 import { ScoreEvidence } from '@shared/components/ScoreEvidence';
 import { DataFreshness } from '@shared/components/DataFreshness';
 import { Skeleton } from '@shared/components/Skeleton';
@@ -20,7 +23,9 @@ import {
 } from '../services/api';
 import { hydrateLatestRadar } from '../services/radarHydration';
 import { useRadarStore } from '../store/radarStore';
-import { usePrefsStore, KNOWN_SESSIONS, type KnownSession } from '../store/prefs';
+import { useSessions } from '../hooks/useSessions';
+import { fmtSessionRange } from '../utils/sessionFormat';
+import { usePrefsStore, effectiveZone, KNOWN_SESSIONS, type KnownSession } from '../store/prefs';
 import type { RadarResultView } from '@shared/radar/adapter';
 
 /**
@@ -37,6 +42,8 @@ export default function Plan() {
   const toast = useToast();
   const userId = user?.id ?? '';
   const preferred = usePrefsStore((s) => s.preferredSessions);
+  const savedTz = usePrefsStore((s) => s.timezone);
+  const { overview: sessionsOverview } = useSessions();
   const results = useRadarStore((s) => s.results);
   const lastKey = useRadarStore((s) => s.lastKey);
 
@@ -209,47 +216,103 @@ export default function Plan() {
 
   const topPair = stored?.focus[0];
 
+  // Hero dressing (reference 09): the next session to open, from the free
+  // sessions read. Hidden when the read is unavailable — never invented.
+  const nextOpen = sessionsOverview ? nextOpening(sessionsOverview) : null;
+  const displayZone = effectiveZone(savedTz);
+  const planStatusLabel = !plan
+    ? 'Not created'
+    : status === 'READY'
+      ? 'Ready'
+      : 'Draft saved';
+
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <PageHeader
         title="Session Plan"
-        subtitle={`Plan for ${planDate} (UTC) — one draft per session, saved to your account.`}
+        subtitle={`Your focused plan for the ${session} session.`}
       />
 
-      <Card>
-        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Session">
-          {KNOWN_SESSIONS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              aria-pressed={session === s}
-              onClick={() => setSession(s)}
-              className={`min-h-[44px] rounded-full border px-4 text-sm font-semibold ${
-                session === s
-                  ? 'border-transparent bg-[var(--color-accent)] text-[var(--color-accent-text)]'
-                  : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]'
-              }`}
-            >
-              {s}
-            </button>
-          ))}
-          {plan && (
-            <span
-              className={`ml-auto inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide ${
-                status === 'READY'
-                  ? 'bg-[var(--color-accent-soft)] text-[var(--color-text)]'
-                  : 'bg-[var(--color-warning-bg)] text-[var(--color-text)]'
-              }`}
-            >
-              {status === 'READY' ? 'READY' : 'DRAFT'} · v{plan.version}
-            </span>
-          )}
+      {/* Plan hero (reference 09). */}
+      <section
+        aria-label={`${session} session plan`}
+        className="relative overflow-hidden rounded-[var(--radius-hero)] p-6 text-white shadow-[var(--shadow-hero)]"
+        style={{ background: 'var(--gradient-session-hero)' }}
+      >
+        <div
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(90deg, rgba(3,40,28,0.45) 0%, rgba(3,40,28,0.1) 60%, rgba(3,40,28,0) 85%)',
+          }}
+        />
+        <div className="relative flex flex-wrap items-end justify-between gap-5">
+          <div className="min-w-0 max-w-[380px]">
+            <p className="text-[13px] font-bold tracking-[0.22em] text-[#a9ecc9]">
+              {session.toUpperCase()} SESSION
+            </p>
+            <h2 className="mt-1.5 text-[34px] leading-none font-extrabold tracking-tight">
+              Trade the plan.
+            </h2>
+            <p className="mt-2.5 text-[15px] leading-snug text-white/90">
+              Turn the latest Radar shortlist into a focused plan for this session.
+            </p>
+            <p className="tnum mt-3 text-[12.5px] text-white/70">
+              Plan date {planDate} (UTC) — one draft per session, saved to your account.
+            </p>
+          </div>
+          <div className="w-full max-w-[280px] space-y-2.5">
+            {nextOpen && (
+              <div className="rounded-[var(--radius-lg)] bg-white p-3.5 text-[var(--color-text)] shadow-[var(--shadow-md)]">
+                <p className="text-[11px] font-bold tracking-[0.14em] text-[var(--color-text-faint)]">
+                  NEXT SESSION
+                </p>
+                <p className="mt-0.5 text-[17px] font-extrabold">{nextOpen.session}</p>
+                <p className="tnum text-[13px] text-[var(--color-text-muted)]">
+                  {fmtSessionRange(nextOpen.startMs, nextOpen.endMs, displayZone)}
+                </p>
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-3 rounded-full bg-[var(--color-mint-wash)] px-4 py-2.5 text-[var(--color-text)]">
+              <span className="text-[12px] font-semibold text-[var(--color-text-muted)]">
+                Plan status
+              </span>
+              <span className="text-[13.5px] font-extrabold">
+                {planStatusLabel}
+                {plan ? ` · v${plan.version}` : ''}
+              </span>
+            </div>
+          </div>
         </div>
-        <p className="mt-3 text-sm text-[var(--color-text-muted)]">
-          Today&apos;s events: <strong>Unknown</strong> — no economic calendar feed is
-          connected yet, so event risk cannot be shown here.
-        </p>
-      </Card>
+      </section>
+
+      {/* Session segmented control. */}
+      <div
+        className="flex rounded-full bg-[var(--color-control-track)] p-1"
+        role="group"
+        aria-label="Session"
+      >
+        {KNOWN_SESSIONS.map((s) => (
+          <button
+            key={s}
+            type="button"
+            aria-pressed={session === s}
+            onClick={() => setSession(s)}
+            className={`min-h-[46px] flex-1 rounded-full px-3 text-[15px] font-bold transition-colors ${
+              session === s ? 'text-white shadow-[var(--shadow-sm)]' : 'text-[var(--color-text)]'
+            }`}
+            style={session === s ? { background: 'var(--gradient-primary-action)' } : undefined}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+
+      <p className="text-sm text-[var(--color-text-muted)]">
+        Today&apos;s events: <strong>Unknown</strong> — no economic calendar feed is
+        connected yet, so event risk cannot be shown here.
+      </p>
 
       {loading ? (
         <div className="space-y-3" role="status" aria-label="Loading plan">
@@ -262,9 +325,22 @@ export default function Plan() {
         <>
           {/* Shortlist from the stored/hydrated Radar result — never a paid run. */}
           <section aria-label="Shortlist" className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-lg font-bold">Shortlist · {session}</h2>
-              {stored && <DataFreshness timestamp={stored.timestampMs} label="Scanned" />}
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <h2 className="text-[22px] font-extrabold tracking-tight">Shortlist</h2>
+                <p className="mt-0.5 text-sm text-[var(--color-text-muted)]">
+                  From the latest Radar result.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {stored && <DataFreshness timestamp={stored.timestampMs} label="Scanned" />}
+                <Link
+                  to="/app/watchlist"
+                  className="text-sm font-semibold text-[var(--color-link)] underline underline-offset-4"
+                >
+                  Edit Shortlist
+                </Link>
+              </div>
             </div>
             {stored ? (
               <>
@@ -276,20 +352,26 @@ export default function Plan() {
                     />
                   </Card>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="divide-y divide-[var(--color-border-soft)] rounded-[var(--radius-card-xl)] border border-[var(--color-border-soft)] bg-[var(--color-surface)] px-4 shadow-[var(--shadow-card-soft)]">
                     {stored.focus.map((p) => (
-                      <PairRow
+                      <Link
                         key={p.pair}
-                        pair={p.displayName}
-                        status={p.status}
-                        bias={p.bias}
-                        score={p.score}
-                        freshness={
-                          p.stale ? (
-                            <span className="font-semibold text-[var(--color-warning)]">Stale data</span>
-                          ) : undefined
-                        }
-                      />
+                        to={`/app/markets/${p.pair}`}
+                        className="flex min-h-[72px] items-center gap-3.5 py-3"
+                        aria-label={`${p.displayName}, ${p.status}, score ${p.score}`}
+                      >
+                        <FlagTile pair={p.pair} base={p.base} quote={p.quote} kind={p.kind} name={p.displayName} size={50} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[17px] font-bold">{p.displayName}</span>
+                          {p.stale && (
+                            <span className="block text-[12.5px] font-semibold text-[var(--color-warning)]">
+                              Stale data
+                            </span>
+                          )}
+                        </span>
+                        <StatusPill status={p.status} />
+                        <span className="tnum w-10 text-right text-[22px] font-extrabold">{p.score}</span>
+                      </Link>
                     ))}
                   </div>
                 )}
@@ -397,7 +479,7 @@ export default function Plan() {
 
               <Card className="space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="font-bold">Checklist</h2>
+                  <h2 className="text-[19px] font-extrabold tracking-tight">Pre-Session Checklist</h2>
                   <div className="flex gap-2" role="group" aria-label="Plan status">
                     {(['DRAFT', 'READY'] as const).map((s) => (
                       <button
@@ -421,38 +503,73 @@ export default function Plan() {
                     No checklist items yet. Add the checks you run before trading this session.
                   </p>
                 ) : (
-                  <ul className="space-y-2">
-                    {checklist.map((item) => (
-                      <li key={item.id} className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={item.done}
-                          aria-label={`Mark “${item.label}” done`}
-                          onChange={() =>
-                            setChecklist((prev) =>
-                              prev.map((i) => (i.id === item.id ? { ...i, done: !i.done } : i)),
-                            )
-                          }
-                          className="h-5 w-5 shrink-0"
+                  <>
+                    <ul className="divide-y divide-[var(--color-border-soft)]">
+                      {checklist.map((item) => (
+                        <li key={item.id} className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            aria-pressed={item.done}
+                            aria-label={`Mark “${item.label}” ${item.done ? 'not done' : 'done'}`}
+                            onClick={() =>
+                              setChecklist((prev) =>
+                                prev.map((i) => (i.id === item.id ? { ...i, done: !i.done } : i)),
+                              )
+                            }
+                            className="flex min-h-[52px] flex-1 items-center gap-3 py-1.5 text-left"
+                          >
+                            <span
+                              aria-hidden="true"
+                              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-[9px] border ${
+                                item.done
+                                  ? 'border-transparent text-white'
+                                  : 'border-[var(--color-border-strong)] text-transparent'
+                              }`}
+                              style={item.done ? { background: 'var(--gradient-primary-action)' } : undefined}
+                            >
+                              <CheckIcon size={16} />
+                            </span>
+                            <span
+                              className={`text-[15.5px] font-medium ${item.done ? 'text-[var(--color-text-muted)] line-through' : ''}`}
+                            >
+                              {item.label}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Remove “${item.label}”`}
+                            onClick={() =>
+                              setChecklist((prev) => prev.filter((i) => i.id !== item.id))
+                            }
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)]"
+                          >
+                            ✕
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <div>
+                      <div
+                        className="h-2.5 overflow-hidden rounded-full bg-[var(--color-mint-wash)]"
+                        role="progressbar"
+                        aria-valuemin={0}
+                        aria-valuemax={checklist.length}
+                        aria-valuenow={checklist.filter((i) => i.done).length}
+                        aria-label="Checklist progress"
+                      >
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${(checklist.filter((i) => i.done).length / checklist.length) * 100}%`,
+                            background: 'var(--gradient-primary-action)',
+                          }}
                         />
-                        <span
-                          className={`flex-1 text-sm ${item.done ? 'text-[var(--color-text-muted)] line-through' : ''}`}
-                        >
-                          {item.label}
-                        </span>
-                        <button
-                          type="button"
-                          aria-label={`Remove “${item.label}”`}
-                          onClick={() =>
-                            setChecklist((prev) => prev.filter((i) => i.id !== item.id))
-                          }
-                          className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)]"
-                        >
-                          ✕
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                      </div>
+                      <p className="tnum mt-1.5 text-[13px] text-[var(--color-text-muted)]">
+                        {checklist.filter((i) => i.done).length} of {checklist.length} complete
+                      </p>
+                    </div>
+                  </>
                 )}
                 <div className="flex gap-2">
                   <div className="flex-1">
@@ -477,29 +594,49 @@ export default function Plan() {
               </Card>
 
               <Card className="space-y-3">
-                <FormField label="Invalidation">
-                  <Textarea
-                    value={invalidation}
-                    onChange={(e) => setInvalidation(e.target.value)}
-                    rows={3}
-                    placeholder="What would make this plan wrong? e.g. price closes back inside the opening range…"
-                  />
-                </FormField>
-                <FormField label="Risk notes">
-                  <Textarea
-                    value={riskNotes}
-                    onChange={(e) => setRiskNotes(e.target.value)}
-                    rows={3}
-                    placeholder="Position sizing, news risk, anything to be careful about…"
-                  />
-                </FormField>
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-[var(--color-mint-wash)] text-[var(--color-accent)]">
+                    <CrosshairIcon size={23} />
+                  </span>
+                  <h2 className="text-[17px] font-extrabold tracking-tight">Invalidation</h2>
+                </div>
+                <Textarea
+                  aria-label="Invalidation"
+                  value={invalidation}
+                  onChange={(e) => setInvalidation(e.target.value)}
+                  rows={3}
+                  placeholder="Add what would make you skip or exit a setup."
+                  className="rounded-[var(--radius-input)] border-transparent bg-[var(--color-mint-panel)]"
+                />
               </Card>
 
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button size="lg" className="flex-1" loading={saving} disabled={saving} onClick={() => void save()}>
-                  Save plan
-                </Button>
-              </div>
+              <Card className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-[var(--color-mint-wash)] text-[var(--color-accent)]">
+                    <ShieldCheckIcon size={23} />
+                  </span>
+                  <h2 className="text-[17px] font-extrabold tracking-tight">Risk Notes</h2>
+                </div>
+                <Textarea
+                  aria-label="Risk notes"
+                  value={riskNotes}
+                  onChange={(e) => setRiskNotes(e.target.value)}
+                  rows={3}
+                  placeholder="Position sizing, news risk, anything to be careful about…"
+                  className="rounded-[var(--radius-input)] border-transparent bg-[var(--color-mint-panel)]"
+                />
+              </Card>
+
+              <Button
+                size="lg"
+                className="min-h-[56px] w-full rounded-full text-[17px]"
+                style={{ background: 'var(--gradient-primary-action)' }}
+                loading={saving}
+                disabled={saving}
+                onClick={() => void save()}
+              >
+                Save Plan
+              </Button>
               <p className="text-xs text-[var(--color-text-muted)]">
                 Saving is explicit — edits stay on this screen until you press Save plan.
               </p>

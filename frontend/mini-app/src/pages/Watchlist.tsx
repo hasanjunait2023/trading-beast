@@ -6,8 +6,11 @@ import { Skeleton } from '@shared/components/Skeleton';
 import { EmptyState } from '@shared/components/EmptyState';
 import { ErrorState } from '@shared/components/ErrorState';
 import { useToast } from '@shared/components/Toast';
-import { BiasText } from '@shared/components/Bias';
-import { StatusPill } from '@shared/components/StatusPill';
+import { PairFlags } from '@shared/components/PairFlags';
+import { Sparkline } from '@shared/components/Sparkline';
+import { GripIcon } from '@shared/components/icons';
+import { parsePairCurrencies } from '@shared/radar/flags';
+import type { Bias } from '@shared/design-tokens';
 import { analysisApi, userApi } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { useRadarStore } from '../store/radarStore';
@@ -20,7 +23,46 @@ import { haptics } from '../telegram';
  * latest list wins); on failure the prior list is restored and an error toast
  * is shown. Rows are annotated with score/bias/status ONLY when a stored
  * Radar result contains that pair — no catalog scores are invented.
+ * R3b: rows rebuilt to the study — ranked cards with flag pairs, the
+ * bias + score pill, the scan-time price and a real sparkline when (and
+ * only when) a stored result supplies the series. The study's % change
+ * is NOT reproduced: no payload defines a reference close for it. The
+ * study's gradient hero is not repeated here — this page renders inside
+ * the More tab, which already provides the screen chrome.
  */
+
+/** Full currency names for row subtitles (same local map as Markets, R1 —
+ *  the catalog's FX name is just the pair code). */
+const CURRENCY_NAMES: Record<string, string> = {
+  EUR: 'Euro',
+  GBP: 'British Pound',
+  USD: 'US Dollar',
+  JPY: 'Japanese Yen',
+  CHF: 'Swiss Franc',
+  AUD: 'Australian Dollar',
+  NZD: 'New Zealand Dollar',
+  CAD: 'Canadian Dollar',
+};
+
+function fxFullName(base?: string | null, quote?: string | null): string | undefined {
+  if (base && quote && CURRENCY_NAMES[base] && CURRENCY_NAMES[quote]) {
+    return `${CURRENCY_NAMES[base]} / ${CURRENCY_NAMES[quote]}`;
+  }
+  return undefined;
+}
+
+const BIAS_PILL: Record<Bias, string> = {
+  bullish: 'bg-[var(--color-success-bg)] text-[var(--color-bullish)]',
+  bearish: 'bg-[var(--color-danger-bg)] text-[var(--color-bearish)]',
+  neutral: 'bg-[var(--color-unavailable-bg)] text-[var(--color-unavailable-text)]',
+};
+
+const BIAS_LABEL: Record<Bias, string> = {
+  bullish: 'Bullish',
+  bearish: 'Bearish',
+  neutral: 'Neutral',
+};
+
 export default function Watchlist() {
   const { user, setWatchlistLocal } = useAuth();
   const toast = useToast();
@@ -131,7 +173,7 @@ export default function Watchlist() {
   if (loading) {
     return (
       <div className="space-y-3 px-4" role="status" aria-label="Loading watchlist">
-        <Skeleton height={56} /><Skeleton height={56} /><Skeleton height={56} />
+        <Skeleton height={72} /><Skeleton height={72} /><Skeleton height={72} />
       </div>
     );
   }
@@ -142,10 +184,10 @@ export default function Watchlist() {
   return (
     <div className="space-y-4 px-4">
       <div>
-        <h1 className="text-2xl font-bold">Watchlist</h1>
-        <p className="text-sm text-[var(--color-text-muted)]">
-          Pairs used for your personalised Radar runs ({list.length}/32)
-          {saving ? ' · Saving…' : ''}
+        <h2 className="text-[22px] font-extrabold tracking-tight">Your saved instruments</h2>
+        <p className="mt-0.5 text-sm text-[var(--color-text-muted)]">
+          With discretionary scores and latest market bias — pairs used for your personalised
+          Radar runs ({list.length}/32){saving ? ' · Saving…' : ''}
         </p>
       </div>
 
@@ -154,30 +196,95 @@ export default function Watchlist() {
           <EmptyState title="Your watchlist is empty" message="Add pairs from the catalog below — they will be used when you run Radar on your watchlist." />
         </Card>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {list.map((pair, i) => {
             const evidence = user ? findPair(user.id, pair) : undefined;
+            const currencies = parsePairCurrencies(pair, evidence?.base, evidence?.quote);
+            const fullName = evidence
+              ? fxFullName(evidence.base, evidence.quote)
+              : currencies
+                ? fxFullName(currencies[0], currencies[1])
+                : undefined;
+            const sparkTone =
+              evidence?.spark && evidence.spark.length >= 2
+                ? evidence.spark[evidence.spark.length - 1] >= evidence.spark[0]
+                  ? 'positive'
+                  : 'negative'
+                : 'neutral';
             return (
-              <Card key={pair} className="flex items-center gap-2 py-3">
-                <span className="tnum w-6 text-center text-sm font-bold text-[var(--color-text-muted)]">{i + 1}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold">{evidence?.displayName ?? pair}</p>
-                  {evidence && (
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[13px]">
-                      <StatusPill status={evidence.status} />
-                      <BiasText bias={evidence.bias} />
-                      <span className="tnum font-semibold">{evidence.score} pts</span>
-                      {evidence.stale && <span className="font-semibold text-[var(--color-warning)]">Stale</span>}
-                    </p>
-                  )}
+              <Card key={pair} className="py-3.5">
+                <div className="flex items-start gap-2.5">
+                  <span aria-hidden="true" className="mt-1 shrink-0 text-[var(--color-text-faint)]">
+                    <GripIcon size={16} />
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className="tnum mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-mint-wash)] text-sm font-extrabold text-[var(--color-accent)]"
+                  >
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2.5">
+                      <PairFlags
+                        pair={pair}
+                        base={evidence?.base}
+                        quote={evidence?.quote}
+                        kind={evidence?.kind}
+                        name={evidence?.displayName}
+                        size={36}
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate text-[19px] leading-tight font-extrabold tracking-tight">
+                          {pair}
+                        </p>
+                        {fullName && (
+                          <p className="truncate text-[12.5px] text-[var(--color-text-muted)]">{fullName}</p>
+                        )}
+                      </div>
+                    </div>
+                    {evidence?.live != null && (
+                      <p className="tnum mt-2 text-[17px] font-bold">
+                        {evidence.live.toFixed(evidence.dec)}
+                        <span className="ml-2 text-[11.5px] font-semibold text-[var(--color-text-faint)]">
+                          at last scan
+                        </span>
+                      </p>
+                    )}
+                    {evidence?.spark && (
+                      <div className="mt-1.5">
+                        <Sparkline
+                          values={evidence.spark}
+                          tone={sparkTone}
+                          width={150}
+                          height={38}
+                          label={`${pair} hourly closes from the latest stored scan`}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    {evidence && (
+                      <span className="inline-flex items-center gap-2 rounded-full bg-[var(--color-mint-wash)] py-1 pl-1 pr-2.5">
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${BIAS_PILL[evidence.bias]}`}>
+                          {BIAS_LABEL[evidence.bias]}
+                        </span>
+                        <span className="tnum text-[12px] font-semibold">
+                          Score <span className="text-[14px] font-extrabold">{evidence.score}</span>
+                        </span>
+                      </span>
+                    )}
+                    {evidence?.stale && (
+                      <span className="text-[11.5px] font-bold text-[var(--color-warning)]">Stale</span>
+                    )}
+                    <div className="flex items-center">
+                      <button type="button" aria-label={`Move ${pair} up`} disabled={i === 0} onClick={() => move(i, -1)}
+                        className="flex h-8 w-8 items-center justify-center rounded text-[var(--color-text-muted)] disabled:opacity-30">▲</button>
+                      <button type="button" aria-label={`Move ${pair} down`} disabled={i === list.length - 1} onClick={() => move(i, 1)}
+                        className="flex h-8 w-8 items-center justify-center rounded text-[var(--color-text-muted)] disabled:opacity-30">▼</button>
+                      <Button variant="ghost" size="sm" ariaLabel={`Remove ${pair}`} onClick={() => remove(pair)}>✕</Button>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex shrink-0 flex-col">
-                  <button type="button" aria-label={`Move ${pair} up`} disabled={i === 0} onClick={() => move(i, -1)}
-                    className="flex h-8 w-9 items-center justify-center rounded text-[var(--color-text-muted)] disabled:opacity-30">▲</button>
-                  <button type="button" aria-label={`Move ${pair} down`} disabled={i === list.length - 1} onClick={() => move(i, 1)}
-                    className="flex h-8 w-9 items-center justify-center rounded text-[var(--color-text-muted)] disabled:opacity-30">▼</button>
-                </div>
-                <Button variant="ghost" size="sm" ariaLabel={`Remove ${pair}`} onClick={() => remove(pair)}>✕</Button>
               </Card>
             );
           })}
@@ -194,7 +301,8 @@ export default function Watchlist() {
       ) : (
         <div className="space-y-2">
           {addable.map((pair) => (
-            <Card key={pair} className="flex items-center gap-2 py-2.5">
+            <Card key={pair} className="flex items-center gap-3 py-2.5">
+              <PairFlags pair={pair} size={32} />
               <p className="flex-1 font-semibold">{pair}</p>
               <Button variant="secondary" size="sm" onClick={() => add(pair)} disabled={list.length >= 32}>
                 + Add
