@@ -251,6 +251,8 @@ export const plansApi = {
     id: string,
     patch: {
       checklist?: PlanChecklistItem[];
+      invalidation?: string | null;
+      riskNotes?: string | null;
       status?: string;
       pinnedRunId?: string | null;
       version: number;
