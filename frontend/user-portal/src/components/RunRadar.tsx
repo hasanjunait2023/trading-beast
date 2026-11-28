@@ -147,6 +147,15 @@ export function RunRadar({ open, session, scope, watchlist, onClose, onSuccess }
         <Button
           onClick={() => {
             onClose();
+            navigate('/app/membership', { state: { section: 'plans' } });
+          }}
+        >
+          See upgrade options
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            onClose();
             navigate('/app/credits');
           }}
         >
@@ -219,6 +228,27 @@ export function RunRadar({ open, session, scope, watchlist, onClose, onSuccess }
         confirmed run spends credits.
       </p>
 
+      {phase === 'confirm' && balance !== null && cost !== null && balance < cost && (
+        <div role="status" className="rounded-[var(--radius-md)] bg-[var(--color-warning-bg)] p-3 text-sm">
+          <p className="font-semibold">Your balance doesn't cover this run yet</p>
+          <p className="mt-1">
+            You need {cost} credits for a Radar run. Your next daily grant lands
+            at 00:00 UTC — or{' '}
+            <button
+              type="button"
+              className="font-semibold text-[var(--color-link)] underline"
+              onClick={() => {
+                onClose();
+                navigate('/app/membership', { state: { section: 'plans' } });
+              }}
+            >
+              see the planned Pro plan
+            </button>
+            .
+          </p>
+        </div>
+      )}
+
       {phase === 'running' && <p role="status">Scanning… keep this dialog open.</p>}
       {phase === 'success' && (
         <p role="status" className="font-semibold text-[var(--color-success)]">
@@ -229,8 +259,9 @@ export function RunRadar({ open, session, scope, watchlist, onClose, onSuccess }
         <div role="alert" className="rounded-[var(--radius-md)] bg-[var(--color-danger-bg)] p-3">
           <p className="font-semibold text-[var(--color-danger)]">Not enough credits</p>
           <p className="mt-1">
-            This run costs {cost ?? '—'} credits and your balance is {balance ?? '—'}. Credits
-            are granted daily — see the Credits page for your balance, daily grant and scan cost.
+            You need {cost ?? '—'} credits for a Radar run and your balance is{' '}
+            {balance ?? '—'}. Credits are granted daily — or see how the planned
+            Pro plan keeps your wallet ahead of every session.
           </p>
         </div>
       )}
