@@ -64,5 +64,34 @@ body {
   animation: tb-page-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Onboarding step transition: gentle slide + fade between steps. */
+@keyframes tb-step-in {
+  from { opacity: 0; transform: translateX(18px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.tb-step-in {
+  animation: tb-step-in 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Success micro-animation (run completion / onboarding done): a soft pop
+   with a slight overshoot, CSS only — pairs with the Telegram success
+   haptic fired by the caller. */
+@keyframes tb-success-pop {
+  0% { opacity: 0; transform: scale(0.55); }
+  60% { opacity: 1; transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.tb-success-pop {
+  animation: tb-success-pop 380ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes tb-check-draw {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+.tb-check-draw {
+  animation: tb-check-draw 300ms ease-out 120ms both;
+}
+
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }

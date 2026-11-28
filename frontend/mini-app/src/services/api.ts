@@ -151,6 +151,25 @@ export const authApi = {
   logoutAll: () => request('POST', '/auth/logout-all'),
 };
 
+export interface UserProfile {
+  email: string | null;
+  phone: string | null;
+  profileCompleted: boolean;
+  hasPassword: boolean;
+}
+
+export const profileApi = {
+  /**
+   * Onboarding profile (email / phone / password). The endpoint is built in
+   * parallel with this UI — callers MUST tolerate failure (404 while the
+   * backend is not deployed yet) and fall back to the plain app, never trap
+   * the user behind onboarding.
+   */
+  get: () => request<UserProfile>('GET', '/user/profile'),
+  complete: (data: { email: string; phone: string; password: string }) =>
+    request<UserProfile>('POST', '/user/profile/complete', data),
+};
+
 export const userApi = {
   me: () => request<User>('GET', '/user/me'),
   credits: () => request<CreditsData>('GET', '/user/credits'),

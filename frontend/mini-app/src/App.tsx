@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState, type FormEvent, type ReactNode } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { BottomNav } from '@shared/components/BottomNav';
 import { Button } from '@shared/components/Button';
 import { Card } from '@shared/components/Card';
@@ -12,6 +12,14 @@ import {
   PlanIcon,
 } from '@shared/components/icons';
 import { useAuth } from './hooks/useAuth';
+import { profileApi, type UserProfile } from './services/api';
+import {
+  onboardingGate,
+  persistOnboardingSkipped,
+  profileReminderVisible,
+  readOnboardingSkipped,
+  type ProfileLoadState,
+} from './onboarding/gate';
 import { haptics } from './telegram';
 
 // Per-tab code splitting keeps the initial (entry) chunk within the
@@ -22,6 +30,7 @@ const Markets = lazy(() => import('./pages/Markets'));
 const Plan = lazy(() => import('./pages/Plan'));
 const Journal = lazy(() => import('./pages/Journal'));
 const More = lazy(() => import('./pages/More'));
+const Onboarding = lazy(() => import('./pages/Onboarding'));
 
 // Reference tab bar (studies 03/04): Home / Markets / Plan / Journal /
 // More. Watchlist, Session Clock, Credits, Referrals and Profile live
@@ -128,12 +137,47 @@ function FallbackScreen() {
   );
 }
 
+type MoreTarget = 'menu' | 'credits' | 'membership';
+
 export default function App() {
   const { user, isLoading } = useAuth();
   const [tab, setTab] = useState<Tab>('home');
-  // More hosts Credits as a subview; Home/Markets credit pills deep-link
-  // there via this nonce (More mounts fresh when it changes).
+  // More hosts Credits/Membership as subviews; deep-links land there via
+  // this target + nonce (More mounts fresh when the nonce changes).
   const [moreNonce, setMoreNonce] = useState(0);
+  const [moreTarget, setMoreTarget] = useState<MoreTarget>('menu');
+
+  // Onboarding chapter: profile gate state (see onboarding/gate.ts).
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profileLoad, setProfileLoad] = useState<ProfileLoadState>('loading');
+  const [onboardingSkipped, setOnboardingSkipped] = useState(false);
+  const [forceOnboarding, setForceOnboarding] = useState(false);
+  const userId = user?.id ?? null;
+
+  const loadProfile = useCallback(async () => {
+    try {
+      const res = await profileApi.get();
+      setProfile(res.data.data ?? null);
+      setProfileLoad('ready');
+    } catch {
+      // Endpoint unavailable (e.g. backend not deployed yet): the gate
+      // falls back to the plain app — onboarding must never trap users.
+      setProfile(null);
+      setProfileLoad('unavailable');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!userId) {
+      setProfile(null);
+      setProfileLoad('loading');
+      setForceOnboarding(false);
+      return;
+    }
+    setProfileLoad('loading');
+    setOnboardingSkipped(readOnboardingSkipped(localStorage, userId));
+    void loadProfile();
+  }, [userId, loadProfile]);
 
   if (isLoading) {
     return <div className="app-shell"><LoadingScreen /></div>;
@@ -142,25 +186,74 @@ export default function App() {
     return <div className="app-shell"><FallbackScreen /></div>;
   }
 
+  const gate = onboardingGate({
+    loadState: profileLoad,
+    profile,
+    skipped: onboardingSkipped,
+    force: forceOnboarding,
+  });
+
+  if (gate === 'loading') {
+    return <div className="app-shell"><LoadingScreen /></div>;
+  }
+
+  if (gate === 'onboarding') {
+    return (
+      <div className="app-shell">
+        <Suspense fallback={<LoadingScreen />}>
+          <Onboarding
+            firstName={user.firstName}
+            initialEmail={profile?.email}
+            initialPhone={profile?.phone}
+            onSkip={() => {
+              persistOnboardingSkipped(localStorage, user.id);
+              setOnboardingSkipped(true);
+              setForceOnboarding(false);
+            }}
+            onDone={() => {
+              setForceOnboarding(false);
+              void loadProfile();
+            }}
+          />
+        </Suspense>
+      </div>
+    );
+  }
+
   const goToTab = (next: Tab) => {
     setTab(next);
     haptics.selection();
   };
 
-  const openCredits = () => {
+  const openMore = (target: MoreTarget) => {
+    setMoreTarget(target);
     setMoreNonce((n) => n + 1);
     goToTab('more');
   };
+  const openCredits = () => openMore('credits');
+  const openMembership = () => openMore('membership');
 
   return (
     <div className="app-shell">
       <main key={tab} className="tb-page-enter">
         <Suspense fallback={<LoadingScreen />}>
-          {tab === 'home' && <Home goToTab={goToTab} onOpenCredits={openCredits} />}
-          {tab === 'markets' && <Markets onOpenCredits={openCredits} />}
+          {tab === 'home' && (
+            <Home goToTab={goToTab} onOpenCredits={openCredits} onOpenMembership={openMembership} />
+          )}
+          {tab === 'markets' && (
+            <Markets onOpenCredits={openCredits} onOpenMembership={openMembership} />
+          )}
           {tab === 'plan' && <Plan goToTab={goToTab} />}
           {tab === 'journal' && <Journal goToTab={goToTab} />}
-          {tab === 'more' && <More key={moreNonce} goToTab={goToTab} initialView={moreNonce > 0 ? 'credits' : 'menu'} />}
+          {tab === 'more' && (
+            <More
+              key={moreNonce}
+              goToTab={goToTab}
+              initialView={moreTarget}
+              profileIncomplete={profileReminderVisible(profileLoad, profile)}
+              onCompleteProfile={() => setForceOnboarding(true)}
+            />
+          )}
         </Suspense>
       </main>
       <BottomNav
