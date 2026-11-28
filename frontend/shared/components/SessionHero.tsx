@@ -45,7 +45,7 @@ export function SessionHero({
   return (
     <section
       aria-label={`${sessionName} session`}
-      className={`relative overflow-hidden rounded-[var(--radius-hero)] p-6 text-white shadow-[var(--shadow-hero)] ${className}`}
+      className={`relative overflow-hidden rounded-[var(--radius-hero)] p-5 text-white shadow-[var(--shadow-hero)] ${className}`}
       style={{ background: 'var(--gradient-session-hero)' }}
     >
       <SessionHeroArt variant={art ?? sessionArtVariant(sessionName)} />
@@ -61,9 +61,9 @@ export function SessionHero({
           <div className="min-w-0">
             <p className="text-lg font-medium text-white/95">{sessionName} Session</p>
             <div className="mt-1 flex flex-wrap items-center gap-3">
-              <h2 className="text-[40px] leading-none font-extrabold tracking-tight">{sessionName}</h2>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#d9f5e6] px-3 py-1 text-xs font-bold tracking-wide text-[#04503a]">
-                <span aria-hidden="true" className="h-2 w-2 rounded-full bg-[#0b9e63]" />
+              <h2 className="text-[34px] leading-none font-extrabold tracking-tight">{sessionName}</h2>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-hero-chip-bg)] px-3 py-1 text-xs font-bold tracking-wide text-[var(--color-hero-chip-text)]">
+                <span aria-hidden="true" className="h-2 w-2 rounded-full bg-[var(--color-hero-dot)]" />
                 {stateLabel ?? STATE_PILL[state]}
               </span>
             </div>
@@ -79,7 +79,7 @@ export function SessionHero({
             <p className="tnum mt-3 flex items-center gap-2 text-[15px]">
               <ArrowRightIcon size={19} className="shrink-0 text-[var(--color-hero-highlight)]" />
               <span>
-                <span className="font-semibold text-[#a9ecc9]">Next:</span> {nextLabel}
+                <span className="font-semibold text-[var(--color-hero-text-soft)]">Next:</span> {nextLabel}
               </span>
             </p>
           </>

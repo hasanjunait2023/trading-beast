@@ -10,7 +10,7 @@ export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
   return (
     <header className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="text-[28px] leading-tight font-bold text-[var(--color-text)]">
+        <h1 className="text-[24px] leading-tight font-bold text-[var(--color-text)]">
           {title}
         </h1>
         {subtitle && (

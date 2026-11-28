@@ -92,12 +92,12 @@ export function PairHero({
       <div className="relative flex items-stretch gap-4 p-5">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2.5">
-            <span aria-hidden="true" className="h-11 w-[5px] shrink-0 rounded-full bg-[#35d99a]" />
-            <h1 className="truncate text-[38px] leading-none font-extrabold tracking-tight">{pair}</h1>
+            <span aria-hidden="true" className="h-10 w-[5px] shrink-0 rounded-full bg-[var(--color-hero-highlight)]" />
+            <h1 className="truncate text-[32px] leading-none font-extrabold tracking-tight">{pair}</h1>
           </div>
           {name && <p className="mt-2 text-[15px] text-white/75">{name}</p>}
           {typeof price === 'number' && (
-            <p className="tnum mt-3 text-[32px] leading-none font-extrabold">
+            <p className="tnum mt-3 text-[28px] leading-none font-extrabold">
               {price.toFixed(priceDecimals)}
             </p>
           )}
@@ -107,15 +107,15 @@ export function PairHero({
           <p className="text-[13px] font-bold tracking-[0.14em] text-white/85 uppercase">
             {status}
           </p>
-          <p className="tnum mt-1 text-[42px] leading-none font-extrabold">
+          <p className="tnum mt-1 text-[36px] leading-none font-extrabold">
             {score}
-            <span className="ml-0.5 text-[19px] font-bold text-white/70">/100</span>
+            <span className="ml-0.5 text-[17px] font-bold text-white/70">/100</span>
           </p>
-          <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-sm font-bold text-[#043d2d]">
+          <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-sm font-bold text-[var(--color-hero-900)]">
             {bias !== 'neutral' && (
               <TrendingUpIcon
                 size={16}
-                className={bias === 'bearish' ? '-scale-y-100 text-[#b3352b]' : 'text-[#00704a]'}
+                className={bias === 'bearish' ? '-scale-y-100 text-[var(--color-bearish)]' : 'text-[var(--color-accent)]'}
               />
             )}
             {BIAS_TEXT[bias]}

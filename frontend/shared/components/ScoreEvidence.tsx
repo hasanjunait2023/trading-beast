@@ -29,7 +29,7 @@ function RowMarker({ tone }: { tone: EvidenceItem['tone'] }) {
       <span
         aria-hidden="true"
         className={`mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold text-white ${
-          tone === 'warning' ? 'bg-[#c07f13]' : 'bg-[#b3352b]'
+          tone === 'warning' ? 'bg-[var(--color-warning)]' : 'bg-[var(--color-danger)]'
         }`}
       >
         !
