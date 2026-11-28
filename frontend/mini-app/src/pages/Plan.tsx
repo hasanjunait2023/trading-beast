@@ -8,7 +8,7 @@ import { Skeleton } from '@shared/components/Skeleton';
 import { FlagTile } from '@shared/components/PairFlags';
 import { StatusPill } from '@shared/components/StatusPill';
 import { Input, Textarea } from '@shared/components/FormField';
-import { CheckIcon, CrosshairIcon, ShieldCheckIcon } from '@shared/components/icons';
+import { CheckIcon, CrosshairIcon, ShieldCheckIcon, XIcon } from '@shared/components/icons';
 import { adaptSessions, nextOpening, type SessionsOverviewView } from '@shared/radar/adapter';
 import {
   analysisApi,
@@ -383,7 +383,7 @@ export default function Plan({ goToTab }: { goToTab: (tab: Tab) => void }) {
                         onClick={() => setChecklist((prev) => prev.filter((i) => i.id !== item.id))}
                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--color-text-muted)]"
                       >
-                        ✕
+                        <XIcon size={16} />
                       </button>
                     </li>
                   ))}

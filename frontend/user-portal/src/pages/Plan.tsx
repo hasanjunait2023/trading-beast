@@ -6,7 +6,7 @@ import { PageHeader } from '@shared/components/PageHeader';
 import { Input, Textarea, FormField } from '@shared/components/FormField';
 import { FlagTile } from '@shared/components/PairFlags';
 import { StatusPill } from '@shared/components/StatusPill';
-import { CheckIcon, CrosshairIcon, ShieldCheckIcon } from '@shared/components/icons';
+import { CheckIcon, CrosshairIcon, ShieldCheckIcon, XIcon } from '@shared/components/icons';
 import { nextOpening } from '@shared/radar/adapter';
 import { ScoreEvidence } from '@shared/components/ScoreEvidence';
 import { DataFreshness } from '@shared/components/DataFreshness';
@@ -543,7 +543,7 @@ export default function Plan() {
                             }
                             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)]"
                           >
-                            ✕
+                            <XIcon size={16} />
                           </button>
                         </li>
                       ))}

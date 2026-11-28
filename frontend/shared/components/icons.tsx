@@ -144,6 +144,16 @@ export function CheckIcon(props: IconProps) {
   return base(props, <path d="m4 12.5 5 5L20 6.5" />);
 }
 
+export function XIcon(props: IconProps) {
+  return base(
+    props,
+    <>
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </>,
+  );
+}
+
 export function ClockIcon(props: IconProps) {
   return base(
     props,

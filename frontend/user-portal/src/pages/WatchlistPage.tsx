@@ -10,7 +10,7 @@ import { useToast } from '@shared/components/Toast';
 import { PairFlags } from '@shared/components/PairFlags';
 import { Sparkline } from '@shared/components/Sparkline';
 import { MarketsHeroArt } from '@shared/components/MarketsHeroArt';
-import { ArrowRightIcon, GripIcon, PlusIcon } from '@shared/components/icons';
+import { ArrowRightIcon, GripIcon, PlusIcon, XIcon } from '@shared/components/icons';
 import { parsePairCurrencies } from '@shared/radar/flags';
 import type { Bias } from '@shared/design-tokens';
 import { analysisApi, userApi } from '../services/api';
@@ -323,7 +323,7 @@ export default function WatchlistPage() {
                   ariaLabel={`Remove ${pair} from watchlist`}
                   onClick={() => remove(pair)}
                 >
-                  ✕
+                  <XIcon size={16} />
                 </Button>
               </Card>
             );

@@ -9,7 +9,7 @@ import { PairFlags } from '@shared/components/PairFlags';
 import { PairRow } from '@shared/components/PairRow';
 import { RankTable, type RankRow } from '@shared/components/RankTable';
 import { Skeleton } from '@shared/components/Skeleton';
-import { ClockIcon, MapPinIcon, SearchIcon } from '@shared/components/icons';
+import { ClockIcon, MapPinIcon, SearchIcon, XIcon } from '@shared/components/icons';
 import { nextOpening, type RadarPairView, type RadarResultView } from '@shared/radar/adapter';
 import { useAuth } from '../hooks/useAuth';
 import { useSessions } from '../hooks/useSessions';
@@ -569,7 +569,7 @@ export default function Markets() {
                   }}
                   className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white"
                 >
-                  ✕
+                  <XIcon size={16} />
                 </button>
                 <h2 className="pr-8 text-2xl font-extrabold tracking-tight">
                   Nice scan. Pro keeps them coming.

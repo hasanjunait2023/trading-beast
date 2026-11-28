@@ -9,7 +9,7 @@ import { PairRow } from '@shared/components/PairRow';
 import { SessionHero } from '@shared/components/SessionHero';
 import { Skeleton } from '@shared/components/Skeleton';
 import { Sparkline } from '@shared/components/Sparkline';
-import { ArrowRightIcon, CalendarCheckIcon, CrosshairIcon, CrownIcon, RefreshIcon } from '@shared/components/icons';
+import { ArrowRightIcon, CalendarCheckIcon, CrosshairIcon, CrownIcon, RefreshIcon, XIcon } from '@shared/components/icons';
 import {
   adaptSessions,
   nextOpening,
@@ -237,9 +237,9 @@ export default function Home({
             type="button"
             onClick={dismissBanner}
             aria-label="Dismiss premium banner"
-            className="shrink-0 rounded-full px-1.5 py-2 text-[15px] leading-none text-[var(--color-text-muted)]"
+            className="shrink-0 rounded-full px-1.5 py-2 leading-none text-[var(--color-text-muted)]"
           >
-            ✕
+            <XIcon size={16} />
           </button>
         </div>
       )}
