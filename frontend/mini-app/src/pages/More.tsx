@@ -7,7 +7,9 @@ import {
   ChevronRightIcon,
   ClockIcon,
   CoinsIcon,
+  CrownIcon,
   GearIcon,
+  ShieldCheckIcon,
   UsersIcon,
 } from '@shared/components/icons';
 import { adaptSessions, type SessionsOverviewView } from '@shared/radar/adapter';
@@ -20,8 +22,9 @@ const Watchlist = lazy(() => import('./Watchlist'));
 const Credits = lazy(() => import('./Credits'));
 const Referral = lazy(() => import('./Referral'));
 const Profile = lazy(() => import('./Profile'));
+const Membership = lazy(() => import('./Membership'));
 
-type MoreView = 'menu' | 'watchlist' | 'clock' | 'credits' | 'referral' | 'profile';
+type MoreView = 'menu' | 'watchlist' | 'clock' | 'credits' | 'referral' | 'profile' | 'membership';
 
 type MoreItem = {
   id: Exclude<MoreView, 'menu'>;
@@ -36,6 +39,7 @@ const ITEMS: MoreItem[] = [
   { id: 'clock', label: 'Session Clock', hint: 'Session windows and overlaps', icon: ClockIcon, group: 'Workspace' },
   { id: 'credits', label: 'Credits', hint: 'Balance, daily grant and scan cost', icon: CoinsIcon, group: 'Workspace' },
   { id: 'referral', label: 'Referrals', hint: 'Invite traders, earn Pro days', icon: UsersIcon, group: 'Account' },
+  { id: 'membership', label: 'Membership', hint: 'Plans, Pro benefits and upgrades', icon: CrownIcon, group: 'Account' },
   { id: 'profile', label: 'Profile & Settings', hint: 'Account, theme and sign-out', icon: GearIcon, group: 'Account' },
 ];
 
@@ -80,16 +84,23 @@ function SubviewFallback() {
  * — all existing pages, rendered as subviews with an in-page back row.
  * R3b: the menu is composed as the study's mint group panels (Workspace /
  * Account) with icon rows. The study also lists Risk Tools, Economic
- * Calendar, Alerts, Membership and Help rows — the Mini App has no such
- * destinations (they exist only in the web portal), so no dead rows are
- * rendered here.
+ * Calendar, Alerts and Help rows — the Mini App has no such destinations
+ * (they exist only in the web portal), so no dead rows are rendered here.
+ * Membership joined the menu with the conversion chapter (real page).
+ * When the onboarding profile is incomplete, a finish-setup reminder sits
+ * above the groups until it is done.
  */
 export default function More({
   goToTab,
   initialView = 'menu',
+  profileIncomplete = false,
+  onCompleteProfile,
 }: {
   goToTab: (tab: Tab) => void;
   initialView?: MoreView;
+  /** Onboarding chapter: profile not completed yet (reminder + entry). */
+  profileIncomplete?: boolean;
+  onCompleteProfile?: () => void;
 }) {
   const { user } = useAuth();
   const [view, setView] = useState<MoreView>(initialView);
@@ -111,9 +122,22 @@ export default function More({
               <ClockView />
             </div>
           )}
-          {view === 'credits' && <Credits goToTab={(tab) => goToTab(tab)} />}
+          {view === 'credits' && (
+            <Credits
+              goToTab={(tab) => goToTab(tab)}
+              onOpenMembership={() => setView('membership')}
+            />
+          )}
           {view === 'referral' && <Referral />}
-          {view === 'profile' && <Profile />}
+          {view === 'membership' && (
+            <Membership
+              onOpenReferral={() => setView('referral')}
+              onOpenCredits={() => setView('credits')}
+            />
+          )}
+          {view === 'profile' && (
+            <Profile profileIncomplete={profileIncomplete} onCompleteProfile={onCompleteProfile} />
+          )}
         </Suspense>
       </div>
     );
@@ -143,6 +167,29 @@ export default function More({
           )}
         </div>
       </div>
+
+      {/* Gentle, persistent onboarding reminder — shown until the profile
+          is completed (the skip is remembered; this is its home). */}
+      {profileIncomplete && onCompleteProfile && (
+        <div className="flex items-center gap-3 rounded-[var(--radius-card-xl)] bg-[var(--color-mint-panel)] p-4 shadow-[var(--shadow-card-soft)]">
+          <ShieldCheckIcon size={26} className="shrink-0 text-[var(--color-accent)]" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[15.5px] font-extrabold tracking-tight">Finish setting up your account</p>
+            <p className="mt-0.5 text-[13px] leading-snug text-[var(--color-text-muted)]">
+              Add your Gmail, number and a password so you can always recover your account — your
+              100 welcome credits are already in your wallet.
+            </p>
+            <button
+              type="button"
+              onClick={onCompleteProfile}
+              className="mt-2.5 rounded-full px-4 py-2 text-[13.5px] font-bold text-white"
+              style={{ background: 'var(--gradient-primary-action)' }}
+            >
+              Complete my profile
+            </button>
+          </div>
+        </div>
+      )}
 
       <nav aria-label="More destinations" className="space-y-4">
         {GROUPS.map((group) => (

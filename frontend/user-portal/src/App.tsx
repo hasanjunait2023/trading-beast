@@ -6,6 +6,7 @@ import { Skeleton } from '@shared/components/Skeleton';
 
 // Routes are lazy-loaded per page to keep the entry chunk lean (Z2).
 const Login = lazy(() => import('./pages/Login'));
+const Welcome = lazy(() => import('./pages/Welcome'));
 const Setup = lazy(() => import('./pages/Setup'));
 const Home = lazy(() => import('./pages/Home'));
 const Markets = lazy(() => import('./pages/Markets'));
@@ -61,6 +62,16 @@ function App() {
     <Suspense fallback={<PageFallback />}>
       <Routes>
         <Route path="/login" element={<Login />} />
+        {/* Onboarding wizard — full-screen, outside the app shell; the
+            shell's profile gate routes known-incomplete profiles here. */}
+        <Route
+          path="/app/welcome"
+          element={
+            <PrivateRoute>
+              <Welcome />
+            </PrivateRoute>
+          }
+        />
         <Route
           element={
             <PrivateRoute>

@@ -6,17 +6,26 @@ const steps = [
   {
     icon: Send,
     title: '1. Open the bot',
-    desc: 'Start TradingBeast in Telegram. Your account, credit wallet and 10 daily credits are created automatically — no password, no card.',
+    desc: 'Start TradingBeast in Telegram. Your account and credit wallet are created automatically — starting with 100 welcome credits, plus 10 free credits every day. No password, no card.',
+    img: '/img/app-home.webp',
+    imgAlt:
+      'TradingBeast Mini App home screen: current session status, credit balance and the Open Radar action',
   },
   {
     icon: MousePointerClick,
     title: '2. Confirm a Radar run',
     desc: 'Pick a session — Asian, London or New York — review the 10-credit cost and your balance, then confirm. Nothing is ever charged for browsing.',
+    img: '/img/run-radar.webp',
+    imgAlt:
+      'Run Radar confirmation in the Mini App, showing the session, the 10-credit cost and the wallet balance before anything is charged',
   },
   {
     icon: ListOrdered,
     title: '3. Read the focus list',
     desc: 'Pairs come back ranked Focus, Watch or Avoid, each with a score in points out of 100, a Bullish / Bearish / Neutral bias, and the evidence behind it. Results are delivered in Telegram and visible in the Mini App and portal.',
+    img: '/img/pair-detail.webp',
+    imgAlt:
+      'Pair detail screen: one instrument with its score out of 100, bias and the indicator evidence behind the score',
   },
 ];
 
@@ -41,7 +50,7 @@ export default function Docs() {
             className="mb-3 text-xs font-semibold tracking-[0.2em] uppercase"
             style={{ color: 'var(--color-accent)' }}
           >
-            How it works
+            How the Radar works
           </p>
           <h2
             id="how-heading"
@@ -61,13 +70,30 @@ export default function Docs() {
             return (
               <Reveal key={s.title} delay={i * 90}>
                 <article
-                  className="h-full rounded-[var(--radius-lg)] border p-7 sm:p-8"
+                  className="tb-lift h-full overflow-hidden rounded-[var(--radius-lg)] border"
                   style={{
                     background: 'var(--color-surface)',
                     borderColor: 'var(--color-border)',
                     boxShadow: 'var(--shadow-sm)',
                   }}
                 >
+                  {/* Real product screen for this step (top of the screen,
+                      cropped by the frame — the full screen is in the
+                      showcase section below). */}
+                  <div
+                    className="overflow-hidden border-b"
+                    style={{ borderColor: 'var(--color-border)', background: 'var(--color-accent-soft)' }}
+                  >
+                    <img
+                      src={s.img}
+                      alt={s.imgAlt}
+                      width={560}
+                      height={420}
+                      loading="lazy"
+                      className="aspect-[4/3] w-full object-cover object-top"
+                    />
+                  </div>
+                  <div className="p-7 sm:p-8">
                   <div
                     className="mb-5 flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] text-white"
                     style={{ background: 'var(--grad-accent)' }}
@@ -89,6 +115,7 @@ export default function Docs() {
                       <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                     </a>
                   )}
+                  </div>
                 </article>
               </Reveal>
             );

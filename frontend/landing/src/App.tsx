@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import Navigation from './components/Navigation';
 import { Hero } from './components/Hero';
+import TrustStrip from './components/TrustStrip';
 import Footer from './components/Footer';
 
 // Below-fold sections are code-split so the initial bundle stays small;
@@ -25,6 +26,7 @@ export default function App() {
       <Navigation />
       <main>
         <Hero />
+        <TrustStrip />
         <Suspense fallback={null}>
           <PainPoints />
           <Docs />

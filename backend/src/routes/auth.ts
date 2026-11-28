@@ -2,10 +2,12 @@ import { registerUser } from '../services/users.js';
 import { asyncRouter } from '../middleware/async-router.js';
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 import { generateToken, AuthRequest, authMiddleware } from '../middleware/auth.js';
 import crypto from 'crypto';
 import { getEffectiveTier } from '../services/entitlements.js';
 import { verifyTelegramInitData } from '../services/telegram-auth.js';
+import { passwordLogin as passwordLoginService, InvalidCredentialsError, normalizeEmail } from '../services/profile.js';
 
 import { prisma } from '../services/db.js';
 const router: Router = asyncRouter();
@@ -47,7 +49,8 @@ router.post('/telegram', async (req, res) => {
         firstName: user.firstName,
         tier,
         trialEndsAt: user.trialEndsAt,
-        referralCode: user.referralCode
+        referralCode: user.referralCode,
+        profileCompleted: user.profileCompletedAt !== null
       }
     }
   });
@@ -68,8 +71,49 @@ router.post('/code', async (req, res, next) => {
     if(!user)return res.status(401).json({success:false,error:'Invalid or expired code'});
     const tier=await getEffectiveTier(user.id);
     const token=generateToken({id:user.id,telegramId:user.telegramId,tier});
-    res.json({success:true,data:{token,user:{id:user.id,telegramId:user.telegramId,username:user.username,firstName:user.firstName,tier,referralCode:user.referralCode,watchlist:user.watchlist,languageCode:user.languageCode}}});
+    res.json({success:true,data:{token,user:{id:user.id,telegramId:user.telegramId,username:user.username,firstName:user.firstName,tier,referralCode:user.referralCode,watchlist:user.watchlist,languageCode:user.languageCode,profileCompleted:user.profileCompletedAt!==null}}});
   } catch(e){next(e);}
+});
+
+// Email + password sign-in for the browser portal (onboarding chapter).
+// Stricter than the global /api/auth limiter: 10 attempts per 15 minutes
+// per (IP + email). Every credential failure returns the identical generic
+// 401 — unknown email, no password set, and wrong password are
+// indistinguishable (see services/profile.ts passwordLogin).
+const passwordLoginLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const email = typeof req.body?.email === 'string' ? normalizeEmail(req.body.email) : '';
+    return (req.ip ?? 'unknown') + ':' + email;
+  },
+  message: { success: false, error: 'Too many requests' }
+});
+
+const passwordLoginSchema = z.object({
+  email: z.string().min(1).max(254),
+  password: z.string().min(1).max(128)
+});
+
+router.post('/password-login', passwordLoginLimit, async (req, res, next) => {
+  try {
+    const parsed = passwordLoginSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ success: false, error: 'Invalid payload' });
+    let user;
+    try {
+      user = await passwordLoginService(parsed.data.email, parsed.data.password);
+    } catch (e) {
+      if (e instanceof InvalidCredentialsError) {
+        return res.status(401).json({ success: false, error: 'Invalid email or password' });
+      }
+      throw e;
+    }
+    const tier = await getEffectiveTier(user.id);
+    const token = await generateToken({ id: user.id, telegramId: user.telegramId, tier });
+    res.json({ success: true, data: { token, user: { id: user.id, telegramId: user.telegramId, username: user.username, firstName: user.firstName, tier, referralCode: user.referralCode, watchlist: user.watchlist, languageCode: user.languageCode, profileCompleted: user.profileCompletedAt !== null } } });
+  } catch (e) { next(e); }
 });
 
 router.post('/refresh', authMiddleware, async (req: AuthRequest, res) => {

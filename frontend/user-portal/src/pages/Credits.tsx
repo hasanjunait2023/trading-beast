@@ -12,6 +12,8 @@ import {
   WalletIcon,
 } from '@shared/components/icons';
 import { userApi, type CreditsData } from '../services/api';
+import { useAuth } from '../hooks/useAuth';
+import { shouldShowUpgradePanel } from '../utils/profileGate';
 
 /**
  * Credits (study 21). "Radar Credits" title, gradient wallet card with the
@@ -77,6 +79,7 @@ function StatCard({
 
 export default function Credits() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [credits, setCredits] = useState<CreditsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -142,6 +145,40 @@ export default function Credits() {
           </p>
         </div>
       </section>
+
+      {/* Upgrade panel (Conversion chapter): free users always see it;
+          paid users only when the balance runs low. Copy is balance-aware
+          and states only the real, planned Pro terms. */}
+      {user && shouldShowUpgradePanel(credits.balance, user.tier) && (
+        <section
+          aria-label="Upgrade your plan"
+          className="relative overflow-hidden rounded-[var(--radius-hero)] p-6 text-white shadow-[var(--shadow-hero)]"
+          style={{ background: 'var(--gradient-session-hero)' }}
+        >
+          <div className="relative flex flex-wrap items-center gap-4">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[22px] leading-tight font-extrabold tracking-tight">
+                {credits.balance < credits.radarCost
+                  ? 'Your balance can’t cover a Radar run right now'
+                  : 'Get more out of every session'}
+              </h2>
+              <p className="mt-1.5 max-w-[520px] text-sm leading-relaxed text-white/85">
+                {credits.balance < credits.radarCost
+                  ? `A run costs ${credits.radarCost} credits and your next daily grant lands at 00:00 UTC. Pro — planned at +300 credits a month — means never waiting on a grant.`
+                  : 'Pro is planned with +300 credits a month, advanced alerts and the trading journal — on top of the daily grant you already get.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/app/membership', { state: { section: 'plans' } })}
+              className="flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-white px-6 font-bold text-[var(--color-accent)] shadow transition-transform active:scale-[0.99]"
+            >
+              See Pro plan
+              <ArrowRightIcon size={20} />
+            </button>
+          </div>
+        </section>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard

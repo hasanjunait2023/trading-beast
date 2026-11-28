@@ -22,7 +22,14 @@ import { getTelegramUser, isTelegram } from '../telegram';
  * on the portal's Alerts page) — inventing local-only toggles would fake
  * a save.
  */
-export default function Profile() {
+export default function Profile({
+  profileIncomplete = false,
+  onCompleteProfile,
+}: {
+  /** Onboarding chapter: show the finish-setup reminder until completed. */
+  profileIncomplete?: boolean;
+  onCompleteProfile?: () => void;
+} = {}) {
   const { user, logout, logoutAll } = useAuth();
   const { theme, setTheme } = useTheme();
   const [confirmingAll, setConfirmingAll] = useState(false);
@@ -59,6 +66,25 @@ export default function Profile() {
 
   return (
     <div className="space-y-4 px-4">
+      {/* Onboarding reminder — persistent until the profile is completed. */}
+      {profileIncomplete && onCompleteProfile && (
+        <div className="rounded-[var(--radius-lg)] bg-[var(--color-mint-wash)] p-4">
+          <h2 className="text-base font-bold">Your profile isn't finished yet</h2>
+          <p className="mt-0.5 text-sm text-[var(--color-text-muted)]">
+            Add your Gmail, mobile number and a password so your account can be recovered if you
+            ever lose access to Telegram. It takes under a minute.
+          </p>
+          <button
+            type="button"
+            onClick={onCompleteProfile}
+            className="mt-3 flex min-h-[48px] w-full items-center justify-center rounded-[var(--radius-lg)] px-4 text-[15.5px] font-bold text-white shadow-[var(--shadow-hero)] transition-transform active:scale-[0.99]"
+            style={{ background: 'var(--gradient-primary-action)' }}
+          >
+            Complete my profile
+          </button>
+        </div>
+      )}
+
       {/* Profile hero (study 15). */}
       <section
         aria-label="Profile"

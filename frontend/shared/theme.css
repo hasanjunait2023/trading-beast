@@ -10,9 +10,12 @@
     @import "tailwindcss";
     @import "@shared/theme.css";
 
-  No external URLs are imported here (fonts are system/self-hosted stacks only).
+  Fonts are SELF-HOSTED (fonts.css + fonts/): Sora display + Manrope UI.
+  No external URLs are requested at runtime by any app.
   All existing --color-* names are preserved so current app CSS keeps working.
 */
+
+@import './fonts.css';
 
 :root {
   /* ---- Core surfaces & text (LIGHT) ---- */
@@ -104,10 +107,10 @@
   --radius-row: 18px;
   --radius-input: 16px;
 
-  /* ---- Typography (font stacks only; no webfont loading here) ---- */
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Space Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* ---- Typography (self-hosted via fonts.css: Sora + Manrope) ---- */
+  --font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Sora', 'Manrope', system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* ---- Spacing (4px base: 4/8/12/16/24/32) ---- */
   --space-1: 4px;
@@ -296,6 +299,106 @@ h1, h2, h3, h4, h5, h6 {
 }
 .tb-spinner {
   animation: tb-spin 0.8s linear infinite;
+}
+
+/* ---- Motion language (UX polish) ----
+   Shared entrance / interaction utilities. Transform + opacity only, so
+   they stay on the compositor and cheap on low-end phones. Every utility
+   here is neutralised by the global prefers-reduced-motion block below.
+   Usage is documented with live examples in the styleguide
+   (Typography & Motion section). */
+
+/* Display font on non-heading elements (scores, prices, brand marks). */
+.tb-font-display {
+  font-family: var(--font-display);
+}
+
+@keyframes tb-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Screen / page entrance: fade + gentle rise. */
+.tb-enter {
+  animation: tb-fade-up 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Card stagger: children rise in sequence (first 8 children). */
+.tb-stagger > * {
+  animation: tb-fade-up 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.tb-stagger > *:nth-child(2) { animation-delay: 60ms; }
+.tb-stagger > *:nth-child(3) { animation-delay: 120ms; }
+.tb-stagger > *:nth-child(4) { animation-delay: 180ms; }
+.tb-stagger > *:nth-child(5) { animation-delay: 240ms; }
+.tb-stagger > *:nth-child(6) { animation-delay: 300ms; }
+.tb-stagger > *:nth-child(7) { animation-delay: 360ms; }
+.tb-stagger > *:nth-child(8) { animation-delay: 420ms; }
+
+/* Button press feedback: subtle scale while pressed. */
+.tb-press {
+  transition: transform var(--transition-fast);
+}
+.tb-press:active {
+  transform: scale(0.97);
+}
+
+/* Hover lift for cards / tappable rows (pointer devices only). */
+.tb-lift {
+  transition:
+    transform var(--transition-normal),
+    box-shadow var(--transition-normal);
+}
+@media (hover: hover) {
+  .tb-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+@keyframes tb-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.tb-backdrop-in {
+  animation: tb-fade-in 200ms ease both;
+}
+
+@keyframes tb-sheet-in {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+/* Bottom-sheet entrance (slides up from the screen edge). */
+.tb-sheet-in {
+  animation: tb-sheet-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes tb-modal-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* Centered dialog entrance. */
+.tb-modal-in {
+  animation: tb-modal-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes tb-draw {
+  to { stroke-dashoffset: 0; }
+}
+/* Success check: an SVG circle + check mark that draw themselves.
+   Markup contract: put pathLength="1" on both shapes and give them the
+   classes below (see styleguide for a copy-paste example). Under
+   reduced motion the global block snaps the animation to its end
+   state, so the completed check is simply shown. */
+.tb-success-check .tb-check-circle {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: tb-draw 500ms ease-out 60ms both;
+}
+.tb-success-check .tb-check-mark {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: tb-draw 320ms ease-out 480ms both;
 }
 
 @media (prefers-reduced-motion: reduce) {

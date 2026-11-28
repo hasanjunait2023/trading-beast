@@ -32,7 +32,7 @@ export function Hero() {
         style={{ background: 'var(--grad-hero)' }}
       >
         <div className="grid items-center gap-10 px-6 py-14 sm:px-10 lg:grid-cols-[1.05fr_0.95fr] lg:px-14 lg:py-20">
-          <div>
+          <div className="tb-stagger">
             <p
               className="mb-5 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold tracking-wide uppercase"
               style={{ background: 'rgba(255,255,255,0.12)', color: '#c9f2e2' }}
@@ -60,7 +60,7 @@ export function Hero() {
               <a
                 href={telegram.primaryHref}
                 {...telegramLinkProps(telegram)}
-                className="inline-flex min-h-[52px] items-center gap-2 rounded-full bg-white px-7 text-base font-semibold transition-transform hover:-translate-y-0.5"
+                className="tb-press inline-flex min-h-[52px] items-center gap-2 rounded-full bg-white px-7 text-base font-semibold transition-transform hover:-translate-y-0.5"
                 style={{ color: '#054333' }}
               >
                 <Send className="h-5 w-5" aria-hidden="true" />
@@ -88,7 +88,7 @@ export function Hero() {
             </ul>
           </div>
 
-          <div className="tilt-wrap mx-auto w-full max-w-[340px] lg:max-w-[380px]">
+          <div className="tilt-wrap tb-enter mx-auto w-full max-w-[340px] lg:max-w-[380px]">
             <div ref={frameRef} className="tilt" onPointerMove={onMove} onPointerLeave={onLeave}>
               <figure className="phone-frame" style={{ borderColor: 'rgba(255,255,255,0.25)' }}>
                 <img

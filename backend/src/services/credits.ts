@@ -2,6 +2,10 @@ import { Prisma } from '@prisma/client';
 import { prisma } from './db.js';
 export const DAILY_CREDITS = 10;
 export const RADAR_COST = 10;
+// One-time grant for NEW accounts only (onboarding chapter, owner decision
+// 2026-11-28). Posted once inside registerUser's create transaction with
+// ledger reference 'welcome'; existing accounts are never retro-granted.
+export const WELCOME_CREDITS = 100;
 export const CREDIT_EPOCH_DAY = Math.floor(Date.UTC(2026,10,28)/86400000);
 export function utcDay(now = new Date()) { return Math.floor(now.getTime()/86400000); }
 export function grantDays(createdAt: Date, lastGrantDay: number, day: number) {
