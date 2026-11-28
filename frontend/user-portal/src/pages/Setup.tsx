@@ -241,7 +241,7 @@ export default function Setup() {
                 type="button"
                 aria-pressed={active}
                 onClick={() => toggleSession(s)}
-                className={`inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-full px-5 text-[15px] font-bold transition-all active:scale-[0.98] ${
+                className={`inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-full px-5 text-[15px] font-bold transition-[color,background-color,box-shadow,transform] active:scale-[0.98] ${
                   active
                     ? 'text-white shadow-[var(--shadow-sm)]'
                     : 'bg-[var(--color-mint-wash)] text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]'

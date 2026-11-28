@@ -558,7 +558,7 @@ export default function Plan() {
                         aria-label="Checklist progress"
                       >
                         <div
-                          className="h-full rounded-full transition-all"
+                          className="h-full rounded-full transition-[width]"
                           style={{
                             width: `${(checklist.filter((i) => i.done).length / checklist.length) * 100}%`,
                             background: 'var(--gradient-primary-action)',

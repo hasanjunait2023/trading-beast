@@ -39,7 +39,7 @@ export function BarList({ data, format }: { data: BarDatum[]; format?: (v: numbe
             aria-label={`${d.label}: ${format ? format(d.value) : d.value}`}
           >
             <div
-              className="h-full rounded-full transition-all duration-300"
+              className="h-full rounded-full transition-[width] duration-300"
               style={{
                 width: max > 0 ? `${(d.value / max) * 100}%` : '0%',
                 background: d.color ?? PALETTE[i % PALETTE.length],

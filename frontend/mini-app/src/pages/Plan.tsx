@@ -398,7 +398,7 @@ export default function Plan({ goToTab }: { goToTab: (tab: Tab) => void }) {
                     aria-label="Checklist progress"
                   >
                     <div
-                      className="h-full rounded-full transition-all"
+                      className="h-full rounded-full transition-[width]"
                       style={{
                         width: `${(doneCount / checklist.length) * 100}%`,
                         background: 'var(--gradient-primary-action)',
