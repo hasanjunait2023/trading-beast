@@ -126,3 +126,36 @@ per phase or batched — owner's choice at deploy time.
    browser companion (plan assumes yes).
 3. Bengali UI option for portal/mini-app: not in this program unless the
    owner asks — UI stays English per standing rule.
+
+## Amendment (2026-11-28 ~15:20 +06) — design package adopted
+
+The owner supplied the controlling design package (Google Drive folder
+"TradingBeast-A-to-Z-Frontend-Design", now mirrored in `docs/design/`):
+START-HERE.md, TradingBeast-Frontend-Design-Handoff.md (CONTROLLING SPEC for
+behavior + API contracts), Screen-Index.md, TradingBeast-Preview.html
+(interactive prototype, 30 routes, both hosts, 10 data states) and 30 PNG
+screen studies (kept locally at ~/workspace/design-reference-tb/screens —
+too large for git; the preview HTML + handoff carry the design).
+
+What this changes vs the original plan above:
+- Brand decision RESOLVED: emerald/mint LIGHT theme is the default
+  (canvas #F5FAF8, primary #00664B, hero #054333→#007959); the repo's Neon
+  Dark Tech remains the DARK variant. No new-direction question remains.
+- Phase map follows handoff §1: Z0 foundation → Z1 Mini App core (existing
+  five destinations + read-only session clock + explicit run confirmation)
+  → Z2 responsive web core (login incl. one-time code, home, markets, pair
+  detail, watchlist, credits, clock, membership, billing, payment history,
+  referrals, settings, help, setup, 404; route aliases preserved) →
+  Expansion A (plan, risk tools, currency strength/heatmap) → Expansion B
+  (journal/editor, calendar, alerts, five-tab workflow) → Expansion C
+  (correlations/exposure, Strategy Lab). Expansions ship only when their
+  backend data contracts (handoff §5) exist — otherwise honest unavailable
+  states, never sample data.
+- Non-negotiables from the handoff: Radar run = explicit confirmation,
+  idempotency-key, never a paid POST from navigation; scores ≠ bias;
+  freshness shown near evidence; GET /analysis/focus/:session is 405 — do
+  not use; results live in account-scoped memory until a history endpoint
+  exists; Mini App initial JS ≤ 200 KB measured and logged; light + dark
+  verified per screen; screenshots at 360/390/768/1280 for web core.
+- Z3 (admin) and Z4 (landing) from the original plan remain separate
+  workstreams, unchanged, after the workspace program.
