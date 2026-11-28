@@ -17,7 +17,7 @@ export function BottomNav({ items, className = '' }: BottomNavProps) {
     >
       <div className="mx-auto flex max-w-lg items-stretch justify-around">
         {items.map((item) => {
-          const classes = `relative flex min-h-[60px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[11px] font-medium ${
+          const classes = `relative flex min-h-[54px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[10.5px] font-medium ${
             item.active
               ? 'font-semibold text-[var(--color-accent)]'
               : 'text-[var(--color-text-muted)]'
@@ -27,11 +27,11 @@ export function BottomNav({ items, className = '' }: BottomNavProps) {
               {item.active && (
                 <span
                   aria-hidden="true"
-                  className="absolute bottom-0 h-[3px] w-10 rounded-full bg-[var(--color-accent)]"
+                  className="absolute bottom-0 h-[3px] w-8 rounded-full bg-[var(--color-accent)]"
                 />
               )}
               {item.icon && (
-                <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center">
+                <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center">
                   {item.icon}
                 </span>
               )}

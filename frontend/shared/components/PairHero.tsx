@@ -84,34 +84,34 @@ export function PairHero({
           onClick={onToggleWatchlist}
           aria-pressed={!!inWatchlist}
           aria-label={inWatchlist ? `Remove ${pair} from watchlist` : `Add ${pair} to watchlist`}
-          className="absolute top-3.5 right-3.5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25"
+          className="absolute top-3 right-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25"
         >
           <BookmarkIcon size={19} filled={!!inWatchlist} />
         </button>
       )}
-      <div className="relative flex items-stretch gap-4 p-5">
+      <div className="relative flex items-stretch gap-3.5 p-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2.5">
-            <span aria-hidden="true" className="h-10 w-[5px] shrink-0 rounded-full bg-[var(--color-hero-highlight)]" />
-            <h1 className="truncate text-[32px] leading-none font-extrabold tracking-tight">{pair}</h1>
+            <span aria-hidden="true" className="h-9 w-[5px] shrink-0 rounded-full bg-[var(--color-hero-highlight)]" />
+            <h1 className="truncate text-[27px] leading-none font-extrabold tracking-tight">{pair}</h1>
           </div>
-          {name && <p className="mt-2 text-[15px] text-white/75">{name}</p>}
+          {name && <p className="mt-1.5 text-sm text-white/75">{name}</p>}
           {typeof price === 'number' && (
-            <p className="tnum mt-3 text-[28px] leading-none font-extrabold">
+            <p className="tnum mt-2.5 text-[24px] leading-none font-extrabold">
               {price.toFixed(priceDecimals)}
             </p>
           )}
         </div>
         <div aria-hidden="true" className="w-px shrink-0 bg-white/25" />
         <div className="flex shrink-0 flex-col items-start justify-center">
-          <p className="text-[13px] font-bold tracking-[0.14em] text-white/85 uppercase">
+          <p className="text-[12px] font-bold tracking-[0.14em] text-white/85 uppercase">
             {status}
           </p>
-          <p className="tnum mt-1 text-[36px] leading-none font-extrabold">
+          <p className="tnum mt-1 text-[30px] leading-none font-extrabold">
             {score}
-            <span className="ml-0.5 text-[17px] font-bold text-white/70">/100</span>
+            <span className="ml-0.5 text-[15px] font-bold text-white/70">/100</span>
           </p>
-          <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-sm font-bold text-[var(--color-hero-900)]">
+          <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[13px] font-bold text-[var(--color-hero-900)]">
             {bias !== 'neutral' && (
               <TrendingUpIcon
                 size={16}

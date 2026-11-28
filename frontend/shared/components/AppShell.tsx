@@ -29,7 +29,7 @@ export function AppShell({
         <Sidebar items={navItems} brand={brand} footer={sidebarFooter} />
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex min-h-[56px] items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 sm:px-6">
+        <header className="sticky top-0 z-30 flex min-h-[50px] items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <span className="lg:hidden">{brand}</span>
             <span className="hidden lg:block" aria-hidden="true" />
@@ -38,7 +38,7 @@ export function AppShell({
             <div className="flex shrink-0 items-center gap-2">{headerRight}</div>
           )}
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-4 pb-24 sm:px-6 lg:pb-8">
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-3.5 pb-24 sm:px-6 lg:pb-8">
           {children}
         </main>
       </div>

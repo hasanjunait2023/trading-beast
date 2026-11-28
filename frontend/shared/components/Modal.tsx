@@ -82,7 +82,7 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        className="relative w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-lg)]"
+        className="relative w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-lg)]"
       >
         <div className="mb-3 flex items-start justify-between gap-3">
           <h2 className="text-lg font-bold text-[var(--color-text)]">{title}</h2>

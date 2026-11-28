@@ -45,7 +45,7 @@ export function SessionHero({
   return (
     <section
       aria-label={`${sessionName} session`}
-      className={`relative overflow-hidden rounded-[var(--radius-hero)] p-5 text-white shadow-[var(--shadow-hero)] ${className}`}
+      className={`relative overflow-hidden rounded-[var(--radius-hero)] p-4 text-white shadow-[var(--shadow-hero)] ${className}`}
       style={{ background: 'var(--gradient-session-hero)' }}
     >
       <SessionHeroArt variant={art ?? sessionArtVariant(sessionName)} />
@@ -59,25 +59,25 @@ export function SessionHero({
         <div className="flex items-stretch gap-3">
           <span aria-hidden="true" className="w-1.5 rounded-full bg-[var(--color-hero-highlight)]" />
           <div className="min-w-0">
-            <p className="text-lg font-medium text-white/95">{sessionName} Session</p>
-            <div className="mt-1 flex flex-wrap items-center gap-3">
-              <h2 className="text-[34px] leading-none font-extrabold tracking-tight">{sessionName}</h2>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-hero-chip-bg)] px-3 py-1 text-xs font-bold tracking-wide text-[var(--color-hero-chip-text)]">
-                <span aria-hidden="true" className="h-2 w-2 rounded-full bg-[var(--color-hero-dot)]" />
+            <p className="text-[17px] font-medium text-white/95">{sessionName} Session</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2.5">
+              <h2 className="text-[29px] leading-none font-extrabold tracking-tight">{sessionName}</h2>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-hero-chip-bg)] px-2.5 py-[3px] text-[11px] font-bold tracking-wide text-[var(--color-hero-chip-text)]">
+                <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--color-hero-dot)]" />
                 {stateLabel ?? STATE_PILL[state]}
               </span>
             </div>
           </div>
         </div>
-        <p className="tnum mt-4 flex items-center gap-2 text-[15px] text-white/95">
-          <CalendarIcon size={19} />
+        <p className="tnum mt-3 flex items-center gap-2 text-sm text-white/95">
+          <CalendarIcon size={17} />
           {rangeLabel}
         </p>
         {nextLabel && (
           <>
-            <div aria-hidden="true" className="mt-3 h-px bg-white/25" />
-            <p className="tnum mt-3 flex items-center gap-2 text-[15px]">
-              <ArrowRightIcon size={19} className="shrink-0 text-[var(--color-hero-highlight)]" />
+            <div aria-hidden="true" className="mt-2.5 h-px bg-white/25" />
+            <p className="tnum mt-2.5 flex items-center gap-2 text-sm">
+              <ArrowRightIcon size={17} className="shrink-0 text-[var(--color-hero-highlight)]" />
               <span>
                 <span className="font-semibold text-[var(--color-hero-text-soft)]">Next:</span> {nextLabel}
               </span>

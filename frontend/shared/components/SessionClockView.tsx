@@ -135,19 +135,19 @@ export function SessionClockView({
   const statePill = (state: SessionState) =>
     state === 'live' ? (
       <span
-        className="inline-flex shrink-0 items-center rounded-full px-3.5 py-1.5 text-[13px] font-bold text-white"
+        className="inline-flex shrink-0 items-center rounded-full px-3 py-1 text-[12px] font-bold text-white"
         style={{ background: 'var(--gradient-primary-action)' }}
       >
         Active
       </span>
     ) : (
-      <span className="inline-flex shrink-0 items-center rounded-full bg-[var(--color-unavailable-bg)] px-3.5 py-1.5 text-[13px] font-semibold text-[var(--color-unavailable-text)]">
+      <span className="inline-flex shrink-0 items-center rounded-full bg-[var(--color-unavailable-bg)] px-3 py-1 text-[12px] font-semibold text-[var(--color-unavailable-text)]">
         {state === 'upcoming' ? 'Upcoming' : 'Closed'}
       </span>
     );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3.5">
       {/* Hero (reference 06) — decorative globe/candle artwork, not data. */}
       <section
         aria-label="Session Clock"
@@ -164,28 +164,28 @@ export function SessionClockView({
               'linear-gradient(90deg, rgba(3,40,28,0.6) 0%, rgba(3,40,28,0.25) 55%, rgba(3,40,28,0) 82%)',
           }}
         />
-        <div className="relative p-5">
-          <h1 className="text-[30px] leading-none font-extrabold tracking-tight sm:text-[34px]">
+        <div className="relative p-4">
+          <h1 className="text-[26px] leading-none font-extrabold tracking-tight sm:text-[29px]">
             Session Clock
           </h1>
-          <p className="mt-2.5 max-w-[420px] text-[15px] leading-snug text-white/90">
+          <p className="mt-2 max-w-[420px] text-sm leading-snug text-white/90">
             Track global FX sessions, opening ranges, and what&apos;s next in the market.
           </p>
         </div>
       </section>
 
       {/* Local time card. */}
-      <section aria-label="Local time" className="rounded-[var(--radius-card-xl)] border border-[var(--color-border-soft)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card-soft)]">
-        <div className="flex flex-wrap items-start gap-4">
-          <div className="flex min-w-0 flex-1 items-start gap-3.5">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--color-mint-wash)] text-[var(--color-accent)]">
-              <ClockIcon size={22} />
+      <section aria-label="Local time" className="rounded-[var(--radius-card-xl)] border border-[var(--color-border-soft)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-card-soft)]">
+        <div className="flex flex-wrap items-start gap-3.5">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-mint-wash)] text-[var(--color-accent)]">
+              <ClockIcon size={20} />
             </span>
             <div className="min-w-0">
-              <p className="text-[15px] font-medium text-[var(--color-text-muted)]">
+              <p className="text-sm font-medium text-[var(--color-text-muted)]">
                 Local Time ({zone})
               </p>
-              <p className="tnum mt-0.5 text-[34px] leading-none font-extrabold tracking-tight">
+              <p className="tnum mt-0.5 text-[29px] leading-none font-extrabold tracking-tight">
                 {fmtTime(now, zone)}
               </p>
               <p className="mt-2 text-[13px] text-[var(--color-text-muted)]">
@@ -218,14 +218,14 @@ export function SessionClockView({
         </div>
 
         {/* Session timeline (schematic blocks; exact windows labeled). */}
-        <div className="mt-6 flex items-start gap-2" aria-label="Session timeline">
+        <div className="mt-5 flex items-start gap-2" aria-label="Session timeline">
           {overview.sessions.map((s) => {
             const state = stateFor(s);
             return (
               <div key={s.session} className="min-w-0 flex-1">
                 {state === 'live' ? (
                   <div
-                    className="relative rounded-[16px] px-2 py-2.5 text-center text-white shadow-[var(--shadow-hero)]"
+                    className="relative rounded-[14px] px-2 py-2 text-center text-white shadow-[var(--shadow-hero)]"
                     style={{ background: 'var(--gradient-primary-action)' }}
                   >
                     <span
@@ -233,7 +233,7 @@ export function SessionClockView({
                       className="absolute -top-[5px] left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45"
                       style={{ background: 'var(--color-primary-500)' }}
                     />
-                    <p className="flex items-center justify-center gap-1.5 text-[15px] font-bold">
+                    <p className="flex items-center justify-center gap-1.5 text-sm font-bold">
                       <span aria-hidden="true" className="h-2 w-2 rounded-full bg-white" />
                       {s.session}
                     </p>
@@ -243,10 +243,10 @@ export function SessionClockView({
                   </div>
                 ) : (
                   <>
-                    <div className="flex h-[62px] items-start justify-center pt-1">
+                    <div className="flex h-[54px] items-start justify-center pt-1">
                       <span aria-hidden="true" className="h-3 w-full rounded-full bg-[var(--color-control-track)]" />
                     </div>
-                    <p className="mt-1.5 text-center text-[15px] font-bold">{s.session}</p>
+                    <p className="mt-1.5 text-center text-sm font-bold">{s.session}</p>
                     <p className="tnum mt-0.5 text-center text-[11.5px] whitespace-nowrap text-[var(--color-text-muted)]">
                       {fmtRange(s.sessionStartMs, s.sessionEndMs, zone)}
                     </p>
@@ -258,21 +258,21 @@ export function SessionClockView({
         </div>
 
         {/* Session rows. */}
-        <ul className="mt-4 divide-y divide-[var(--color-border-soft)]">
+        <ul className="mt-3 divide-y divide-[var(--color-border-soft)]">
           {overview.sessions.map((s) => {
             const state = stateFor(s);
             const Icon = SESSION_ICONS[s.session] ?? ClockIcon;
             return (
               <li
                 key={s.session}
-                className={`flex items-center gap-3.5 px-2 py-3.5 ${state === 'live' ? '-mx-2 rounded-[var(--radius-lg)] bg-[var(--color-mint-panel)] px-4' : ''}`}
+                className={`flex items-center gap-3 px-2 py-2.5 ${state === 'live' ? '-mx-2 rounded-[var(--radius-lg)] bg-[var(--color-mint-panel)] px-3.5' : ''}`}
               >
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[var(--color-mint-wash)] text-[var(--color-accent)]">
-                  <Icon size={26} />
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[var(--color-mint-wash)] text-[var(--color-accent)]">
+                  <Icon size={22} />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[16.5px] font-bold">{s.session} Session</span>
-                  <span className="tnum block text-[13.5px] text-[var(--color-text-muted)]">
+                  <span className="block truncate text-[15.5px] font-bold">{s.session} Session</span>
+                  <span className="tnum block text-[13px] text-[var(--color-text-muted)]">
                     {fmtRange(s.sessionStartMs, s.sessionEndMs, zone)}
                   </span>
                 </span>
@@ -285,29 +285,29 @@ export function SessionClockView({
 
       {/* First-hour opening range — time-based progress only. */}
       {orSession && (
-        <section aria-label="Opening range" className="rounded-[var(--radius-card-xl)] border border-[var(--color-border-soft)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card-soft)]">
-          <div className="flex items-start gap-3.5">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[var(--color-mint-wash)] text-[var(--color-accent)]">
-              <CandlesIcon size={26} />
+        <section aria-label="Opening range" className="rounded-[var(--radius-card-xl)] border border-[var(--color-border-soft)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-card-soft)]">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[var(--color-mint-wash)] text-[var(--color-accent)]">
+              <CandlesIcon size={22} />
             </span>
             <div className="min-w-0 flex-1">
-              <h2 className="text-[19px] font-extrabold tracking-tight">First-hour Opening Range</h2>
-              <p className="tnum mt-0.5 text-[14px] text-[var(--color-text-muted)]">
+              <h2 className="text-[17px] font-extrabold tracking-tight">First-hour Opening Range</h2>
+              <p className="tnum mt-0.5 text-[13.5px] text-[var(--color-text-muted)]">
                 {orSession.session} • {fmtRange(orSession.sessionStartMs, orSession.orEndMs, zone)}
               </p>
             </div>
             <div className="shrink-0 text-right">
-              <p className="tnum text-[23px] leading-none font-extrabold text-[var(--color-accent)]">
+              <p className="tnum text-[20px] leading-none font-extrabold text-[var(--color-accent)]">
                 {orQuarters} / 4
               </p>
               <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">quarters elapsed</p>
             </div>
           </div>
-          <div className="mt-4 flex gap-2" aria-hidden="true">
+          <div className="mt-3.5 flex gap-2" aria-hidden="true">
             {[0, 1, 2, 3].map((i) => (
               <span
                 key={i}
-                className="flex h-9 flex-1 items-center justify-center rounded-[10px] text-white"
+                className="flex h-8 flex-1 items-center justify-center rounded-[8px] text-white"
                 style={
                   i < orQuarters
                     ? { background: 'var(--gradient-primary-action)' }
@@ -332,21 +332,21 @@ export function SessionClockView({
 
       {/* Upcoming session. */}
       {nextUpcoming && (
-        <section aria-label="Upcoming session" className="flex items-center gap-3.5 rounded-[var(--radius-card-xl)] border border-[var(--color-border-soft)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card-soft)]">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[var(--color-mint-wash)] text-[var(--color-accent)]">
-            <CalendarIcon size={25} />
+        <section aria-label="Upcoming session" className="flex items-center gap-3 rounded-[var(--radius-card-xl)] border border-[var(--color-border-soft)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-card-soft)]">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[var(--color-mint-wash)] text-[var(--color-accent)]">
+            <CalendarIcon size={21} />
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-medium text-[var(--color-text-muted)]">Upcoming Session</p>
-            <p className="truncate text-[18px] font-extrabold tracking-tight">
+            <p className="truncate text-[16px] font-extrabold tracking-tight">
               {nextUpcoming.session} Session
             </p>
-            <p className="tnum mt-0.5 text-[13.5px] text-[var(--color-text-muted)]">
+            <p className="tnum mt-0.5 text-[13px] text-[var(--color-text-muted)]">
               {fmtStartsIn(nextUpcoming.nextStartMs - now)} •{' '}
               {fmtRange(nextUpcoming.nextStartMs, nextUpcoming.nextStartMs + (nextUpcoming.sessionEndMs - nextUpcoming.sessionStartMs), zone)}
             </p>
           </div>
-          <ChevronRightIcon size={22} className="shrink-0 text-[var(--color-text-faint)]" />
+          <ChevronRightIcon size={20} className="shrink-0 text-[var(--color-text-faint)]" />
         </section>
       )}
 
