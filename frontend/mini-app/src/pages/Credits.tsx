@@ -14,7 +14,13 @@ import { useAuth } from '../hooks/useAuth';
  * device clock. No transaction history or purchase UI: the API does not
  * support them here.
  */
-export default function Credits({ goToTab }: { goToTab: (tab: 'markets') => void }) {
+export default function Credits({
+  goToTab,
+  onOpenMembership,
+}: {
+  goToTab: (tab: 'markets') => void;
+  onOpenMembership?: () => void;
+}) {
   const { user } = useAuth();
   const [credits, setCredits] = useState<CreditsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -82,6 +88,16 @@ export default function Credits({ goToTab }: { goToTab: (tab: 'markets') => void
           <Button className="w-full" size="lg" onClick={() => goToTab('markets')}>
             Open Radar
           </Button>
+
+          {onOpenMembership && (
+            <button
+              type="button"
+              onClick={onOpenMembership}
+              className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] px-4 text-[16px] font-bold text-[var(--color-accent)] bg-[var(--color-mint-wash)] transition-transform active:scale-[0.99]"
+            >
+              See Membership — what Pro adds
+            </button>
+          )}
 
           <Card>
             <h2 className="text-base font-bold">Your tier</h2>

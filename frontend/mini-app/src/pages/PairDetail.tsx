@@ -5,6 +5,7 @@ import { Button } from '@shared/components/Button';
 import { Card } from '@shared/components/Card';
 import { ChartPanel } from '@shared/components/ChartPanel';
 import { PairHero } from '@shared/components/PairHero';
+import { useTheme } from '@shared/theme';
 import { ScoreEvidence, type EvidenceItem } from '@shared/components/ScoreEvidence';
 import {
   ArrowRightIcon,
@@ -15,6 +16,8 @@ import type { RadarPairView, RadarResultView } from '@shared/radar/adapter';
 import { plansApi, userApi } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { backButton } from '../telegram';
+import { TradingViewChart } from '../components/TradingViewChart';
+import { tradingViewInterval, tradingViewSymbol } from '../utils/tradingview';
 
 /**
  * Pair Detail (reference 05). Gradient pair hero with the scan price,
@@ -126,6 +129,7 @@ export function PairDetail({
   onBack: () => void;
 }) {
   const { user, setWatchlistLocal } = useAuth();
+  const { theme } = useTheme();
   const [timeframe, setTimeframe] = useState<Timeframe>('15m');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [saveError, setSaveError] = useState('');
@@ -210,10 +214,8 @@ export function PairDetail({
         </p>
       )}
 
-      {/* Timeframe selector (reference 05). 15m is the scan's native
-          timeframe; the control selects what the chart area refers to —
-          candle series are not served by any API yet, so the chart keeps
-          its honest unavailable state for every timeframe. */}
+      {/* Timeframe selector (reference 05). Drives the TradingView
+          widget's interval (15m → 15, 1H → 60, 4H → 240). */}
       <div
         className="flex rounded-full bg-[var(--color-control-track)] p-1"
         role="group"
@@ -250,12 +252,33 @@ export function PairDetail({
             )}
           </div>
         )}
-        <ChartPanel
-          state="unavailable"
-          title={`Chart · ${timeframe}`}
-          unavailableReason={`Candle data (${timeframe}) isn't available in the app yet. The scan evidence below is the data this result is based on.`}
-          className="border-0 p-0 shadow-none"
-        />
+        {/* Live chart: TradingView's free embeddable widget for the mapped
+            symbol; unmapped instruments and widget load failures keep the
+            honest unavailable card. The scan's own candle series is still
+            not served by any API — this is TradingView's live chart. */}
+        {(() => {
+          const symbol = tradingViewSymbol({
+            pair: pair.pair,
+            kind: pair.kind,
+            base: pair.base,
+            quote: pair.quote,
+          });
+          return symbol ? (
+            <TradingViewChart
+              symbol={symbol}
+              interval={tradingViewInterval(timeframe)}
+              theme={theme}
+              title={`Chart · ${timeframe}`}
+            />
+          ) : (
+            <ChartPanel
+              state="unavailable"
+              title={`Chart · ${timeframe}`}
+              unavailableReason={`No live chart is mapped for this instrument yet. The scan evidence below is the data this result is based on.`}
+              className="border-0 p-0 shadow-none"
+            />
+          );
+        })()}
       </div>
 
       <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2">

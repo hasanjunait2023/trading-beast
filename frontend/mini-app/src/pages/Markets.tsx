@@ -3,7 +3,7 @@ import { Brand } from '@shared/components/Brand';
 import { Button } from '@shared/components/Button';
 import { Card } from '@shared/components/Card';
 import { CreditPill } from '@shared/components/CreditPill';
-import { DataFreshness } from '@shared/components/DataFreshness';
+import { formatRelativeAge } from '@shared/components/DataFreshness';
 import { EmptyState } from '@shared/components/EmptyState';
 import { MarketsHeroArt } from '@shared/components/MarketsHeroArt';
 import { PairFlags } from '@shared/components/PairFlags';
@@ -84,7 +84,47 @@ interface RowModel {
   ranked?: RadarPairView;
 }
 
-export default function Markets({ onOpenCredits }: { onOpenCredits: () => void }) {
+/** Matches DataFreshness's stale threshold (15 min). */
+const STALE_AFTER_MS = 15 * 60 * 1000;
+
+/**
+ * Live freshness readout for the stored scan: re-renders every 20 s so the
+ * age counts up in place ("Scanned · 3 min ago"), and flips to an explicit
+ * stale prompt — the countdown feel that nudges a re-run without ever
+ * auto-spending credits.
+ */
+function FreshnessTicker({ timestampMs }: { timestampMs: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 20_000);
+    return () => window.clearInterval(id);
+  }, []);
+  const stale = now - timestampMs >= STALE_AFTER_MS;
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 text-[12px] ${
+        stale ? 'font-semibold text-[var(--color-warning)]' : 'text-[var(--color-text-muted)]'
+      }`}
+      title={new Date(timestampMs).toLocaleString()}
+    >
+      <span
+        aria-hidden="true"
+        className="h-1.5 w-1.5 shrink-0 rounded-full"
+        style={{ backgroundColor: stale ? 'var(--color-warning)' : 'var(--color-success)' }}
+      />
+      Scanned {formatRelativeAge(timestampMs, now)}
+      {stale ? ' · stale — re-run for fresh data' : ''}
+    </span>
+  );
+}
+
+export default function Markets({
+  onOpenCredits,
+  onOpenMembership,
+}: {
+  onOpenCredits: () => void;
+  onOpenMembership: () => void;
+}) {
   const { user } = useAuth();
   const userId = user?.id ?? '';
   const setResult = useRadarStore((s) => s.setResult);
@@ -389,15 +429,20 @@ export default function Markets({ onOpenCredits }: { onOpenCredits: () => void }
         </span>
       </button>
 
-      {/* The one paid action on this screen — opens confirmation only. */}
-      <button
-        type="button"
-        onClick={() => setSheetOpen(true)}
-        className="flex min-h-[56px] w-full items-center justify-center rounded-[var(--radius-lg)] px-4 text-lg font-bold text-white shadow-[var(--shadow-hero)] transition-transform active:scale-[0.99]"
-        style={{ background: 'var(--gradient-primary-action)' }}
-      >
-        Run Radar{credits ? ` · ${credits.radarCost} credits` : ''}
-      </button>
+      {/* The one paid action on this screen — opens confirmation only.
+          Sticky above the tab bar so a re-run is always one tap away while
+          scrolling results; labelled "Re-run" once results exist. */}
+      <div className="sticky bottom-[92px] z-20 -mx-1 px-1 pb-1 pt-2 [background:linear-gradient(to_top,var(--color-bg)_78%,transparent)]">
+        <button
+          type="button"
+          onClick={() => setSheetOpen(true)}
+          className="flex min-h-[56px] w-full items-center justify-center rounded-[var(--radius-lg)] px-4 text-lg font-bold text-white shadow-[var(--shadow-hero)] transition-transform active:scale-[0.99]"
+          style={{ background: 'var(--gradient-primary-action)' }}
+        >
+          {stored ? 'Re-run Radar' : 'Run Radar'}
+          {credits ? ` · ${credits.radarCost} credits` : ''}
+        </button>
+      </div>
 
       {stored?.marketClosed && (
         <div role="status" className="rounded-[var(--radius-md)] bg-[var(--color-warning-bg)] p-3 text-sm">
@@ -442,7 +487,7 @@ export default function Markets({ onOpenCredits }: { onOpenCredits: () => void }
           </span>
           {stored ? (
             <span className="flex items-center gap-3">
-              <DataFreshness timestamp={stored.timestampMs} label="Scanned" className="text-[12px]" />
+              <FreshnessTicker timestampMs={stored.timestampMs} />
               <button
                 type="button"
                 onClick={() => setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
@@ -520,6 +565,7 @@ export default function Markets({ onOpenCredits }: { onOpenCredits: () => void }
           void loadCredits();
         }}
         onOpenCredits={onOpenCredits}
+        onUpgrade={onOpenMembership}
       />
     </div>
   );

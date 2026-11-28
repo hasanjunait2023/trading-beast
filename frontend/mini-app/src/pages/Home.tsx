@@ -9,7 +9,7 @@ import { PairRow } from '@shared/components/PairRow';
 import { SessionHero } from '@shared/components/SessionHero';
 import { Skeleton } from '@shared/components/Skeleton';
 import { Sparkline } from '@shared/components/Sparkline';
-import { ArrowRightIcon, CalendarCheckIcon, CrosshairIcon, RefreshIcon } from '@shared/components/icons';
+import { ArrowRightIcon, CalendarCheckIcon, CrosshairIcon, CrownIcon, RefreshIcon } from '@shared/components/icons';
 import {
   adaptSessions,
   nextOpening,
@@ -45,12 +45,19 @@ function greeting(): string {
   return 'Good Evening,';
 }
 
+/** localStorage key for the dismissed premium banner (per account). */
+function premiumBannerKey(userId: string): string {
+  return `tb-premium-banner-dismissed:${userId}`;
+}
+
 export default function Home({
   goToTab,
   onOpenCredits,
+  onOpenMembership,
 }: {
   goToTab: (tab: Tab) => void;
   onOpenCredits: () => void;
+  onOpenMembership: () => void;
 }) {
   const { user } = useAuth();
   const userId = user?.id ?? '';
@@ -64,6 +71,40 @@ export default function Home({
   const [sessionsError, setSessionsError] = useState(false);
   const [credits, setCredits] = useState<CreditsData | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState<boolean>(() => {
+    try {
+      return userId ? localStorage.getItem(premiumBannerKey(userId)) === '1' : false;
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      setBannerDismissed(userId ? localStorage.getItem(premiumBannerKey(userId)) === '1' : false);
+    } catch {
+      setBannerDismissed(false);
+    }
+  }, [userId]);
+
+  const dismissBanner = () => {
+    setBannerDismissed(true);
+    try {
+      if (userId) localStorage.setItem(premiumBannerKey(userId), '1');
+    } catch {
+      /* dismissal simply lasts for this session */
+    }
+  };
+
+  // Slim premium banner: ONLY free users with a low balance (< 20 credits),
+  // dismissible and persisted — a pointer, not a nag.
+  const showPremiumBanner =
+    !bannerDismissed &&
+    credits !== null &&
+    credits.balance < 20 &&
+    user?.tier === 'FREE' &&
+    !user?.isProActive &&
+    !user?.isTrialActive;
 
   const loadSessions = useCallback(async () => {
     setSessionsLoading(true);
@@ -177,6 +218,32 @@ export default function Home({
         </Card>
       )}
 
+      {showPremiumBanner && (
+        <div className="tb-step-in flex items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--color-mint-panel)] px-4 py-3 shadow-[var(--shadow-card-soft)]">
+          <CrownIcon size={22} className="shrink-0 text-[var(--color-accent)]" />
+          <p className="min-w-0 flex-1 text-[13.5px] leading-snug">
+            <strong>Running low on credits?</strong> Pro members get +300/month, advanced alerts
+            and the full toolkit.
+          </p>
+          <button
+            type="button"
+            onClick={onOpenMembership}
+            className="shrink-0 rounded-full px-3.5 py-2 text-[13px] font-bold text-white"
+            style={{ background: 'var(--gradient-primary-action)' }}
+          >
+            Go Pro
+          </button>
+          <button
+            type="button"
+            onClick={dismissBanner}
+            aria-label="Dismiss premium banner"
+            className="shrink-0 rounded-full px-1.5 py-2 text-[15px] leading-none text-[var(--color-text-muted)]"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Analysis freshness strip (reference 03). */}
       <div className="flex items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--color-mint-wash)] px-4 py-3.5">
         <RefreshIcon size={26} className="shrink-0 text-[var(--color-accent)]" />
@@ -278,6 +345,7 @@ export default function Home({
           void loadCredits();
         }}
         onOpenCredits={onOpenCredits}
+        onUpgrade={onOpenMembership}
       />
     </div>
   );
