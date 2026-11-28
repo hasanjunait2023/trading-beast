@@ -1,77 +1,110 @@
-import { Clock, TrendingUp, Sun, Moon } from 'lucide-react';
+import { Sunrise, Landmark, Building2, Clock3 } from 'lucide-react';
+import Reveal from './Reveal';
 
 const sessions = [
   {
-    name: 'Asian Session',
-    icon: Sun,
-    time: '22:00 – 07:00 UTC',
-    pairs: 'JPY, AUD, NZD, CHF',
-    accent: 'from-amber-400 to-orange-500',
-    desc: 'Tokyo liquidity sweep. Range-break candidates identified before London overlap.',
+    name: 'Asian session',
+    icon: Sunrise,
+    centres: 'Tokyo · Sydney · Singapore',
+    desc: 'The first liquidity of the FX week. Ranges form here — the Radar scores which pairs are setting up and which are still asleep.',
   },
   {
-    name: 'London Session',
-    icon: Moon,
-    time: '07:00 – 12:00 UTC',
-    pairs: 'EUR, GBP, USD, CHF',
-    accent: 'from-blue-400 to-violet-500',
-    desc: 'The deepest liquidity window. Opening Range breakouts scored and ranked.',
+    name: 'London session',
+    icon: Landmark,
+    centres: 'London · Frankfurt',
+    desc: 'The deepest liquidity window of the day. Opening-range behaviour matters most here, and the focus list reflects that.',
   },
   {
-    name: 'New York Session',
-    icon: TrendingUp,
-    time: '12:00 – 21:00 UTC',
-    pairs: 'USD, CAD, MXN, Crude',
-    accent: 'from-cyan-400 to-blue-500',
-    desc: 'US data-driven moves. ADR expansion and trend continuation signals.',
+    name: 'New York session',
+    icon: Building2,
+    centres: 'New York · Chicago',
+    desc: 'US data drives the afternoon. The Radar re-scores the list for New York conditions instead of reusing the London picture.',
   },
 ];
 
 export default function Sessions() {
   return (
-    <section id="sessions" className="py-24 bg-[#060918]">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center mb-16">
-          <p className="text-xs uppercase tracking-[0.2em] text-blue-400 mb-3">Session-Aware</p>
-          <h2 className="font-space font-bold text-4xl md:text-5xl text-white">
-            Three Sessions. One Focus List.
-          </h2>
-          <p className="mt-4 text-gray-400 max-w-2xl mx-auto">
-            We don't guess the market. We watch it session by session — Asian range,
-            London breakout, New York trend — and rank what actually has an edge.
+    <section
+      id="sessions"
+      className="py-20 sm:py-24"
+      style={{ background: 'var(--color-accent-soft)' }}
+      aria-labelledby="sessions-heading"
+    >
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <Reveal className="mb-14 text-center">
+          <p
+            className="mb-3 text-xs font-semibold tracking-[0.2em] uppercase"
+            style={{ color: 'var(--color-accent)' }}
+          >
+            Session-aware
           </p>
-        </div>
+          <h2
+            id="sessions-heading"
+            className="text-3xl font-bold tracking-tight text-balance sm:text-4xl lg:text-5xl"
+          >
+            Three sessions. One focus list.
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl" style={{ color: 'var(--color-text-muted)' }}>
+            The market does not behave the same way all day. TradingBeast organises analysis
+            around the three trading sessions, so the ranking you see matches the session you
+            are actually trading.
+          </p>
+        </Reveal>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          {sessions.map((s) => {
+        <div className="grid gap-5 md:grid-cols-3">
+          {sessions.map((s, i) => {
             const Icon = s.icon;
             return (
-              <div
-                key={s.name}
-                className="group backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-8 hover:border-white/20 hover:-translate-y-1 transition-all duration-300"
-              >
-                <div
-                  className={`w-14 h-14 rounded-xl bg-gradient-to-r ${s.accent} flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(79,109,255,0.3)]`}
+              <Reveal key={s.name} delay={i * 90}>
+                <article
+                  className="h-full rounded-[var(--radius-lg)] border p-7 sm:p-8"
+                  style={{
+                    background: 'var(--color-surface)',
+                    borderColor: 'var(--color-border)',
+                    boxShadow: 'var(--shadow-sm)',
+                  }}
                 >
-                  <Icon className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="font-space font-bold text-2xl text-white mb-1">{s.name}</h3>
-                <p className="text-sm text-gray-400 mb-4">{s.time}</p>
-                <p className="text-gray-300 text-sm mb-4 leading-relaxed">{s.desc}</p>
-                <div className="flex flex-wrap gap-2">
-                  {s.pairs.split(', ').map((p) => (
-                    <span
-                      key={p}
-                      className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-gray-300"
-                    >
-                      {p}
-                    </span>
-                  ))}
-                </div>
-              </div>
+                  <div
+                    className="mb-6 flex h-14 w-14 items-center justify-center rounded-[var(--radius-md)] text-white"
+                    style={{ background: 'var(--grad-accent)' }}
+                  >
+                    <Icon className="h-7 w-7" aria-hidden="true" />
+                  </div>
+                  <h3 className="mb-1 text-2xl font-semibold">{s.name}</h3>
+                  <p
+                    className="mb-4 text-sm font-medium"
+                    style={{ color: 'var(--color-accent)' }}
+                  >
+                    {s.centres}
+                  </p>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+                    {s.desc}
+                  </p>
+                </article>
+              </Reveal>
             );
           })}
         </div>
+
+        <Reveal delay={120}>
+          <div
+            className="mx-auto mt-8 flex max-w-3xl flex-col items-start gap-4 rounded-[var(--radius-lg)] border p-6 sm:flex-row sm:items-center sm:p-7"
+            style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+          >
+            <span
+              className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[var(--radius-md)]"
+              style={{ background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}
+            >
+              <Clock3 className="h-6 w-6" aria-hidden="true" />
+            </span>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+              <strong style={{ color: 'var(--color-text)' }}>The session clock</strong> shows
+              which sessions are active right now, when the next one opens, and where sessions
+              overlap — displayed in your timezone, in the Mini App and the web portal, so you
+              always know where you are in the trading day.
+            </p>
+          </div>
+        </Reveal>
       </div>
     </section>
   );

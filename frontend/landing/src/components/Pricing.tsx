@@ -1,15 +1,13 @@
 import { Check, Zap, Crown, ArrowRight, Clock } from 'lucide-react';
+import Reveal from './Reveal';
 import { useTelegramLinks, telegramLinkProps } from '../services/telegram';
 
 interface Tier {
   name: string;
   icon: typeof Zap;
-  color: string;
-  border: string;
-  /** Live tiers show a price; tiers that are not live yet show a status instead. */
-  price?: string;
-  period?: string;
-  comingSoon?: boolean;
+  /** Headline shown where a money price would normally go — never a currency figure. */
+  headline: string;
+  planned?: boolean;
   features: string[];
   cta: 'free' | 'waitlist';
 }
@@ -17,46 +15,39 @@ interface Tier {
 const tiers: Tier[] = [
   {
     name: 'Free',
-    price: '$0',
-    period: '/forever',
+    headline: 'Free — live now',
     icon: Zap,
-    color: 'text-gray-300',
-    border: 'border-white/10',
     features: [
-      '10 credits every day — credits never expire',
-      '1 Radar run = 10 credits',
-      'Session focus lists — Asian, London & New York',
-      '28 FX pairs + Gold, Silver, Oil & Bitcoin',
-      'Telegram bot + Mini App access',
-      'Same credit wallet in the bot, Mini App & browser',
+      '10 credits per day, granted every UTC day',
+      'Credits never expire — unused credits stack up',
+      'One Radar run costs 10 credits',
+      'A failed analysis is refunded automatically',
+      'Session Focus Radar, watchlist & session clock',
+      'Same wallet in Telegram, the Mini App & the browser',
     ],
     cta: 'free',
   },
   {
     name: 'Pro',
-    comingSoon: true,
+    headline: 'Planned',
+    planned: true,
     icon: Zap,
-    color: 'text-blue-400',
-    border: 'border-blue-500/40',
     features: [
       'Everything in Free',
-      'Planned: +300 extra credits per month',
-      'Planned: advanced session alerts',
-      'Planned: correlation & strategy tools',
+      '+300 credits per verified monthly renewal (planned)',
+      'Advanced features as they are released (planned)',
     ],
     cta: 'waitlist',
   },
   {
     name: 'Elite',
-    comingSoon: true,
+    headline: 'Planned',
+    planned: true,
     icon: Crown,
-    color: 'text-violet-400',
-    border: 'border-violet-500/40',
     features: [
       'Everything in Free',
-      'Planned: +900 extra credits per month',
-      'Planned: journal, strategy & AI tools — first access',
-      'Planned: priority feature access',
+      '+900 credits per verified monthly renewal (planned)',
+      'First access to advanced tools as they ship (planned)',
     ],
     cta: 'waitlist',
   },
@@ -66,103 +57,148 @@ export default function Pricing() {
   const telegram = useTelegramLinks();
 
   return (
-    <section id="pricing" className="py-24 bg-[#060918]">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center mb-16">
-          <p className="text-xs uppercase tracking-[0.2em] text-blue-400 mb-3">Pricing</p>
-          <h2 className="font-space font-bold text-4xl md:text-5xl text-white">
-            Start free. More is on the way.
-          </h2>
-          <p className="mt-4 text-gray-400 max-w-2xl mx-auto">
-            Free forever with 10 credits a day. No card required.
+    <section
+      id="pricing"
+      className="py-20 sm:py-24"
+      style={{ background: 'var(--color-accent-soft)' }}
+      aria-labelledby="pricing-heading"
+    >
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <Reveal className="mb-14 text-center">
+          <p
+            className="mb-3 text-xs font-semibold tracking-[0.2em] uppercase"
+            style={{ color: 'var(--color-accent)' }}
+          >
+            Pricing
           </p>
-        </div>
+          <h2
+            id="pricing-heading"
+            className="text-3xl font-bold tracking-tight text-balance sm:text-4xl lg:text-5xl"
+          >
+            Start free. Pay per scan, in credits.
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl" style={{ color: 'var(--color-text-muted)' }}>
+            No subscription and no card. You get 10 free credits every day, and a Radar run
+            costs 10 credits — only when you choose to run one. There are no automatic paid
+            scans.
+          </p>
+        </Reveal>
 
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {tiers.map((t) => {
+        <div className="mx-auto grid max-w-5xl gap-6 pt-4 md:grid-cols-3">
+          {tiers.map((t, i) => {
             const Icon = t.icon;
             return (
-              <div
-                key={t.name}
-                className={`relative backdrop-blur-md bg-white/5 border ${t.border} rounded-2xl p-8 flex flex-col transition-all duration-300 hover:-translate-y-1`}
-              >
-                {t.comingSoon && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/10 border border-white/15 text-gray-200 px-4 py-1.5 rounded-full">
-                      <Clock className="w-3.5 h-3.5" />
-                      Coming soon
+              <Reveal key={t.name} delay={i * 90}>
+                <article
+                  className="relative flex h-full flex-col rounded-[var(--radius-lg)] border p-8"
+                  style={{
+                    background: 'var(--color-surface)',
+                    borderColor: t.planned ? 'var(--color-border)' : 'var(--color-accent)',
+                    boxShadow: 'var(--shadow-sm)',
+                  }}
+                >
+                  {t.planned && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span
+                        className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold"
+                        style={{
+                          background: 'var(--color-warning-bg)',
+                          color: 'var(--color-warning)',
+                          border: '1px solid var(--color-border)',
+                        }}
+                      >
+                        <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                        Planned — not yet available
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="mb-4 flex items-center gap-3">
+                    <span
+                      className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)]"
+                      style={{
+                        background: 'var(--color-accent-soft)',
+                        color: 'var(--color-accent)',
+                      }}
+                    >
+                      <Icon className="h-5 w-5" aria-hidden="true" />
                     </span>
+                    <h3 className="text-xl font-bold">{t.name}</h3>
                   </div>
-                )}
 
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={`w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center`}>
-                    <Icon className={`w-5 h-5 ${t.color}`} />
-                  </div>
-                  <h3 className="font-space font-bold text-xl text-white">{t.name}</h3>
-                </div>
-
-                {t.comingSoon ? (
-                  <div className="flex items-baseline gap-1 mb-6">
-                    <span className={`font-space font-bold text-4xl ${t.color}`}>Coming soon</span>
-                  </div>
-                ) : (
-                  <div className="flex items-baseline gap-1 mb-6">
-                    <span className={`font-space font-bold text-4xl ${t.color}`}>{t.price}</span>
-                    <span className="text-gray-400 text-sm">{t.period}</span>
-                  </div>
-                )}
-
-                <ul className="space-y-3 mb-8 flex-1">
-                  {t.features.map((f) => (
-                    <li key={f} className="flex items-start gap-3 text-sm text-gray-300">
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                {t.cta === 'free' ? (
-                  <a
-                    href={telegram.primaryHref}
-                    {...telegramLinkProps(telegram)}
-                    className="w-full text-center font-semibold py-3 rounded-full transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-[0_0_20px_rgba(79,109,255,0.4)] hover:from-blue-500 hover:to-violet-500"
+                  <p
+                    className="mb-6 text-2xl font-bold"
+                    style={{ color: t.planned ? 'var(--color-text-muted)' : 'var(--color-accent)' }}
                   >
-                    {telegram.isTelegram ? 'Open in Telegram' : 'Get Started Free'}
-                    <ArrowRight className="w-4 h-4" />
-                  </a>
-                ) : telegram.botUrl ? (
-                  <a
-                    href={telegram.botUrl}
-                    {...telegramLinkProps(telegram)}
-                    className="w-full text-center font-semibold py-3 rounded-full transition-all flex items-center justify-center gap-2 bg-white/5 text-white border border-white/10 hover:bg-white/10"
-                  >
-                    Join the waitlist in Telegram
-                    <ArrowRight className="w-4 h-4" />
-                  </a>
-                ) : (
-                  <span
-                    aria-disabled="true"
-                    className="w-full text-center font-semibold py-3 rounded-full flex items-center justify-center gap-2 bg-white/5 text-gray-500 border border-white/10 cursor-not-allowed"
-                  >
-                    Join the waitlist in Telegram
-                  </span>
-                )}
-              </div>
+                    {t.headline}
+                  </p>
+
+                  <ul className="mb-8 flex-1 space-y-3">
+                    {t.features.map((f) => (
+                      <li key={f} className="flex items-start gap-3 text-sm">
+                        <Check
+                          className="mt-0.5 h-4 w-4 flex-shrink-0"
+                          style={{ color: 'var(--color-success)' }}
+                          aria-hidden="true"
+                        />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {t.cta === 'free' ? (
+                    <a
+                      href={telegram.primaryHref}
+                      {...telegramLinkProps(telegram)}
+                      className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full text-center font-semibold text-white transition-opacity hover:opacity-90"
+                      style={{ background: 'var(--grad-accent)' }}
+                    >
+                      {telegram.isTelegram ? 'Open in Telegram' : 'Get started free'}
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </a>
+                  ) : telegram.botUrl ? (
+                    <a
+                      href={telegram.botUrl}
+                      {...telegramLinkProps(telegram)}
+                      className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full border text-center font-semibold transition-colors hover:bg-[var(--color-surface-hover)]"
+                      style={{ borderColor: 'var(--color-border-strong)' }}
+                    >
+                      Hear about it in Telegram
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </a>
+                  ) : (
+                    <span
+                      aria-disabled="true"
+                      className="flex min-h-[48px] w-full cursor-not-allowed items-center justify-center gap-2 rounded-full border text-center font-semibold"
+                      style={{
+                        borderColor: 'var(--color-border)',
+                        color: 'var(--color-text-faint)',
+                      }}
+                    >
+                      Hear about it in Telegram
+                    </span>
+                  )}
+                </article>
+              </Reveal>
             );
           })}
         </div>
 
-        <div className="mt-12 text-center max-w-3xl mx-auto space-y-2">
-          <p className="text-sm text-gray-500">
-            Pro and Elite are still in development — planned credit amounts may change before
-            launch, and no paid plan can be purchased yet.
-          </p>
-          <p className="text-sm text-gray-500">
-            ⚠️ Trading Beast is a market analysis tool only — not investment advice. Trading
-            involves substantial risk of loss.
-          </p>
-        </div>
+        <Reveal delay={120}>
+          <div
+            className="mx-auto mt-12 max-w-3xl space-y-2 text-center text-sm"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            <p>
+              Refer a trader and you both benefit: when someone joins with your referral link,
+              you both receive 7 days of Pro free.
+            </p>
+            <p>
+              Pro and Elite are planned and not yet activated. The planned credit amounts above
+              may change before launch, and no paid plan can be purchased yet.
+            </p>
+          </div>
+        </Reveal>
       </div>
     </section>
   );

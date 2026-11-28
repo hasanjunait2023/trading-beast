@@ -1,6 +1,6 @@
 export { Hero } from './Hero';
-export { TrustLogos } from './TrustLogos';
-export { ValueProps } from './ValueProps';
+export { default as Navigation } from './Navigation';
+export { default as Brand } from './Brand';
 export { default as PainPoints } from './PainPoints';
 export { default as Sessions } from './Sessions';
 export { default as Features } from './Features';

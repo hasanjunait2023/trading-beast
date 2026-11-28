@@ -1,82 +1,104 @@
-import { Zap, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import Brand from './Brand';
 import { useTelegramLinks, telegramLinkProps } from '../services/telegram';
 
 export default function Footer() {
   const telegram = useTelegramLinks();
   return (
-    <footer className="bg-[#03050d] border-t border-white/10 py-16">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="grid md:grid-cols-4 gap-10 mb-12">
-          <div className="col-span-1">
-            <a href="#hero" className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-r from-blue-600 to-violet-600 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-space font-bold text-lg">Trading Beast</span>
+    <footer
+      className="border-t py-14"
+      style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+    >
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mb-12 grid gap-10 md:grid-cols-4">
+          <div>
+            <a href="#top" aria-label="TradingBeast — back to top" className="inline-block rounded-lg">
+              <Brand />
             </a>
-            <p className="text-sm text-gray-400 leading-relaxed">
-              Session-aware market analysis for forex traders worldwide.
+            <p
+              className="mt-4 text-sm leading-relaxed"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              Session-aware market analysis: a Focus Radar for the Asian, London and New York
+              sessions, inside Telegram and in your browser.
             </p>
           </div>
 
-          <div>
-            <h4 className="font-space font-semibold text-white mb-4">Product</h4>
-            <ul className="space-y-2 text-sm text-gray-400">
-              <li><a href="#sessions" className="hover:text-white transition-colors">Sessions</a></li>
-              <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
-              <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
+          <nav aria-label="Product">
+            <h3 className="mb-4 font-semibold">Product</h3>
+            <ul className="space-y-1 text-sm" style={{ color: 'var(--color-text-muted)' }}>
               <li>
-                <a
-                  href={telegram.primaryHref}
-                  {...telegramLinkProps(telegram)}
-                  className="hover:text-white transition-colors"
-                >
-                  {telegram.isTelegram ? 'Open in Telegram' : 'Get Started'}
+                <a href="#sessions" className="flex min-h-[36px] items-center hover:underline">
+                  Sessions
+                </a>
+              </li>
+              <li>
+                <a href="#features" className="flex min-h-[36px] items-center hover:underline">
+                  Features
+                </a>
+              </li>
+              <li>
+                <a href="#showcase" className="flex min-h-[36px] items-center hover:underline">
+                  The app
+                </a>
+              </li>
+              <li>
+                <a href="#pricing" className="flex min-h-[36px] items-center hover:underline">
+                  Pricing
                 </a>
               </li>
             </ul>
-          </div>
+          </nav>
 
-          <div>
-            <h4 className="font-space font-semibold text-white mb-4">Resources</h4>
-            <ul className="space-y-2 text-sm text-gray-400">
-              <li><a href="#docs" className="hover:text-white transition-colors">How It Works</a></li>
+          <nav aria-label="Resources">
+            <h3 className="mb-4 font-semibold">Resources</h3>
+            <ul className="space-y-1 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+              <li>
+                <a href="#how-it-works" className="flex min-h-[36px] items-center hover:underline">
+                  How it works
+                </a>
+              </li>
+              <li>
+                <a href="#faq" className="flex min-h-[36px] items-center hover:underline">
+                  FAQ
+                </a>
+              </li>
               <li>
                 <a
-                  href={telegram.botUrl ?? '#docs'}
+                  href={telegram.botUrl ?? '#how-it-works'}
                   {...(telegram.botUrl ? telegramLinkProps(telegram) : {})}
-                  className="hover:text-white transition-colors"
+                  className="flex min-h-[36px] items-center hover:underline"
                 >
-                  Telegram Bot
+                  Telegram bot
                 </a>
               </li>
-              <li><a href="#pricing" className="hover:text-white transition-colors">Upgrade</a></li>
             </ul>
-          </div>
+          </nav>
 
           <div>
-            <h4 className="font-space font-semibold text-white mb-4">Get Started</h4>
-            <p className="text-sm text-gray-400 mb-4">
-              Join 12,000+ analysts using session-aware market intelligence.
+            <h3 className="mb-4 font-semibold">Get started</h3>
+            <p className="mb-4 text-sm leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+              Free forever: 10 credits a day, one Radar run for 10 credits, and credits that
+              never expire.
             </p>
             <a
               href={telegram.primaryHref}
               {...telegramLinkProps(telegram)}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white text-sm font-semibold px-5 py-2.5 rounded-full shadow-[0_0_20px_rgba(79,109,255,0.4)] transition-all"
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-full px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              style={{ background: 'var(--grad-accent)' }}
             >
-              {telegram.isTelegram ? 'Open in Telegram' : 'Get Started Free'}
-              <ArrowRight className="w-4 h-4" />
+              {telegram.isTelegram ? 'Open in Telegram' : 'Get started free'}
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </a>
           </div>
         </div>
 
-        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-gray-500">
-            © 2026 Trading Beast. Market analysis tool only. Not investment advice.
-          </p>
-          <p className="text-xs text-gray-500">
-            Built for traders who prepare.
-          </p>
+        <div
+          className="flex flex-col items-center justify-between gap-3 border-t pt-8 text-xs md:flex-row"
+          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+        >
+          <p>© 2026 TradingBeast. Market analysis tool only — not financial advice.</p>
+          <p>Built for traders who prepare.</p>
         </div>
       </div>
     </footer>

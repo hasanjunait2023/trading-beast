@@ -1,98 +1,116 @@
-import { useState, useEffect } from 'react';
-import { Menu, X, Zap } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Menu, X, Send } from 'lucide-react';
+import Brand from './Brand';
 import { useTelegramLinks, telegramLinkProps } from '../services/telegram';
 
 const links = [
-  { label: 'Home', href: '#hero' },
+  { label: 'How it works', href: '#how-it-works' },
   { label: 'Sessions', href: '#sessions' },
   { label: 'Features', href: '#features' },
   { label: 'Pricing', href: '#pricing' },
-  { label: 'Docs', href: '#docs' },
+  { label: 'FAQ', href: '#faq' },
 ];
 
 export default function Navigation() {
-  const [scrolled, setScrolled] = useState(false);
-  const [open, setOpen] = useState(false);
   const telegram = useTelegramLinks();
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener('scroll', onScroll);
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? 'bg-[#060918]/80 backdrop-blur-md border-b border-white/10' : 'bg-transparent'
-      }`}
+      className="fixed inset-x-0 top-0 z-50 border-b backdrop-blur-md"
+      style={{
+        background: 'rgba(245, 250, 248, 0.88)',
+        borderColor: scrolled ? 'var(--color-border)' : 'transparent',
+        boxShadow: scrolled ? 'var(--shadow-sm)' : 'none',
+      }}
     >
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <a href="#hero" className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-r from-blue-600 to-violet-600 flex items-center justify-center">
-            <Zap className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-space font-bold text-lg">Trading Beast</span>
+      <nav
+        aria-label="Main"
+        className="mx-auto flex h-[68px] max-w-7xl items-center justify-between px-4 sm:px-6"
+      >
+        <a href="#top" aria-label="TradingBeast — back to top" className="rounded-lg">
+          <Brand />
         </a>
 
-        <nav className="hidden md:flex items-center gap-8">
+        <ul className="hidden items-center gap-1 lg:flex">
           {links.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              className="text-sm text-gray-300 hover:text-white transition-colors"
-            >
-              {l.label}
-            </a>
+            <li key={l.href}>
+              <a
+                href={l.href}
+                className="flex min-h-[44px] items-center rounded-full px-4 text-sm font-medium transition-colors hover:bg-[var(--color-surface-hover)]"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                {l.label}
+              </a>
+            </li>
           ))}
-        </nav>
+        </ul>
 
-        <div className="hidden md:flex items-center gap-3">
-          <a
-            href={telegram.botUrl ?? '#docs'}
-            {...(telegram.botUrl ? telegramLinkProps(telegram) : {})}
-            className="text-sm text-gray-300 hover:text-white px-4 py-2 transition-colors"
-          >
-            Telegram Bot
-          </a>
+        <div className="flex items-center gap-2">
           <a
             href={telegram.primaryHref}
             {...telegramLinkProps(telegram)}
-            className="bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white text-sm font-semibold px-5 py-2.5 rounded-full shadow-[0_0_20px_rgba(79,109,255,0.4)] transition-all"
+            className="hidden min-h-[44px] items-center gap-2 rounded-full px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90 sm:inline-flex"
+            style={{ background: 'var(--grad-accent)' }}
           >
-            {telegram.isTelegram ? 'Open in Telegram' : 'Get Started'}
+            <Send className="h-4 w-4" aria-hidden="true" />
+            {telegram.isTelegram ? 'Open in Telegram' : 'Get started free'}
           </a>
+          <button
+            type="button"
+            className="flex h-11 w-11 items-center justify-center rounded-full lg:hidden"
+            style={{ color: 'var(--color-text)' }}
+            aria-expanded={open}
+            aria-label={open ? 'Close menu' : 'Open menu'}
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? (
+              <X className="h-6 w-6" aria-hidden="true" />
+            ) : (
+              <Menu className="h-6 w-6" aria-hidden="true" />
+            )}
+          </button>
         </div>
-
-        <button
-          className="md:hidden text-white"
-          onClick={() => setOpen(!open)}
-          aria-label="Toggle menu"
-        >
-          {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
-      </div>
+      </nav>
 
       {open && (
-        <div className="md:hidden bg-[#060918] border-b border-white/10 px-6 py-4 space-y-3">
-          {links.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              className="block text-gray-300 hover:text-white"
-              onClick={() => setOpen(false)}
-            >
-              {l.label}
-            </a>
-          ))}
-          <a
-            href={telegram.primaryHref}
-            {...telegramLinkProps(telegram)}
-            onClick={() => setOpen(false)}
-            className="block text-center bg-gradient-to-r from-blue-600 to-violet-600 text-white font-semibold px-5 py-2.5 rounded-full"
-          >
-            {telegram.isTelegram ? 'Open in Telegram' : 'Get Started'}
-          </a>
+        <div
+          className="border-t lg:hidden"
+          style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+        >
+          <ul className="mx-auto max-w-7xl px-4 py-3 sm:px-6">
+            {links.map((l) => (
+              <li key={l.href}>
+                <a
+                  href={l.href}
+                  onClick={() => setOpen(false)}
+                  className="flex min-h-[48px] items-center rounded-lg px-3 text-base font-medium"
+                  style={{ color: 'var(--color-text)' }}
+                >
+                  {l.label}
+                </a>
+              </li>
+            ))}
+            <li className="pt-2 pb-1">
+              <a
+                href={telegram.primaryHref}
+                {...telegramLinkProps(telegram)}
+                className="flex min-h-[48px] items-center justify-center gap-2 rounded-full px-5 font-semibold text-white"
+                style={{ background: 'var(--grad-accent)' }}
+              >
+                <Send className="h-4 w-4" aria-hidden="true" />
+                {telegram.isTelegram ? 'Open in Telegram' : 'Get started free'}
+              </a>
+            </li>
+          </ul>
         </div>
       )}
     </header>
