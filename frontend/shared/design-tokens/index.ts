@@ -79,6 +79,83 @@ export const gradientBlueButton =
 export const ringGlow =
   'conic-gradient(from 0deg, rgba(79,109,255,0.9), rgba(124,92,255,0.7), rgba(34,211,238,0.5), rgba(79,109,255,0.9))';
 
+// ---------------------------------------------------------------------------
+// Z0 additions (design handoff §2): LIGHT theme is the product default
+// (emerald/mint); `palette` above remains the DARK "Neon Dark Tech" variant.
+// CSS consumers should prefer the custom properties in ../theme.css; these
+// constants mirror them for JS/TS use (charts, inline styles, tests).
+// ---------------------------------------------------------------------------
+
+export const lightPalette = {
+  bg: '#f5faf8',
+  surface: '#ffffff',
+  surfaceElevated: '#e5f5ef',
+  surfaceHover: '#eef7f3',
+  border: '#d7e5df',
+  borderStrong: '#b9d2c7',
+
+  text: '#101d2c',
+  textMuted: '#4c625d',
+  textFaint: '#7d938c',
+
+  accent: '#00664b',
+  accentHover: '#00553e',
+  accentText: '#ffffff',
+  accentSoft: '#e5f5ef',
+
+  success: '#0b7a43',
+  warning: '#92600a',
+  danger: '#b4232f',
+  info: '#175cd3',
+
+  heroGradStart: '#054333',
+  heroGradEnd: '#007959',
+} as const;
+
+export const gradientHeroLight =
+  'linear-gradient(135deg, #054333 0%, #007959 100%)';
+
+/** Market status (rank) semantics — text label always accompanies color. */
+export const statusColors = {
+  light: {
+    focus: { bg: '#cdeee0', text: '#06543c' },
+    watch: { bg: '#fbefc0', text: '#7a5a00' },
+    avoid: { bg: '#f6dee3', text: '#7a2438' },
+    unavailable: { bg: '#e8edf0', text: '#4a5a66' },
+  },
+  dark: {
+    focus: { bg: 'rgba(16,185,129,0.16)', text: '#34d399' },
+    watch: { bg: 'rgba(245,197,66,0.15)', text: '#f5c542' },
+    avoid: { bg: 'rgba(190,80,100,0.18)', text: '#f08ca0' },
+    unavailable: { bg: 'rgba(136,150,189,0.16)', text: '#9aa8c7' },
+  },
+} as const;
+
+/** Directional bias semantics — kept separate from rank/status. */
+export const biasColors = {
+  light: { bullish: '#0b7a43', bearish: '#c22633', neutral: '#4c625d' },
+  dark: { bullish: '#34d399', bearish: '#f87171', neutral: '#8896bd' },
+} as const;
+
+export type MarketStatus = 'focus' | 'watch' | 'avoid' | 'unavailable';
+export type Bias = 'bullish' | 'bearish' | 'neutral';
+
+export const spacing = {
+  1: '4px',
+  2: '8px',
+  3: '12px',
+  4: '16px',
+  6: '24px',
+  8: '32px',
+} as const;
+
+export const typeScale = {
+  pageTitle: '30px',
+  groupTitle: '19px',
+  body: '15px',
+  caption: '12px',
+} as const;
+
 export const tierColors = {
   FREE: { text: '#8896bd', bg: 'rgba(136,150,189,0.12)', border: 'rgba(136,150,189,0.2)' },
   PRO: { text: '#6b86ff', bg: 'rgba(107,134,255,0.12)', border: 'rgba(107,134,255,0.25)' },

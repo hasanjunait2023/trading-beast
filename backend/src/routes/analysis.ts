@@ -7,7 +7,10 @@ import { runAnalysisForUser, getCachedAnalysis, runDailyPublishing } from '../se
 import { AuthRequest, requireAdmin } from '../middleware/auth.js';
 
 import { sessionOverview } from '../services/session-clock.js';
+import { pagination } from '../services/pagination.js';
+import { getLatestRadarRun, listRadarRuns, getRadarRunById } from '../services/radar-history.js';
 import { MarketDataUnavailable } from '../services/market-data.js';
+import { listInstruments } from '../services/instruments.js';
 const router: Router = asyncRouter();
 
 // Read-only market clock: no credits charged.
@@ -43,6 +46,25 @@ router.post('/focus', async (req: AuthRequest, res) => {
   }
 });
 
+// Read-only Radar history (handoff §5): owner-scoped SUCCEEDED runs, zero
+// credits — these handlers never touch the credits service.
+router.get('/runs/latest', async (req: AuthRequest, res) => {
+  const run = await getLatestRadarRun(req.user!.id);
+  res.json({ success: true, data: run });
+});
+
+router.get('/runs', async (req: AuthRequest, res) => {
+  const p = pagination(req.query);
+  const { runs, total } = await listRadarRuns(req.user!.id, p);
+  res.json({ success: true, data: runs, meta: { page: p.page, limit: p.limit, total } });
+});
+
+router.get('/runs/:id', async (req: AuthRequest, res) => {
+  const run = await getRadarRunById(req.user!.id, req.params.id);
+  if (!run) return res.status(404).json({ success: false, error: 'Run not found' });
+  res.json({ success: true, data: run });
+});
+
 router.get('/focus/:session', async (req: AuthRequest, res) => {
   const { session } = req.params;
   if (!['Asian', 'London', 'New York'].includes(session)) {
@@ -56,6 +78,26 @@ router.get('/focus/:session', async (req: AuthRequest, res) => {
     console.error('Cached analysis error:', error);
     res.status(500).json({ success: false, error: 'Failed to get analysis' });
   }
+});
+
+// Instrument catalog (B5): derived from the engine's buildPairs()
+// definitions — only fields that genuinely exist there (see
+// services/instruments.ts). No contract metadata is defined in the engine,
+// so none is returned. /pairs below stays as the legacy label list.
+router.get('/instruments', (_req, res) => {
+  res.json({ success: true, data: listInstruments() });
+});
+
+// Currency strength (B5, handoff §3 row 07 / §5): NOT available. The engine
+// produces per-pair evidence only (win*/score fields are pair-level); no
+// currency-level strength methodology or data source is defined anywhere
+// in the repo, so no values are computed or returned — an explicit 503.
+router.get('/strength', (_req, res) => {
+  res.status(503).json({
+    success: false,
+    error: 'Currency strength is not available: no validated methodology or currency-level data source',
+    code: 'STRENGTH_UNAVAILABLE',
+  });
 });
 
 router.get('/pairs', (_req, res) => {

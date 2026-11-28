@@ -1,10 +1,8 @@
-import { motion } from 'framer-motion';
-import { Check, Minus, Zap } from 'lucide-react';
+import { Check, Minus } from 'lucide-react';
+import Reveal from './Reveal';
+import Brand from './Brand';
 
-type Cell =
-  | { kind: 'yes' }
-  | { kind: 'no' }
-  | { kind: 'partial'; note: string };
+type Cell = { kind: 'yes' } | { kind: 'no' } | { kind: 'partial'; note: string };
 
 const yes: Cell = { kind: 'yes' };
 const no: Cell = { kind: 'no' };
@@ -15,183 +13,197 @@ interface Row {
   tradingBeast: Cell;
   manual: Cell;
   signalGroups: Cell;
-  indicatorBots: Cell;
 }
 
 const rows: Row[] = [
   {
-    feature: 'Session-aware focus list (Asian / London / NY)',
+    feature: 'Session-aware focus list (Asian / London / New York)',
     tradingBeast: yes,
     manual: no,
     signalGroups: no,
-    indicatorBots: no,
   },
   {
-    feature: 'Transparent scoring — EMA, RSI, ADR & opening range',
+    feature: 'Transparent scoring — EMA, RSI, ADR & opening-range evidence shown',
     tradingBeast: yes,
     manual: partial('Possible, but chart by chart, by hand'),
     signalGroups: no,
-    indicatorBots: partial('Usually a single indicator'),
   },
   {
     feature: 'Works inside Telegram — no new app to install',
     tradingBeast: yes,
     manual: no,
     signalGroups: partial('Chat messages only, no app'),
-    indicatorBots: no,
   },
   {
-    feature: 'Credit-based pay-per-use — no subscription lock-in',
+    feature: 'Pay per use with credits — browsing and the clock are free',
     tradingBeast: yes,
     manual: partial('Free, but it costs your time'),
     signalGroups: no,
-    indicatorBots: no,
   },
   {
-    feature: 'No buy/sell signals or advice claims',
+    feature: 'No buy/sell signals or profit claims',
     tradingBeast: yes,
     manual: yes,
     signalGroups: no,
-    indicatorBots: partial('Often marketed as signal bots'),
   },
   {
-    feature: 'Personal watchlist, synced across devices',
+    feature: 'Personal watchlist, same account on phone and browser',
     tradingBeast: yes,
     manual: partial('Separate apps, notes & spreadsheets'),
     signalGroups: no,
-    indicatorBots: partial('Depends on the platform'),
   },
   {
-    feature: 'Earn credits by referring other traders',
+    feature: 'Referral reward: 7 days of Pro free for both sides',
     tradingBeast: yes,
     manual: no,
     signalGroups: no,
-    indicatorBots: no,
   },
 ];
 
 const columns: { key: keyof Omit<Row, 'feature'>; label: string; highlight?: boolean }[] = [
   { key: 'tradingBeast', label: 'TradingBeast', highlight: true },
   { key: 'manual', label: 'Manual chart-watching' },
-  { key: 'signalGroups', label: 'Paid signal groups' },
-  { key: 'indicatorBots', label: 'Generic indicator bots' },
+  { key: 'signalGroups', label: 'Generic signal groups' },
 ];
 
 function CellView({ cell, highlight }: { cell: Cell; highlight?: boolean }) {
   if (cell.kind === 'yes') {
     return (
-      <span className="inline-flex items-center justify-center">
-        <span
-          className={`w-7 h-7 rounded-full flex items-center justify-center ${
-            highlight ? 'bg-emerald-400/20' : 'bg-white/5'
-          }`}
-        >
-          <Check className={`w-4 h-4 ${highlight ? 'text-emerald-400' : 'text-gray-300'}`} />
-        </span>
+      <span
+        className="inline-flex h-7 w-7 items-center justify-center rounded-full"
+        style={{
+          background: highlight ? 'var(--color-focus-bg)' : 'var(--color-surface-hover)',
+          color: highlight ? 'var(--color-focus)' : 'var(--color-text-muted)',
+        }}
+      >
+        <Check className="h-4 w-4" aria-hidden="true" />
+        <span className="sr-only">Yes</span>
       </span>
     );
   }
   if (cell.kind === 'no') {
     return (
       <span className="inline-flex items-center justify-center">
-        <Minus className="w-4 h-4 text-gray-600" />
+        <Minus className="h-4 w-4" style={{ color: 'var(--color-text-faint)' }} aria-hidden="true" />
+        <span className="sr-only">No</span>
       </span>
     );
   }
   return (
     <span className="flex flex-col items-center gap-1">
-      <Minus className="w-4 h-4 text-amber-400/80" />
-      <span className="text-[11px] leading-tight text-gray-500 max-w-[130px]">{cell.note}</span>
+      <Minus className="h-4 w-4" style={{ color: 'var(--color-watch)' }} aria-hidden="true" />
+      <span
+        className="max-w-[150px] text-[11px] leading-tight"
+        style={{ color: 'var(--color-text-muted)' }}
+      >
+        {cell.note}
+      </span>
+      <span className="sr-only">Partially</span>
     </span>
   );
 }
 
 export default function Comparison() {
   return (
-    <section id="comparison" className="py-24 bg-[#060918]">
-      <div className="max-w-7xl mx-auto px-6">
-        <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.6 }}
-        >
-          <p className="text-xs uppercase tracking-[0.2em] text-blue-400 mb-3">Compare</p>
-          <h2 className="font-space font-bold text-4xl md:text-5xl text-white">
+    <section id="comparison" className="py-20 sm:py-24" aria-labelledby="comparison-heading">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <Reveal className="mb-14 text-center">
+          <p
+            className="mb-3 text-xs font-semibold tracking-[0.2em] uppercase"
+            style={{ color: 'var(--color-accent)' }}
+          >
+            Compare
+          </p>
+          <h2
+            id="comparison-heading"
+            className="text-3xl font-bold tracking-tight text-balance sm:text-4xl lg:text-5xl"
+          >
             A calmer way to prepare.
           </h2>
-          <p className="mt-4 text-gray-400 max-w-2xl mx-auto">
-            TradingBeast doesn&apos;t replace your judgement — it replaces the hours of
-            scanning before it. Here is how it stacks up against the usual options.
+          <p className="mx-auto mt-4 max-w-2xl" style={{ color: 'var(--color-text-muted)' }}>
+            TradingBeast doesn&apos;t replace your judgement — it replaces the hours of scanning
+            before it. Here is how it stacks up against the usual options.
           </p>
-        </motion.div>
+        </Reveal>
 
-        <motion.div
-          className="max-w-5xl mx-auto overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md"
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.6 }}
-        >
-          <table className="w-full min-w-[760px] border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th className="text-left font-medium text-gray-400 px-6 py-5 w-[30%]">Feature</th>
-                {columns.map((col) => (
-                  <th
-                    key={col.key}
-                    className={`px-4 py-5 text-center align-bottom ${
-                      col.highlight ? 'bg-gradient-to-b from-blue-600/15 to-violet-600/10' : ''
-                    }`}
-                  >
-                    {col.highlight ? (
-                      <span className="inline-flex items-center gap-2 font-space font-bold text-white">
-                        <span className="w-6 h-6 rounded-md bg-gradient-to-r from-blue-600 to-violet-600 flex items-center justify-center">
-                          <Zap className="w-3.5 h-3.5 text-white" />
-                        </span>
-                        {col.label}
-                      </span>
-                    ) : (
-                      <span className="font-space font-semibold text-gray-300">{col.label}</span>
-                    )}
+        <Reveal>
+          <div
+            className="mx-auto max-w-5xl overflow-x-auto rounded-[var(--radius-lg)] border"
+            role="region"
+            aria-label="Feature comparison table — scroll horizontally on small screens"
+            tabIndex={0}
+            style={{
+              background: 'var(--color-surface)',
+              borderColor: 'var(--color-border)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <table className="w-full min-w-[680px] border-collapse text-sm">
+              <caption className="sr-only">
+                Feature comparison between TradingBeast, manual chart-watching and generic
+                signal groups
+              </caption>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                  <th scope="col" className="w-[38%] px-6 py-5 text-left font-medium" style={{ color: 'var(--color-text-muted)' }}>
+                    Feature
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, i) => (
-                <tr
-                  key={row.feature}
-                  className={i < rows.length - 1 ? 'border-b border-white/5' : ''}
-                >
-                  <td className="px-6 py-4 text-gray-200 font-medium">{row.feature}</td>
                   {columns.map((col) => (
-                    <td
+                    <th
                       key={col.key}
-                      className={`px-4 py-4 text-center align-middle ${
-                        col.highlight ? 'bg-gradient-to-b from-blue-600/[0.07] to-violet-600/[0.05]' : ''
-                      }`}
+                      scope="col"
+                      className="px-4 py-5 text-center align-bottom"
+                      style={col.highlight ? { background: 'var(--color-accent-soft)' } : undefined}
                     >
-                      <CellView cell={row[col.key]} highlight={col.highlight} />
-                    </td>
+                      {col.highlight ? (
+                        <span className="inline-flex scale-[0.82]">
+                          <Brand />
+                        </span>
+                      ) : (
+                        <span className="font-semibold">{col.label}</span>
+                      )}
+                    </th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </motion.div>
+              </thead>
+              <tbody>
+                {rows.map((row, i) => (
+                  <tr
+                    key={row.feature}
+                    style={
+                      i < rows.length - 1
+                        ? { borderBottom: '1px solid var(--color-border)' }
+                        : undefined
+                    }
+                  >
+                    <th scope="row" className="px-6 py-4 text-left font-medium">
+                      {row.feature}
+                    </th>
+                    {columns.map((col) => (
+                      <td
+                        key={col.key}
+                        className="px-4 py-4 text-center align-middle"
+                        style={col.highlight ? { background: 'var(--color-accent-soft)' } : undefined}
+                      >
+                        <CellView cell={row[col.key]} highlight={col.highlight} />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Reveal>
 
-        <motion.p
-          className="mt-8 text-center text-sm text-gray-500 max-w-2xl mx-auto"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.15 }}
-        >
-          You always make the final call. TradingBeast is an analysis tool — it shows you
-          where to look and why, never what to buy or sell.
-        </motion.p>
+        <Reveal delay={120}>
+          <p
+            className="mx-auto mt-8 max-w-2xl text-center text-sm"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            You always make the final call. TradingBeast is an analysis tool — it shows you
+            where to look and why, never what to buy or sell.
+          </p>
+        </Reveal>
       </div>
     </section>
   );

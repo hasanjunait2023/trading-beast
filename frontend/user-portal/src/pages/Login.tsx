@@ -1,18 +1,39 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Card } from '@shared/components/Card';
+import { Button } from '@shared/components/Button';
+import { Input, FormField } from '@shared/components/FormField';
 import { useAuth } from '../hooks/useAuth';
+import { useBotUsername, botUrl } from '../hooks/useBotConfig';
 import { getInitData, getInitialReferralCode, isTelegram } from '../telegram';
-import { Target, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
+
+/**
+ * Sign in (studies 01 / 01b). Inside Telegram the host auto-connects once
+ * with the signed initData. In a browser: Open-Telegram-bot action, the
+ * /login instruction, a one-time-code field (POST /api/auth/code) and Sign
+ * in. An expired/invalid code produces a clear error plus back-to-bot
+ * guidance. Return destinations are allowlisted internal paths only.
+ */
+
+function safeReturnTo(state: unknown): string {
+  const from = (state as { from?: unknown } | null)?.from;
+  if (typeof from === 'string' && from.startsWith('/app')) return from;
+  return '/app';
+}
 
 export default function Login() {
   const { user, login, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const botUsername = useBotUsername();
   const inTelegram = isTelegram();
   const initData = getInitData();
-  const [code,setCode] = useState('');
+  const [code, setCode] = useState('');
   // Prefilled from the Telegram start_param (ref_<CODE>) or a ?ref= link;
   // the user can still edit or clear it before connecting.
-  const [referralCode, setReferralCode] = useState(() => getInitialReferralCode()?.toUpperCase() ?? '');
+  const [referralCode, setReferralCode] = useState(
+    () => getInitialReferralCode()?.toUpperCase() ?? '',
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -20,14 +41,24 @@ export default function Login() {
     setError('');
     setIsLoading(true);
     try {
-      await login({ initData, code: initData ? undefined : code.trim(), referralCode: referralCode || undefined });
-      navigate('/dashboard');
+      await login({
+        initData: initData || undefined,
+        code: initData ? undefined : code.trim(),
+        referralCode: referralCode || undefined,
+      });
+      navigate(safeReturnTo(location.state), { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(
+        initData
+          ? err instanceof Error
+            ? err.message
+            : 'Login failed'
+          : 'That code is invalid or has expired. Codes last 5 minutes — open the Telegram bot, send /login again and paste the fresh code.',
+      );
     } finally {
       setIsLoading(false);
     }
-  }, [login, navigate, initData, code, referralCode]);
+  }, [login, navigate, location.state, initData, code, referralCode]);
 
   // Inside Telegram, connect automatically once on mount — no button press
   // needed. Wait for the stored-session check to finish first so it cannot
@@ -37,107 +68,116 @@ export default function Login() {
   useEffect(() => {
     if (!inTelegram || !initData || autoLoginTried.current || authLoading) return;
     if (user) {
-      navigate('/dashboard');
+      navigate(safeReturnTo(location.state), { replace: true });
       return;
     }
     autoLoginTried.current = true;
     void doLogin();
-  }, [inTelegram, initData, authLoading, user, navigate, doLogin]);
+  }, [inTelegram, initData, authLoading, user, navigate, location.state, doLogin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await doLogin();
   };
 
+  const bot = botUrl(botUsername);
+
   return (
-    <div className="flex items-center justify-center min-h-screen px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg)] px-4 py-10 text-[var(--color-text)]">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-xl bg-[var(--color-accent)] flex items-center justify-center mx-auto mb-4">
-            <Target className="w-8 h-8 text-black" />
-          </div>
-          <h1 className="font-display text-3xl font-bold mb-2">Session Focus Radar</h1>
-          <p className="text-[var(--color-text-muted)]">Market analysis tool for forex traders</p>
+        <div className="mb-8 text-center">
+          <p className="text-2xl font-bold tracking-tight">
+            Trading<span className="text-[var(--color-accent)]">Beast</span>
+          </p>
+          <h1 className="mt-4 text-3xl font-bold">Sign in to TradingBeast</h1>
+          <p className="mt-2 text-[var(--color-text-muted)]">
+            Session Focus Radar — market analysis for the Asian, London and New York sessions.
+          </p>
         </div>
 
-        <div className="card-elevated">
+        <Card elevated>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="flex items-center gap-2 p-3 bg-red-900/30 border border-red-500/30 rounded-lg text-red-300">
-                <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm">{error}</span>
+              <div role="alert" className="rounded-[var(--radius-md)] bg-[var(--color-danger-bg)] p-3 text-sm">
+                <p className="font-semibold text-[var(--color-danger)]">Could not sign in</p>
+                <p className="mt-1">{error}</p>
               </div>
             )}
 
-            <div>
-              {inTelegram ? (
-                <div className="flex items-center gap-2">
-                  {(isLoading || authLoading) && (
-                    <svg className="animate-spin h-5 w-5 flex-shrink-0" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-                  )}
-                  <p>{isLoading || authLoading ? 'Connecting your verified Telegram account…' : 'Connect your verified Telegram account.'}</p>
+            {inTelegram ? (
+              <div className="flex items-center gap-2" role="status">
+                {(isLoading || authLoading) && (
+                  <svg className="h-5 w-5 shrink-0 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                )}
+                <p>
+                  {isLoading || authLoading
+                    ? 'Connecting your verified Telegram account…'
+                    : 'Connect your verified Telegram account.'}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="rounded-[var(--radius-md)] bg-[var(--color-accent-soft)] p-3 text-sm">
+                  Send <strong>/login</strong> to the TradingBeast bot in a private chat, then
+                  paste the one-time code it gives you below.
                 </div>
-              ) : <><p>Send /login to the TradingBeast bot in private chat and paste the one-time code.</p><input className="input" type="password" autoComplete="one-time-code" value={code} onChange={e=>setCode(e.target.value)} placeholder="One-time login code" /></>}
-            </div>
+                {bot && (
+                  <a
+                    href={bot}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block text-center font-semibold text-[var(--color-link)] underline"
+                  >
+                    Open Telegram bot ↗
+                  </a>
+                )}
+                <FormField label="One-time login code" hint="Code expires in 5 minutes.">
+                  <Input
+                    type="password"
+                    autoComplete="one-time-code"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="Paste the 64-character code"
+                  />
+                </FormField>
+              </>
+            )}
 
-            <div>
-              <label className="label">Referral Code (Optional)</label>
-              <input
+            <FormField label="Referral code (optional)">
+              <Input
                 type="text"
-                className="input"
                 placeholder="ABC123"
                 value={referralCode}
                 onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                 maxLength={8}
                 disabled={isLoading || authLoading}
               />
-              {getInitialReferralCode() && referralCode === getInitialReferralCode()?.toUpperCase() && (
-                <p className="mt-1 text-xs text-[var(--color-text-muted)]">Applied from your referral link — you can change it before connecting.</p>
+            </FormField>
+            {getInitialReferralCode() &&
+              referralCode === getInitialReferralCode()?.toUpperCase() && (
+                <p className="text-xs text-[var(--color-text-muted)]">
+                  Applied from your referral link — you can change it before connecting.
+                </p>
               )}
-            </div>
 
-            <button
+            <Button
               type="submit"
-              className="btn btn-primary w-full justify-center gap-2"
+              size="lg"
+              className="w-full"
+              loading={isLoading || authLoading}
               disabled={isLoading || authLoading || (!initData && code.trim().length !== 64)}
             >
-              {isLoading || authLoading ? (
-                <>
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-                  Connecting...
-                </>
-              ) : (
-                <>
-                  <span>Connect with Telegram</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
+              {inTelegram ? 'Connect with Telegram' : 'Sign in'}
+            </Button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-[var(--color-border)] space-y-3 text-sm">
-            <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
-              <CheckCircle className="w-4 h-4 text-[var(--color-success)] flex-shrink-0" />
-              <span>10 free credits every day</span>
-            </div>
-            <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
-              <CheckCircle className="w-4 h-4 text-[var(--color-success)] flex-shrink-0" />
-              <span>Session-aware focus lists (Asian/London/NY)</span>
-            </div>
-            <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
-              <CheckCircle className="w-4 h-4 text-[var(--color-success)] flex-shrink-0" />
-              <span>28 forex pairs + Gold, Silver, Oil, Bitcoin</span>
-            </div>
-            <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
-              <CheckCircle className="w-4 h-4 text-[var(--color-success)] flex-shrink-0" />
-              <span>Multi-timeframe analysis (EMA, RSI, ADR, OR)</span>
-            </div>
-          </div>
-
-          <p className="mt-4 text-center text-xs text-[var(--color-text-muted)]">
-            ⚠️ Analysis tool only. Not investment advice. Trading involves risk.
+          <p className="mt-6 border-t border-[var(--color-border)] pt-4 text-center text-xs text-[var(--color-text-muted)]">
+            Analysis tool only. Not investment advice. Trading involves risk.
           </p>
-        </div>
+        </Card>
       </div>
     </div>
   );

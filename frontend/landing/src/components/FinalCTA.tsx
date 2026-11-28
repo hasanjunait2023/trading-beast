@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion';
 import { ArrowRight, LogIn, Send } from 'lucide-react';
+import Reveal from './Reveal';
 import { useTelegramLinks, telegramLinkProps } from '../services/telegram';
 
 const env = (import.meta as { env?: Record<string, string | undefined> }).env ?? {};
@@ -11,63 +11,61 @@ export default function FinalCTA() {
 
   // Portal login: explicit portal URL when configured, else the Mini App
   // (which signs in with Telegram), else the pricing anchor — never a dead link.
-  const portalLoginHref = PORTAL_URL
-    ? `${PORTAL_URL}/login`
-    : telegram.miniAppUrl ?? '#pricing';
+  const portalLoginHref = PORTAL_URL ? `${PORTAL_URL}/login` : (telegram.miniAppUrl ?? '#pricing');
   const portalIsExternal = Boolean(PORTAL_URL || telegram.miniAppUrl);
 
   return (
-    <section id="get-started" className="relative py-28 bg-[#060918] overflow-hidden">
-      {/* Soft gradient glow */}
+    <section id="get-started" className="px-3 pb-20 sm:px-5 sm:pb-24" aria-labelledby="cta-heading">
       <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[560px] h-[320px] bg-gradient-to-r from-blue-600/15 via-violet-600/15 to-blue-600/15 blur-3xl rounded-full pointer-events-none"
-        aria-hidden="true"
-      />
-
-      <motion.div
-        className="relative max-w-3xl mx-auto px-6 text-center"
-        initial={{ opacity: 0, y: 24 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-80px' }}
-        transition={{ duration: 0.6 }}
+        className="mx-auto max-w-7xl rounded-[28px] px-6 py-16 text-center text-white sm:px-10 sm:py-20"
+        style={{ background: 'var(--grad-hero)' }}
       >
-        <p className="text-xs uppercase tracking-[0.2em] text-blue-400 mb-4">Start Free</p>
-        <h2 className="font-space font-bold text-4xl md:text-5xl text-white leading-tight">
-          The next session open is coming.
-          <span className="block bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-            Be ready for it.
-          </span>
-        </h2>
-        <p className="mt-5 text-gray-400 max-w-xl mx-auto leading-relaxed">
-          Open TradingBeast in Telegram and run your first Radar today — free,
-          with the 10 credits you already get every day. No card, no password.
-        </p>
-
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <a
-            href={telegram.primaryHref}
-            {...telegramLinkProps(telegram)}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 font-semibold py-3.5 px-8 rounded-full bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-[0_0_24px_rgba(79,109,255,0.4)] hover:from-blue-500 hover:to-violet-500 transition-all"
+        <Reveal>
+          <p
+            className="mb-4 text-xs font-semibold tracking-[0.2em] uppercase"
+            style={{ color: '#c9f2e2' }}
           >
-            <Send className="w-4 h-4" />
-            {telegram.isTelegram ? 'Open in Telegram' : 'Get Started Free'}
-            <ArrowRight className="w-4 h-4" />
-          </a>
-          <a
-            href={portalLoginHref}
-            {...(portalIsExternal ? { target: '_blank', rel: 'noreferrer' } : {})}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 font-semibold py-3.5 px-8 rounded-full bg-white/5 text-white border border-white/10 hover:bg-white/10 transition-all"
+            Start free
+          </p>
+          <h2
+            id="cta-heading"
+            className="mx-auto max-w-2xl text-3xl font-bold tracking-tight text-balance sm:text-4xl lg:text-5xl"
           >
-            <LogIn className="w-4 h-4" />
-            Log in to the web portal
-          </a>
-        </div>
+            The next session open is coming. Be ready for it.
+          </h2>
+          <p className="mx-auto mt-5 max-w-xl leading-relaxed" style={{ color: '#d7efe6' }}>
+            Open TradingBeast in Telegram and run your first Radar with today&apos;s 10 free
+            credits. No card, no password — and credits you don&apos;t use never expire.
+          </p>
 
-        <p className="mt-10 text-sm text-gray-500">
-          ⚠️ TradingBeast is a market analysis tool only — not investment advice.
-          Trading involves substantial risk of loss.
-        </p>
-      </motion.div>
+          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <a
+              href={telegram.primaryHref}
+              {...telegramLinkProps(telegram)}
+              className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-white px-8 font-semibold transition-transform hover:-translate-y-0.5 sm:w-auto"
+              style={{ color: '#054333' }}
+            >
+              <Send className="h-4 w-4" aria-hidden="true" />
+              {telegram.isTelegram ? 'Open in Telegram' : 'Get started free'}
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </a>
+            <a
+              href={portalLoginHref}
+              {...(portalIsExternal ? { target: '_blank', rel: 'noreferrer' } : {})}
+              className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full px-8 font-semibold text-white sm:w-auto"
+              style={{ border: '1px solid rgba(255,255,255,0.45)' }}
+            >
+              <LogIn className="h-4 w-4" aria-hidden="true" />
+              Log in to the web portal
+            </a>
+          </div>
+
+          <p className="mx-auto mt-10 max-w-xl text-sm" style={{ color: '#a9d8c6' }}>
+            TradingBeast is a market analysis tool only — not financial advice. Trading
+            involves substantial risk of loss.
+          </p>
+        </Reveal>
+      </div>
     </section>
   );
 }

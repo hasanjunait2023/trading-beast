@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TradingBeast Design Preview</title>
+<style>:root{color-scheme:light;--canvas:#f3f7f5;--paper:#fff;--ink:#142824;--muted:#526b63;--line:#dce7e1;--soft:#eaf5ef;--accent:#00664c;--bright:#bcf39a;--hero:#073b2e;--shade:#eef3ef;--warn:#805313;--warn-bg:#fff2d6;--red:#9a4047;--red-bg:#fbecef;--shadow:0 12px 34px #183b2e09}
+html[data-theme=dark]{color-scheme:dark;--canvas:#121b19;--paper:#1a2723;--ink:#eef7f2;--muted:#b0c6bc;--line:#33493f;--soft:#203d31;--accent:#90e3b5;--shade:#24332e;--red:#ffbdc3;--red-bg:#472b2e;--warn:#ffe0a1;--warn-bg:#493c22;--shadow:none}
+*{box-sizing:border-box}body{margin:0;background:var(--canvas);color:var(--ink);font:14px/1.5 "Open Sans",system-ui,sans-serif}button,input,select,textarea{font:inherit}button,a,input,select,summary,textarea{outline-offset:4px}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,textarea:focus-visible{outline:2px solid var(--accent)}button{cursor:pointer}a{color:inherit;text-decoration:none}a:hover{color:var(--accent)}button:disabled{opacity:.55;cursor:default}h1,h2,h3,p{margin:0}h1,h2,h3{line-height:1.2;letter-spacing:-.035em}h1{font-size:clamp(30px,3.4vw,48px);font-weight:780}h2{font-size:22px}h3{font-size:16px}p{color:var(--muted)}svg{vertical-align:middle;flex:none}.ico{width:19px;height:19px}a,button,input,textarea,select{touch-action:manipulation}.app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh}.side{position:sticky;top:0;height:100dvh;background:var(--paper);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:25px 16px 16px;overflow:auto}.brand{display:inline-flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.04em;font-size:21px;color:var(--ink)}.mark{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:#0b4e3b;color:#d0f8af}.mark svg{width:24px;height:24px}.side .brand{margin:0 0 30px 6px}.navgroup{display:grid;gap:3px;margin-bottom:18px}.navlabel{font-size:10px;text-transform:uppercase;letter-spacing:.13em;color:var(--muted);margin:0 0 6px 12px;font-weight:750}.navitem{display:flex;align-items:center;gap:11px;border-radius:10px;padding:10px 12px;color:var(--muted);min-height:43px;font-weight:650}.navitem.active{background:var(--soft);color:var(--accent);font-weight:780}.navitem:hover{background:var(--shade)}.side-foot{margin-top:auto;border-top:1px solid var(--line);padding:10px 5px 0}.top{height:69px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 33px;border-bottom:1px solid var(--line);background:var(--paper)}.top .brand,.bottom,.back-mobile{display:none}.top-tools,.actions,.row,.chips{display:flex;align-items:center;gap:10px}.top-tools{justify-content:flex-end}.top-context{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);font-weight:750}.avatar,.iconbox{display:grid;place-items:center;width:38px;height:38px;background:var(--soft);color:var(--accent);border-radius:12px;flex:none;font-weight:800}.avatar{border-radius:100%;font-size:11px}.content{max-width:1560px;margin:0 auto;padding:29px 33px 38px}.heading{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:22px}.heading p{margin-top:8px}.crumb{display:flex;gap:7px;align-items:center;color:var(--accent);font-size:11px;font-weight:800;letter-spacing:.075em;text-transform:uppercase;margin-bottom:8px}.crumb .ico{width:14px;height:14px}.grid{display:grid;grid-template-columns:minmax(0,2.4fr) minmax(270px,1fr);gap:18px;align-items:start}.stack{display:grid;gap:16px;min-width:0}.panel,.hero{min-width:0;border-radius:18px;overflow:hidden}.panel{background:var(--paper);border:1px solid var(--line);box-shadow:var(--shadow);padding:19px}.panelhead{display:flex;justify-content:space-between;align-items:center;gap:9px;margin-bottom:14px}.panelhead p{font-size:12px;margin-top:4px}.hero{position:relative;isolation:isolate;min-height:237px;background:radial-gradient(ellipse at 90% 70%,#107d56 0%,#0b5842 40%,var(--hero) 80%);color:#f6fff8;padding:25px;display:flex;align-items:center}.hero-copy{z-index:1;max-width:65%}.hero .kicker{color:#c4edcf;font-size:11px;font-weight:750;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px}.hero h2{font-size:clamp(31px,4vw,53px);letter-spacing:-.06em}.hero p{color:#d3ecde;margin-top:9px;max-width:34ch}.hero .actions{margin-top:17px;flex-wrap:wrap}.radar-art{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:min(44%,259px);height:auto;opacity:.92}.hero .btn{background:#c7f39f;border-color:transparent;color:#133521}.btn{border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);padding:8px 13px;min-height:43px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:750;line-height:1.2;text-align:center}.btn:hover{background:var(--soft);color:var(--accent)}.btn.primary{background:#00664c;color:white;border-color:#00664c}.btn.primary:hover{background:#085740}.btn.small{font-size:12px;padding:5px 9px;min-height:36px}.btn.full{width:100%}.pill{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;border-radius:60px;padding:5px 9px;font-size:11px;font-weight:800;background:var(--soft);color:var(--accent);line-height:1.25}.pill.watch,.pill.pending{background:var(--warn-bg);color:var(--warn)}.pill.avoid,.pill.rejected,.pill.error{background:var(--red-bg);color:var(--red)}.pill.neutral{background:var(--shade);color:var(--muted)}.pill.dot:before{content:"";width:6px;height:6px;border-radius:100%;background:currentColor}.metric{padding:13px;background:var(--shade);border-radius:12px;min-width:0}.metric p{font-size:11px}.metric strong{font-size:21px;font-variant-numeric:tabular-nums;letter-spacing:-.04em}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.metric small{display:block;color:var(--muted);font-size:10px}.link{color:var(--accent);font-weight:780;display:inline-flex;gap:5px;align-items:center;min-height:34px;font-size:12px}.link .ico{width:15px;height:15px}.spread{justify-content:space-between}.list{display:grid}.listrow{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line);min-height:56px}.listrow:first-child{border-top:0}.grow{flex:1;min-width:0}.sub{font-size:11px;color:var(--muted);display:block;margin-top:2px}.num{font-variant-numeric:tabular-nums;font-weight:800}.tablewrap{overflow:auto}.table{width:100%;border-collapse:collapse;text-align:left;white-space:nowrap}.table th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);background:var(--shade)}.table th,.table td{padding:10px 9px;border-bottom:1px solid var(--line)}.table tr:last-child td{border-bottom:0}.table th:first-child{border-radius:8px 0 0 8px}.table th:last-child{border-radius:0 8px 8px 0}.table tr a{display:inline-block;padding:4px 0;font-weight:800}.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:12px}.filters label{flex:1;min-width:108px}.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.tabs button{background:var(--shade);border:1px solid transparent;border-radius:40px;color:var(--muted);padding:7px 12px;min-height:39px;font-weight:750;font-size:12px}.tabs button[aria-pressed=true]{background:var(--soft);border-color:var(--line);color:var(--accent)}.banner{border:1px solid var(--line);border-radius:12px;background:var(--soft);color:var(--ink);padding:12px;line-height:1.55;font-size:12px}.banner.warn{background:var(--warn-bg);color:var(--warn)}.banner.error{background:var(--red-bg);color:var(--red)}label.field{display:grid;gap:5px;font-size:12px;font-weight:750}input:not([type=checkbox]),select,textarea{width:100%;min-width:0;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:9px 10px;min-height:43px}textarea{min-height:85px;resize:vertical}.fieldgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.formstack{display:grid;gap:12px}.ck{display:flex;align-items:center;gap:8px;min-height:41px;font-weight:650}.ck input{width:17px;height:17px;accent-color:#00664c}.sectionlabel{font-weight:780;font-size:12px}.empty{padding:38px 14px;text-align:center;border:1px dashed var(--line);border-radius:13px;display:grid;justify-items:center;gap:9px}.empty p{max-width:41ch}.chart{position:relative;height:295px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--paper)}.chart canvas{width:100%;height:100%;display:block}.spark{height:23px;width:64px}.spark canvas{width:100%;height:100%;display:block}.heat{border-collapse:separate;border-spacing:3px;font-size:11px;text-align:center;min-width:260px;width:100%;font-variant-numeric:tabular-nums}.heat th,.heat td{border-radius:5px;padding:6px 2px}.heat td{background:var(--shade)}.heat td.pos{background:var(--soft);color:var(--accent)}.heat td.neg{background:var(--red-bg);color:var(--red)}.bar{height:8px;border-radius:20px;background:var(--shade);overflow:hidden}.bar i{display:block;height:100%;background:#21846a;border-radius:20px}.timeline{position:relative;height:7px;background:var(--shade);border-radius:20px;overflow:hidden;margin-top:8px}.timeline span{position:absolute;height:100%;border-radius:20px;background:#268b6d}.tiers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.tier{padding:12px;border:1px solid var(--line);border-radius:12px;display:grid;align-content:start;gap:9px}.tier.feature{border-color:var(--accent);background:var(--soft)}.faq{border-top:1px solid var(--line);padding:11px 0}.faq summary{cursor:pointer;font-weight:750;padding:4px 0}.faq p{padding:8px 0}.toast{position:fixed;right:20px;bottom:20px;z-index:9;max-width:min(380px,calc(100% - 40px));padding:13px 17px;background:#143c30;color:#fff;border-radius:11px;box-shadow:0 10px 30px #073b2e34}.toast:empty{display:none}.plain .content{max-width:1050px}.plain .hero{min-height:365px}.plain .top{height:auto;min-height:64px}.plain .top .brand{display:inline-flex}.plain .heading{margin-top:3px}.reviewlinks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.skeleton{height:42px;background:var(--shade);border-radius:8px;margin-top:8px}.skeleton:first-child{width:72%}.pair-mobile{display:none}.mode-link{font-size:11px}.nowrap{white-space:nowrap}.hint{font-size:11px}.wide{grid-column:1/-1}
+html[data-host=telegram] .app{display:block;max-width:570px;margin:auto}html[data-host=telegram] .side{display:none}
+@media(max-width:1120px){.app{grid-template-columns:190px minmax(0,1fr)}.top,.content{padding-left:22px;padding-right:22px}.grid{grid-template-columns:minmax(0,1fr) minmax(232px,.49fr)}}
+@media(max-width:930px){.app{grid-template-columns:159px minmax(0,1fr)}.side{padding-left:9px;padding-right:9px}.side .brand{font-size:17px}.side .mark{width:30px;height:30px}.grid{grid-template-columns:1fr}.content{padding-top:21px}.heading{align-items:start}}
+@media(max-width:680px){.app{display:block}.side,.top-context{display:none}.top{min-height:54px;height:auto;padding:7px 15px;padding-top:calc(7px + env(safe-area-inset-top));position:sticky;z-index:4;top:0}.top .brand{display:inline-flex;font-size:18px}.top .mark{width:29px;height:29px;border-radius:8px}.top .mark svg{width:20px;height:20px}.top-tools{gap:6px}.top-tools .avatar{display:none}.top-tools .pill{padding:5px 7px}.heading{display:block;margin-bottom:15px}.heading>.actions{margin-top:11px}.heading h1{font-size:34px}.heading p{font-size:12px;margin-top:6px}.content{padding:16px 14px calc(83px + env(safe-area-inset-bottom))}.grid,.stack{gap:12px}.panel{padding:13px;border-radius:14px}.panelhead{margin-bottom:10px}.hero{min-height:190px;padding:16px;border-radius:15px}.hero .kicker{font-size:9px;margin-bottom:7px}.hero h2{font-size:34px}.hero p{font-size:11px}.hero .actions{margin-top:12px}.hero-copy{max-width:71%}.radar-art{right:-7px;width:44%}.bottom{position:fixed;bottom:0;left:0;right:0;padding:5px 8px calc(5px + env(safe-area-inset-bottom));background:var(--paper);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));z-index:5}.bottom .navitem{min-height:48px;padding:5px 1px;font-size:9px;gap:3px;display:grid;justify-items:center;align-content:center;border-radius:7px}.bottom .ico{width:17px;height:17px}.toast{bottom:70px}.chart{height:216px}.table.radar-table{display:none}.pair-mobile{display:grid}.pair-mobile .spark{width:43px}.tiers{grid-template-columns:1fr}.plain .hero{min-height:240px}.reviewlinks{grid-template-columns:repeat(2,minmax(0,1fr))}.table:not(.radar-table) td,.table:not(.radar-table) th{padding:7px 5px;font-size:10px}}
+@media(min-width:681px){html[data-host=telegram] .top .brand{display:inline-flex}html[data-host=telegram] .top-context{display:none}html[data-host=telegram] .grid{grid-template-columns:1fr}html[data-host=telegram] .bottom{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(570px,100%);display:grid;grid-template-columns:repeat(5,1fr);background:var(--paper);border-top:1px solid var(--line);z-index:5}html[data-host=telegram] .bottom .navitem{display:grid;justify-items:center;gap:3px;font-size:10px}html[data-host=telegram] .content{padding-bottom:90px}html[data-host=telegram] .table.radar-table{display:none}html[data-host=telegram] .pair-mobile{display:grid}}
+@media(prefers-reduced-motion:no-preference){.btn,.navitem{transition:background .15s,color .15s}}
+.hero h2{font-family:Georgia,"Times New Roman",serif;font-weight:700;letter-spacing:-.045em}
+@media(max-width:680px){.tabs button{min-height:44px}.btn.small{min-height:44px}.pair-mobile .iconbox{width:34px;height:34px}.top-tools .ico{width:15px;height:15px}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>'use strict';
+const routes = [
+ ['welcome','Welcome','home','Entry'],['login','Sign in','lock','Entry'],['setup','Workspace setup','sliders','Entry'],
+ ['home','Session overview','home','Workspace'],['markets','Session Focus Radar','radar','Workspace'],['pair','Instrument detail','chart','Workspace'],['sessions','Session clock','clock','Workspace'],['strength','Currency strength','chart','Workspace'],['watchlist','Watchlist','star','Workspace'],
+ ['plan','Session plan','check','Daily tools'],['tools','Risk tools','sliders','Daily tools'],['journal','Trading journal','book','Daily tools'],['trade','Trade editor','edit','Daily tools'],['calendar','Economic calendar','cal','Daily tools'],['alerts','Alerts','bell','Daily tools'],['alert-editor','Create alert','bell','Daily tools'],['correlations','Correlations & exposure','grid','Daily tools'],['lab','Strategy Lab','radar','Daily tools'],
+ ['credits','Radar credits','wallet','Account'],['run','Run radar','radar','Workspace'],['referrals','Referrals','users','Account'],['membership','Membership','star','Account'],['payments','Payment history','wallet','Account'],['checkout','Payment submission','wallet','Account'],['payment-submitted','Payment submitted','check','Account'],['settings','Settings','sliders','Account'],['help','Help & support','help','Account'],['more','More','more','Account'],['missing','Page not found','help','Entry'],['review','Screen index','grid','Review']
+];
+const routeMap = Object.fromEntries(routes.map(row => [row[0],row]));
+const params = new URLSearchParams(location.search);
+const telegram = params.get('host') === 'telegram';
+const stateOptions = ['Sample','Empty','Loading','Stale','Partial','Offline','Market closed','Unavailable','Error','Insufficient credits','Session expired'];
+const q = id => document.getElementById(id);
+const e = value => String(value ?? '').replace(/[&<>"']/g,char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const cache = { get(key, fallback) { try {return JSON.parse(localStorage.getItem('tb-design-'+key)) ?? fallback;} catch {return fallback;} }, set(key, value) {try {localStorage.setItem('tb-design-'+key,JSON.stringify(value));} catch {} } };
+const pairs = [
+ {id:'EURUSD',name:'EUR/USD',desc:'Euro / US Dollar',score:84,bias:'Bullish',tag:'Focus',kind:'Forex',price:'1.08642'},
+ {id:'GBPUSD',name:'GBP/USD',desc:'British Pound / US Dollar',score:72,bias:'Bullish',tag:'Watch',kind:'Forex',price:'1.27218'},
+ {id:'XAUUSD',name:'XAU/USD',desc:'Gold / US Dollar',score:78,bias:'Neutral',tag:'Watch',kind:'Metal',price:'2,356.41'},
+ {id:'USDJPY',name:'USD/JPY',desc:'US Dollar / Japanese Yen',score:56,bias:'Bearish',tag:'Avoid',kind:'Forex',price:'148.602'},
+ {id:'AUDUSD',name:'AUD/USD',desc:'Australian Dollar / US Dollar',score:65,bias:'Neutral',tag:'Watch',kind:'Forex',price:'0.66301'},
+ {id:'BTCUSD',name:'BTC/USD',desc:'Bitcoin / US Dollar',score:null,bias:'—',tag:'Unranked',kind:'Crypto',price:'—'},
+ {id:'CL',name:'WTI',desc:'WTI crude oil',score:null,bias:'—',tag:'Unavailable',kind:'Energy',price:'—'},
+ {id:'XAGUSD',name:'XAG/USD',desc:'Silver / US Dollar',score:63,bias:'Neutral',tag:'Watch',kind:'Metal',price:'30.41'}
+];
+const sessionNames = ['Asia','London','New York'];
+const initialTrades = [
+ {symbol:'EURUSD',side:'Long',date:'2026-11-25T14:30',entry:'1.08460',exit:'1.08620',size:'0.20',risk:'20',fees:'1.40',pnl:'32',note:'Waited for the opening-range retest.'},
+ {symbol:'GBPUSD',side:'Short',date:'2026-11-24T18:45',entry:'1.27210',exit:'1.27300',size:'0.20',risk:'18',fees:'0',pnl:'-18',note:''},
+ {symbol:'USDJPY',side:'Long',date:'2026-11-23T14:15',entry:'148.20',exit:'',size:'0.10',risk:'15',fees:'',pnl:'',note:''}
+];
+const session = {Asia:['07:00','16:00','Asia/Tokyo',5,38],London:['14:00','23:00','Europe/London',38,38],'New York':['19:00','04:00 +1','America/New_York',62,38]};
+const ui = {
+ state:stateOptions.includes(params.get('state')) ? params.get('state') : 'Sample',
+ filter:'All',session:'London',scope:'All instruments',query:'',period:'15m',strengthTab:'Strength',eventDay:'Today',impact:'All impacts',eventCurrency:'All currencies',journalRange:'Last 7 days',faq:'',
+ balance:cache.get('balance',40),watch:cache.get('watch',['EURUSD','GBPUSD','XAUUSD']),plan:cache.get('plan',{}),alerts:cache.get('alerts',[{symbol:'EURUSD',rule:'Enters Focus',on:true},{symbol:'GBPUSD',rule:'Session opens',on:false}]),trades:cache.get('trades',initialTrades),prefs:cache.get('prefs',{zone:'Asia/Dhaka',session:'London'}),payments:cache.get('payments',[]),theme:params.get('theme')==='dark'?'dark':cache.get('theme','light'),rule:'Position size',strategy:'Cheese',correlationPeriod:'20 bars',paymentPlan:'Pro',running:false,watchEditing:false
+};
+ui.session = ui.prefs.session || 'London';
+const icons = {
+ home:'M3 10l9-7 9 7v10h-6v-6H9v6H3z', radar:'M12 3a9 9 0 1 0 9 9M12 7a5 5 0 1 0 5 5M12 12l8-8M12 12h.01',
+ clock:'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM12 7v5l3 2', chart:'M3 4v16h18M6 15l4-5 4 3 5-7',
+ star:'M12 3l2.7 5.4 6 .9-4.4 4.2 1 6-5.3-2.8-5.3 2.8 1-6L3.3 9.3l6-.9z', check:'M4 12l5 5L20 6',
+ sliders:'M5 4v16m7-16v16m7-16v16M2 8h6m1 8h6m1-6h6',book:'M4 4h14a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V4Zm0 13h16M8 8h8m-8 4h6',edit:'M12 20H4v-8L15.5 3.5l5 5L12 20Zm1-14 5 5',
+ cal:'M4 6h16v14H4zM8 3v6m8-6v6M4 11h16',bell:'M5 17h14l-2-3v-4a5 5 0 0 0-10 0v4l-2 3Zm5 3h4',grid:'M4 4h6v6H4zm10 0h6v6h-6zM4 14h6v6H4zm10 0h6v6h-6z',wallet:'M4 6h15v13H4zm0 0 12-3v3m3 5h2v5h-7v-5z',users:'M15 20v-2c0-2-2-3-5-3s-5 1-5 3v2m8-11a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3-3a3 3 0 0 1 0 6m2 3c2 .5 3 1.5 3 3v2',
+ help:'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM9 9a3 3 0 1 1 4 3c-1 .5-1 1-1 2m0 3h.01',more:'M5 12h1m5 0h1m5 0h1',lock:'M5 11h14v9H5zm3 0V7a4 4 0 1 1 8 0v4',right:'M4 12h15m-6-6 6 6-6 6',chev:'M9 6l6 6-6 6',back:'M20 12H5m6-6-6 6 6 6',telegram:'M3 11l18-7-4 16-6-5-3 3 1-6 8-5M9 12l2 3',bolt:'M13 2L5 13h6l-1 9 9-13h-6z',sun:'M12 2v2m0 16v2M2 12h2m16 0h2M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2m-2 5a5 5 0 1 1-10 0 5 5 0 0 1 10 0Z',
+ search:'M15 10a5 5 0 1 1-10 0 5 5 0 0 1 10 0Zm0 4 5 5',plus:'M12 5v14M5 12h14',copy:'M7 7h12v13H7zm9 0V4H4v13h3',menu:'M4 6h16M4 12h16M4 18h16'
+};
+function ico(name){return '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+icons[name]+'"/></svg>';}
+const brand = () => '<a class="brand" href="#home"><span class="mark">'+ico('radar')+'</span>TradingBeast</a>';
+const button = (title,target,style='',icon='') => '<a class="btn '+style+'" href="#'+target+'">'+(icon?ico(icon):'')+e(title)+'</a>';
+const action = (title,id,style='',icon='') => '<button type="button" class="btn '+style+'" data-action="'+id+'">'+(icon?ico(icon):'')+e(title)+'</button>';
+const link = (title,target) => '<a class="link" href="#'+target+'">'+e(title)+ico('chev')+'</a>';
+const pill = (label,type='neutral',dot=false) => '<span class="pill '+type+(dot?' dot':'')+'">'+e(label)+'</span>';
+const panel = (title,body,extra='',sub='') => '<section class="panel"><div class="panelhead"><div><h2>'+e(title)+'</h2>'+(sub?'<p>'+e(sub)+'</p>':'')+'</div>'+extra+'</div>'+body+'</section>';
+const stack = (...parts) => '<div class="stack">'+parts.join('')+'</div>';
+const grid = (main,rail) => '<div class="grid">'+main+rail+'</div>';
+const banner = (text,style='') => '<div class="banner '+style+'">'+e(text)+'</div>';
+const heading = (page,title,sub,actions='') => {
+ const parents = {pair:'markets',trade:'journal',run:'markets',checkout:'membership','payment-submitted':'membership','alert-editor':'alerts',payments:'membership'};
+ const parent=parents[page];
+ return '<header class="heading"><div><div class="crumb">'+(parent?'<a href="#'+parent+'">'+e(routeMap[parent][1])+'</a>'+ico('chev'):ico(routeMap[page][2])+e(routeMap[page][3]))+'</div><h1>'+e(title)+'</h1>'+(sub?'<p>'+e(sub)+'</p>':'')+'</div>'+(actions?'<div class="actions">'+actions+'</div>':'')+'</header>';
+};
+const metric = (label,value,sub='') => '<div class="metric"><p>'+e(label)+'</p><strong>'+e(value)+'</strong>'+(sub?'<small>'+e(sub)+'</small>':'')+'</div>';
+const metrics = (...items) => '<div class="metrics">'+items.join('')+'</div>';
+const list = (...items) => '<div class="list">'+items.join('')+'</div>';
+const row = (icon,title,sub='',tail='',to='') => {
+ const body=(icon?'<span class="iconbox">'+ico(icon)+'</span>':'')+'<div class="grow"><strong>'+e(title)+'</strong>'+(sub?'<span class="sub">'+e(sub)+'</span>':'')+'</div>'+tail;
+ return to?'<a class="listrow" href="#'+to+'">'+body+ico('chev')+'</a>':'<div class="listrow">'+body+'</div>';
+};
+const blank = (title,sub,cta='',icon='radar') => '<div class="empty"><span class="iconbox">'+ico(icon)+'</span><h3>'+e(title)+'</h3><p>'+e(sub)+'</p>'+cta+'</div>';
+const pick = (name,values,active) => '<select name="'+name+'" aria-label="'+e(name.replaceAll('-',' '))+'">'+values.map(v=>'<option'+(v===active?' selected':'')+'>'+e(v)+'</option>').join('')+'</select>';
+const field = (label,inner) => '<label class="field">'+e(label)+inner+'</label>';
+const input = (name,value='',type='text',attrs='') => '<input name="'+name+'" type="'+type+'" value="'+e(value)+'" '+attrs+'>';
+const area = (name,value='') => '<textarea name="'+name+'">'+e(value)+'</textarea>';
+const checkbox = (name,label,checked) => '<label class="ck"><input type="checkbox" name="'+name+'"'+(checked?' checked':'')+'>'+e(label)+'</label>';
+const tabs = (name,values,current) => '<div class="tabs" aria-label="'+e(name)+'">'+values.map(v=>'<button type="button" data-set="'+name+'" data-value="'+e(v)+'" aria-pressed="'+(current===v)+'">'+e(v)+'</button>').join('')+'</div>';
+const form = (name,inner,cta) => '<form class="formstack" data-form="'+name+'">'+inner+'<button class="btn primary" type="submit">'+e(cta)+'</button></form>';
+const table = (head,rows,style='') => '<div class="tablewrap"><table class="table '+style+'"><thead><tr>'+head.map(item=>'<th scope="col">'+e(item)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(cells=>'<tr>'+cells.map(cell=>'<td>'+cell+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
+const canvas = (kind,name,label) => '<div class="'+kind+'"><canvas data-chart="'+kind+'" data-seed="'+e(name)+'" role="img" aria-label="'+e(label)+'"></canvas></div>';
+function radarArt(){
+ return '<svg class="radar-art" viewBox="0 0 260 260" aria-hidden="true"><defs><radialGradient id="sweep"><stop stop-color="#d3fa9f" stop-opacity=".16"/><stop offset="1" stop-color="#b2fb90" stop-opacity=".54"/></radialGradient></defs><g transform="translate(130 130)" fill="none" stroke="#b3ebc2" stroke-opacity=".39"><circle r="110"/><circle r="85"/><circle r="59"/><circle r="30"/><path d="M-117 0h234M0-117v234M-77-77 77 77M77-77-77 77" stroke-dasharray="2 5"/><path d="M0 0 48-99a110 110 0 0 1 49 47Z" fill="url(#sweep)" stroke="#d4f8a6" stroke-opacity=".8"/><g fill="#dbffac" stroke="none"><circle r="4"/><circle cx="63" cy="-53" r="5"/><circle cx="-48" cy="29" r="4"/><circle cx="32" cy="67" r="3"/><circle cx="-35" cy="-66" r="3"/></g></g></svg>';
+}
+function hero(title,kicker,sub,cta=''){return '<section class="hero">'+radarArt()+'<div class="hero-copy"><div class="kicker">'+e(kicker)+'</div><h2>'+e(title)+'</h2><p>'+e(sub)+'</p>'+(cta?'<div class="actions">'+cta+'</div>':'')+'</div></section>';}
+function clockCard(expanded=false){
+ const [start,end,zone] = session[ui.session];
+ const display = ui.prefs.zone==='Asia/Dhaka'?'Asia/Dhaka':'Asia/Dhaka · fixture';
+ const body=list(...sessionNames.map((name)=>{
+   const [from,to,native,offset,width]=session[name];
+   return '<div class="listrow">'+(expanded?'<span class="iconbox">'+ico('clock')+'</span>':'')+'<div class="grow"><div class="row spread"><strong>'+name+'</strong><span class="num">'+from+' – '+to+'</span></div>'+(expanded?'<span class="sub">'+native+'</span><div class="timeline"><span style="left:'+offset+'%;width:'+width+'%"></span></div>':'')+'</div>'+(name===ui.session?pill('Selected','focus'): '')+'</div>';
+ }));
+ return panel(expanded?'Session hours':'Session clock',body,expanded?'':link('View clock','sessions'),display+(expanded?' · Sample winter schedule':''));
+}
+function walletCard(){return panel('Radar credits',metrics(metric('Balance',ui.balance),metric('Daily grant','10'),metric('Per scan','10'))+ '<p class="hint" style="margin-top:9px">Sample wallet · next grant 00:00 UTC</p>',link('Wallet','credits'));}
+function pairStatus(p){return pill(p.tag,['Focus','Watch','Avoid'].includes(p.tag)?p.tag.toLowerCase():'neutral',true);}
+function radarList(items){
+ if(!items.length)return blank('No matching instruments','Change your filters or browse the instrument catalog.',action('Clear filters','reset-filters','small'));
+ const desktop=table(['Instrument','Bias','Score','Status','Trend'],items.map(p=>['<a href="#pair/'+p.id+'">'+p.name+'</a><span class="sub">'+p.desc+'</span>',p.bias,'<span class="num">'+(p.score??'—')+'</span>',pairStatus(p),p.score?canvas('spark',p.id,'Illustrative trend for '+p.name):'—']),'radar-table');
+ const mobile='<div class="list pair-mobile">'+items.map(p=>'<a class="listrow" href="#pair/'+p.id+'"><span class="iconbox">'+e(p.id.slice(0,2))+'</span><div class="grow"><strong>'+p.name+'</strong><span class="sub">'+p.bias+'</span></div>'+(p.score?canvas('spark',p.id,'Illustrative trend for '+p.name):'')+'<div style="text-align:right"><strong>'+e(p.score??'—')+'</strong><div>'+pairStatus(p)+'</div></div></a>').join('')+'</div>';
+ return desktop+mobile;
+}
+function radarContent(items){
+ const s=ui.state;
+ if(s==='Empty')return blank('No scan yet','Choose a session and confirm your first sample scan.',button('Review scan','run','primary small'));
+ if(s==='Loading')return '<div role="status" aria-label="Loading scan results"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>';
+ if(s==='Market closed')return blank('FX market closed','Review the session schedule for the next opening.',button('View session clock','sessions','small'),'clock');
+ if(s==='Unavailable'||s==='Error')return blank(s==='Error'?'Scan could not load':'Market data unavailable','You can still browse your watchlist.',action('Restore sample','restore','small'));
+ const note={Stale:'Stale snapshot · last sample update 14:15 Asia/Dhaka.',Partial:'Partial coverage · unranked symbols have no score.',Offline:'Offline · saved sample snapshot. New scans are paused.'}[s];
+ return (note?banner(note,'warn'):'')+radarList(s==='Partial'?items.slice(0,3):items);
+}
+function setBlock(title,target,icon,sub){return row(icon,title,sub,'',target);}
+function watchCard(){return panel('Watchlist',ui.watch.length?list(...ui.watch.slice(0,4).map(id=>{const p=pairs.find(x=>x.id===id);return row(null,p.name,p.kind,'','pair/'+id);})):blank('Watchlist is empty','Add instruments from the catalog.'),link('Edit','watchlist'));}
+function research(topic){return banner(topic+' is an expansion design. The values and actions on this screen are for preview.');}
+function getRoute(){
+ const [raw='home',arg='',...extra]=(location.hash.slice(1)||'home').split('/');
+ const validArgument=!arg || (raw==='pair'&&pairs.some(p=>p.id===arg)) || (raw==='trade'&&/^\d+$/.test(arg)&&Boolean(ui.trades[Number(arg)]));
+ return Object.hasOwn(routeMap,raw)&&validArgument&&!extra.length?[raw,arg]:['missing',''];
+}
+const pages = {
+ welcome:()=>stack(hero('Read the session. Build your plan.','TradingBeast · Session Focus Radar','Rank your markets, inspect the evidence and prepare for your next trading session.',button('Start with Telegram','login','', 'telegram')+button('Explore demo','home')),panel('Your trading workspace',list(setBlock('Session Focus Radar','markets','radar','Compare instruments by session and see the reasoning.'),setBlock('Plan your session','plan','check','Keep a shortlist, checklist and risk notes together.'),setBlock('Review your trades','journal','book','Record entries and review results over time.')))),
+ login:()=>grid(stack(panel(telegram?'Connect from Telegram':'Sign in with Telegram',telegram?stack(banner('In Telegram, the app connects using a signed session.'),blank('Telegram session preview','Continue into the workspace to review the Mini App design.',button('Continue to demo','setup','primary','telegram'),'telegram')):form('login',banner('Open the TradingBeast bot and send /login. Use the one-time code shown in Telegram.')+field('One-time login code',input('code','','text','autocomplete="one-time-code" placeholder="Enter your code" required')),'Continue to demo'),'', 'TradingBeast workspace'),button('Explore the demo directly','home','small')),stack(hero('Your session starts here.','TradingBeast','Use the same account across the web and Telegram.'))),
+ setup:()=>grid(stack(panel('Preferences',form('setup','<div class="fieldgrid">'+field('Timezone',pick('zone',['Asia/Dhaka','UTC','Europe/London','America/New_York'],ui.prefs.zone))+field('Preferred session',pick('session',sessionNames,ui.prefs.session))+'</div><div><p class="sectionlabel">Starter watchlist</p>'+pairs.slice(0,5).map(p=>checkbox('watch-'+p.id,p.name,ui.watch.includes(p.id))).join('')+'</div>','Finish setup'),link('Skip','home'))),stack(panel('Preview settings',banner('These settings are saved in this browser. The sample session timeline uses Asia/Dhaka.')))),
+ home:()=>grid(stack(
+   hero(ui.session+' session','Session Focus Radar','Review the latest sample shortlist before planning your session.',button('Open Radar','markets','', 'radar')),
+   panel('Session shortlist',radarContent([pairs[0],pairs[1],pairs[3]]),link('All markets','markets'),'Sample scan · 14:30 Asia/Dhaka'),
+   panel('Prepare your session',list(setBlock('Session plan','plan','check','Shortlist, readiness and invalidation'),setBlock('Economic calendar','calendar','cal','Filter sample events by currency and impact.')))),
+   stack(clockCard(),walletCard(),watchCard())),
+ markets:()=>{
+   const options=['All','Focus','Watch','Avoid','Unranked','Unavailable'];
+   return grid(stack(panel('Ranked instruments',tabs('filter',options,ui.filter)+'<div class="filters">'+field('Session',pick('session',sessionNames,ui.session))+field('Universe',pick('scope',['All instruments','Watchlist'],ui.scope))+field('Search instruments',input('query',ui.query,'search','placeholder="Symbol or name"'))+'</div><div id="market-results">'+radarContent(matchedPairs())+'</div>',pill('Demo snapshot','neutral',true),'Scores range from 0 to 100 points.')),stack(clockCard(),walletCard(),panel('Reading the radar',list(row(null,'Focus','Higher-ranked conditions in this scan.',pill('Focus','focus')),row(null,'Watch','Conditions need further review.',pill('Watch','watch')),row(null,'Avoid','Conditions rated lower for this session.',pill('Avoid','avoid'))))));},
+ pair:(arg)=>{
+   const p=pairs.find(x=>x.id===arg)||pairs[0];
+   const ready=p.score!==null&&!['Unavailable','Empty','Error','Market closed','Loading'].includes(ui.state);
+   return grid(stack(panel('Price chart',tabs('period',['15m','1H','4H'],ui.period)+(ready?canvas('chart',p.id+ui.period,'Illustrative '+p.name+' candlestick chart, '+ui.period):blank('Chart unavailable','Price and evidence are shown when a supported sample snapshot is available.')),pill('Illustrative OHLC','neutral'),p.desc),panel('Opening range & room',ready?metrics(metric('OR status','Confirmed'),metric('ADR used','58%'),metric('Room','1.8 ATR')):banner('Evidence unavailable for this sample.'))),
+   stack(panel('Score evidence',ready?metrics(metric('Radar score',p.score+'/100'),metric('Bias',p.bias),metric('RSI 14','57.4'))+list(row('chart','Trend alignment','1H and 15m context'),row('radar','Opening range','4 × 15m bars in this sample'),row('clock','Data timestamp','25 Nov · 14:15 Asia/Dhaka')):blank('No score available','There is no ranked sample evidence for this instrument.'),pairStatus(p)),panel('Instrument actions',stack(action(ui.watch.includes(p.id)?'Remove from watchlist':'Add to watchlist','watch:'+p.id,'full','star'),button('Open session plan','plan','full'),banner('TradingView linking can use verified venue symbols in production.')))));
+ },
+ sessions:()=>grid(stack(clockCard(true),panel('Opening range',list(row('clock','Opening-range boundary','London sample window · 14:00–15:00 Asia/Dhaka'),row('chart','Candle confirmation','Review the actual candle count on instrument detail.')))),stack(panel('Schedule reference',metrics(metric('Selected',ui.session),metric('Timezone','UTC+6'),metric('Policy','FX week'))+ '<p class="hint" style="margin-top:10px">Illustrative hours only. A production clock resolves DST and market status from the backend.</p>'),walletCard())),
+ strength:()=>{
+   const values=[['EUR',72],['GBP',54],['USD',27],['CHF',12],['CAD',-18],['AUD',-32],['JPY',-45],['NZD',-57]];
+   return grid(stack(panel('Currency strength',tabs('period',['15m','1H','4H'],ui.period)+tabs('strengthTab',['Strength','Heatmap'],ui.strengthTab)+(ui.strengthTab==='Heatmap'?matrix(values.map(v=>v[0]),'strength'+ui.period):list(...values.map(([label,val],i)=>'<div class="listrow"><strong style="width:34px">'+label+'</strong><div class="grow bar"><i style="width:'+ Math.abs(val+(ui.period==='1H'?i*2:ui.period==='4H'?-i*2:0))+'%;background:'+(val>0?'#27866b':'#b75d65')+'"></i></div><span class="num">'+(val>0?'+':'')+(val+(ui.period==='1H'?i*2:ui.period==='4H'?-i*2:0))+'</span></div>'))),pill('Sample values','neutral'))),stack(research('Currency Strength'),panel('Coverage',list(row('grid','Currencies','Eight-currency universe'),row('clock','Timeframe',ui.period),row('radar','Session',ui.session)))));
+ },
+ watchlist:()=>{
+   const suggested=pairs.filter(p=>!ui.watch.includes(p.id));
+   return grid(stack(panel('Saved instruments',ui.watch.length?list(...ui.watch.map((id,i)=>{
+     const p=pairs.find(x=>x.id===id);
+     const controls=ui.watchEditing?(i>0?action('↑ Move up','move:'+id,'small'):'')+action('Remove','watch:'+id,'small'):'';
+     return row('star',p.name,p.desc,ui.watchEditing?'<div class="actions">'+controls+'</div>':pairStatus(p),ui.watchEditing?'':'pair/'+id);
+   })):blank('No instruments yet','Add an instrument from the catalog below.'),action(ui.watchEditing?'Done':'Edit order','edit-watch','small')),panel('Instrument catalog',suggested.length?list(...suggested.map(p=>row('plus',p.name,p.kind,action('Add','watch:'+p.id,'small')))):banner('All sample instruments are saved.'))),stack(panel('Your shortlist',banner('Use Watchlist as a scope in Radar to scan only saved instruments.'),link('Open Radar','markets'))));
+ },
+ plan:()=>grid(stack(panel('Session checklist',form('plan','<div class="fieldgrid">'+field('Session',pick('session',sessionNames,ui.plan.session||ui.session))+field('Shortlist',pick('symbol',pairs.map(p=>p.name),ui.plan.symbol||'EUR/USD'))+'</div>'+['Opening range reviewed','Risk limit checked','News calendar reviewed'].map((label,i)=>checkbox('check'+i,label,ui.plan['check'+i])).join('')+field('Invalidation and execution notes',area('notes',ui.plan.notes||'')),'Save plan'),pill(ui.plan.saved?'Saved locally':'Draft',ui.plan.saved?'focus':'pending',true))),stack(research('Session Plan'),panel('Preparation',list(setBlock('Review shortlist','markets','radar','Inspect current sample evidence.'),setBlock('Risk tools','tools','sliders','Explore sizing and risk/reward layouts.'),setBlock('Economic calendar','calendar','cal','Review sample events before the session.'))))),
+ tools:()=>grid(stack(panel('Calculator',tabs('rule',['Position size','Pip value','Risk / reward','Margin','Recovery'],ui.rule)+riskForm())),stack(research('Risk Tools'),panel('Result','<div id="risk-result">'+blank('Ready to calculate','Enter the sample inputs to preview the result.','','sliders')+'</div>','','Illustrative calculations'))),
+ journal:()=>{
+   const shown=ui.state==='Empty'?[]:ui.trades.map((t,i)=>({...t,i})).filter(t=>ui.journalRange==='Closed trades'?Boolean(t.exit):ui.journalRange==='Last 7 days'?t.date.slice(0,10)>='2026-11-19':true);
+   const closed=shown.filter(t=>t.exit);
+   const values=closed.filter(t=>t.risk>0&&t.pnl!=='').map(t=>(Number(t.pnl)-Number(t.fees||0))/Number(t.risk));
+   const result=values.length?values.reduce((a,b)=>a+b,0).toFixed(2)+' R':'—';
+   return grid(stack(panel('Trade log',tabs('journalRange',['Last 7 days','Closed trades','All demo trades'],ui.journalRange)+(shown.length?list(...shown.map(t=>row('book',pairs.find(p=>p.id===t.symbol)?.name||t.symbol,t.side+' · '+t.date.replace('T',' · '),t.exit?pill('Closed','focus'):pill('Open'),'trade/'+t.i))):blank('No trades yet','Log your first sample trade to preview the journal.',button('Add trade','trade','primary small'),'book')))),stack(panel('Review summary',metrics(metric('Trades',shown.length),metric('Closed',closed.length),metric('Net R',result))),research('Trading Journal')));
+ },
+ trade:(arg)=>{
+   const t=arg!==''?ui.trades[Number(arg)]:null;
+   return grid(stack(panel(t?'Edit trade':'Trade details',form('trade','<div class="fieldgrid">'+field('Instrument',pick('symbol',pairs.map(p=>p.id),t?.symbol||'EURUSD'))+field('Side',pick('side',['Long','Short'],t?.side||'Long'))+field('Entry time',input('date',t?.date||'2026-11-25T14:30','datetime-local','required'))+field('Quantity · lots',input('size',t?.size,'number','min="0.0001" step="any" required'))+field('Entry price',input('entry',t?.entry,'number','min="0.00001" step="any" required'))+field('Exit price',input('exit',t?.exit,'number','min="0.00001" step="any"'))+field('Initial risk · USD',input('risk',t?.risk,'number','min="0" step="any"'))+field('Fees · USD',input('fees',t?.fees,'number','min="0" step="any"'))+field('Gross P&L · USD',input('pnl',t?.pnl,'number','step="any"'))+'</div>'+field('Notes',area('note',t?.note)),'Save trade'),link('Cancel','journal'))),stack(research('Trade Editor'),panel('Trade status',banner('An exit price marks the sample trade as closed. Gross P&L and initial risk are needed for the R summary.'))));
+ },
+ calendar:()=>{
+   const today=[['14:00','EUR','Services PMI','High','51.2','50.9','50.6'],['19:30','USD','Initial Jobless Claims','High','—','221K','218K'],['20:15','GBP','Central bank remarks','Medium','—','—','—']];
+   const week=[...today,['15:00','EUR','Consumer confidence','Medium','—','−13.8','−14.1'],['18:30','USD','Factory orders','Medium','—','0.4%','0.2%']];
+   const data=(ui.eventDay==='Today'?today:week).filter(r=>(ui.impact==='All impacts'||r[3]===ui.impact)&&(ui.eventCurrency==='All currencies'||r[1]===ui.eventCurrency));
+   return grid(stack(panel('Events',tabs('eventDay',['Today','This week'],ui.eventDay)+'<div class="filters">'+field('Currency',pick('eventCurrency',['All currencies','EUR','USD','GBP'],ui.eventCurrency))+field('Impact',pick('impact',['All impacts','High','Medium'],ui.impact))+'</div>'+(data.length?list(...data.map(r=>row('cal',r[1]+' · '+r[2],r[0]+' · Actual '+r[4]+' / Forecast '+r[5]+' / Previous '+r[6],pill(r[3],r[3]==='High'?'watch':'neutral')))):blank('No matching events','Try a broader currency or impact filter.')),pill('Asia/Dhaka'))),stack(research('Economic Calendar')));
+ },
+ alerts:()=>grid(stack(panel('Alert rules',ui.alerts.length?list(...ui.alerts.map((a,i)=>row('bell',pairs.find(p=>p.id===a.symbol)?.name||a.symbol,a.rule,action(a.on?'Enabled':'Paused','toggle-alert:'+i,'small')))):blank('No alerts yet','Create a sample rule to preview alert management.',button('Create alert','alert-editor','small')))),stack(panel('Telegram delivery',banner('Delivery and quiet hours will appear when notifications are connected.')),research('Alerts'))),
+ 'alert-editor':()=>grid(stack(panel('Rule details',form('alert',field('Instrument',pick('symbol',pairs.map(p=>p.id),'EURUSD'))+field('Condition',pick('rule',['Enters Focus','Session opens','Opening range confirmed'],'Enters Focus'))+checkbox('on','Enable this demo rule',true),'Save alert'),link('Cancel','alerts'))),stack(research('Alerts'))),
+ correlations:()=>grid(stack(panel('Return correlations',tabs('correlationPeriod',['20 bars','50 bars','100 bars'],ui.correlationPeriod)+matrix(['EUR','GBP','JPY','AUD','CAD','CHF'],'returns'+ui.correlationPeriod),pill('Sample matrix','neutral'),'Illustrative 15m closed-return correlations')),stack(panel('Currency exposure',list(row('chart','EUR','Net demo exposure',pill('Long','focus')),row('chart','USD','Net demo exposure',pill('Short','watch')),row('grid','CAD','No known sample position',pill('—')))),research('Correlations & Exposure'))),
+ lab:()=>grid(stack(panel('Strategy profiles',tabs('strategy',['Cheese','Set','TPF'],ui.strategy)+blank(ui.strategy,'Review will open when rule definitions and replay data are available.','','radar'),pill('Research preview'))),stack(panel('Research requirements',list(row('check','Versioned rules','Awaiting strategy definition'),row('chart','Replay data','Needs verified history and timeframe coverage'),row('lock','Execution studies','3m research requires a separate validation workflow.'))))),
+ credits:()=>grid(stack(hero(ui.balance+' credits','Radar wallet','Sample balance for session scans. Review the cost before confirming a scan.',button('Open Radar','markets')),panel('Credit usage',metrics(metric('Daily grant','10 credits'),metric('Radar run','10 credits'),metric('Next grant','00:00 UTC')))),stack(panel('How credits work',list(row('grid','Browsing','Opening screens will not use credits.'),row('radar','Running a scan','Confirm a sample session and scope before spending.'),row('clock','Daily grant','The production wallet uses server time.'))))),
+ run:()=>{
+   const blocked=['Offline','Market closed','Unavailable','Loading','Insufficient credits'].includes(ui.state)||ui.balance<10;
+   const detail=ui.balance<10||ui.state==='Insufficient credits'?'The sample wallet needs at least 10 credits.':ui.state==='Offline'?'New scans are paused while offline.':ui.state==='Market closed'?'This sample session is closed.':blocked?'The scan is unavailable in this preview state.':'Confirm once to use 10 demo credits.';
+   return grid(stack(panel('Confirm scan',stack(metrics(metric('Available',ui.state==='Insufficient credits'?5:ui.balance),metric('Scan cost',10),metric('After scan',blocked?'—':ui.balance-10)),field('Session',pick('session',sessionNames,ui.session)),field('Scope',pick('scope',['All instruments','Watchlist'],ui.scope)),banner(detail,blocked?'warn':''),'<div class="actions">'+button('Cancel','markets')+'<button class="btn primary" data-action="run"'+(blocked||ui.running?' disabled':'')+'>'+ (ui.running?'Running sample…':'Confirm demo scan')+'</button></div>'))),stack(walletCard(),panel('Result visibility',banner('Results appear in Radar after the sample scan completes.'))));
+ },
+ referrals:()=>grid(stack(panel('Your referral code',hero('BEAST-DEMO','Demo referral code','Preview how an invite code can be copied and shared.',action('Copy sample code','copy','','copy'))),panel('Referral activity',list(row('users','Invite 01','Demo member · 24 Nov',pill('Joined','focus')),row('users','Invite 02','Demo invite · 25 Nov',pill('Pending','pending'))))),stack(panel('Referral details',banner('Reward terms and sharing destinations can be filled from the approved referral program.')))),
+ membership:()=>grid(stack(panel('Available plans','<div class="tiers">'+['Free','Pro','Elite'].map((n,i)=>'<div class="tier '+(i===1?'feature':'')+'"><h3>'+n+'</h3><p>'+['Current demo tier','Expanded analysis access','Advanced workspace access'][i]+'</p>'+(i?action('Review '+n,'choose:'+n,'small'):pill('Current','focus'))+'</div>').join('')+'</div>','', 'Plan cards and checkout are illustrative.'),panel('Billing',list(setBlock('Payment history','payments','wallet','Review submitted and previous payments.')))),stack(panel('Current membership',list(row('star','Free','Demo account',pill('Active','focus'))), '', 'Illustrative entitlement'))),
+ payments:()=>{
+   const samples=ui.state==='Empty'?[]:[...ui.payments,{plan:'Pro',method:'bKash',amount:'৳750',date:'25 Nov 2026',status:'Pending'},{plan:'Pro',method:'Nagad',amount:'৳750',date:'25 Oct 2026',status:'Approved'},{plan:'Pro',method:'bKash',amount:'৳750',date:'24 Oct 2026',status:'Rejected'}];
+   return grid(stack(panel('Payment records',samples.length?list(...samples.map(s=>row('wallet',s.plan+' · '+s.method,s.date+' · '+s.amount,pill(s.status,s.status==='Approved'?'focus':s.status.toLowerCase(),true)))):blank('No payment records','Submitted payments will appear here.','','wallet'))),stack(panel('Status guide',list(row(null,'Pending','Awaiting verification.'),row(null,'Approved','Payment confirmed.'),row(null,'Rejected','Open support for review.')))));
+ },
+ checkout:()=>grid(stack(panel('Review payment',telegram?stack(metrics(metric('Plan',ui.paymentPlan),metric('Channel','Stars'),metric('State','Preview')),banner('Telegram checkout requires a Stars invoice. This preview has no payment connection.'),button('Back to plans','membership','full')):form('checkout',metrics(metric('Plan',ui.paymentPlan),metric('Sample total',ui.paymentPlan==='Elite'?'৳1,450':'৳750'),metric('Status','Draft'))+field('Demo payment channel',pick('method',['bKash','Nagad'],'bKash'))+field('Demo transaction reference',input('reference','','text','placeholder="Example: DEMO-12345" required minlength="5"'))+banner('Use an invented reference for this preview.'),'Submit demo payment'),link('Back to plans','membership'))),stack(panel('Payment verification',banner('A payment submission enters Pending verification. Access updates after approval.')))),
+ 'payment-submitted':()=>grid(stack(panel('Verification',ui.payments.length?blank('Pending verification','Your demo submission appears in Payment History.',button('View payment history','payments','primary','wallet'),'check'):blank('No new submission in this session','Open payment history or review a membership plan.',button('Back to membership','membership','small'),'wallet'))),stack(panel('What happens next',list(row('clock','Pending','Verification is in progress in this demo state.'),row('wallet','Payment history','Check the outcome when verification completes.','','payments'))))),
+ settings:()=>grid(stack(panel('Profile',list(row('users','Demo Trader','TradingBeast preview account',pill('Free','focus')))),panel('Workspace preferences',form('settings','<div class="fieldgrid">'+field('Time zone',pick('zone',['Asia/Dhaka','UTC','Europe/London','America/New_York'],ui.prefs.zone))+field('Default session',pick('session',sessionNames,ui.prefs.session))+field('Appearance',pick('theme',['light','dark'],ui.theme))+'</div>','Save preferences'))),stack(panel('Session',stack(button('Return to sign in','login','full'),link('Help & support','help'),link('Review all designs','review'))))),
+ help:()=>grid(stack(panel('Frequently asked questions',field('Search help',input('faq',ui.faq,'search','placeholder="Example: credits"'))+'<div id="faq-results">'+renderFaq()+'</div>')),stack(panel('Account & access',list(setBlock('Profile settings','settings','sliders','Manage workspace preferences.'),setBlock('Payment history','payments','wallet','Find a submission status.'),setBlock('Radar credits','credits','bolt','Review your sample wallet.'))))),
+ more:()=>grid(stack(panel('Market tools',list(...['sessions','watchlist','strength','correlations','calendar','alerts','tools','lab'].map(id=>setBlock(routeMap[id][1],id,routeMap[id][2],''))))),stack(panel('Account',list(...['credits','referrals','membership','payments','settings','help','review'].map(id=>setBlock(routeMap[id][1],id,routeMap[id][2],'')))))),
+ missing:()=>panel('That page is unavailable',blank('Page not found','Return to the dashboard or browse the screen index.',button('Go to Home','home','primary','home'),'help')),
+ review:()=>stack(panel('Screen directory','<div class="reviewlinks">'+routes.filter(r=>r[0]!=='review').map(([id,title,icon])=>button(title,id,'small',icon)).join('')+'</div>'),panel('Preview scenario',field('Data state',pick('state',stateOptions,ui.state))+'<div class="actions" style="margin-top:12px">'+button('Inspect Radar','markets','small')+button('Inspect run confirmation','run','small')+action('Reset demo changes','reset','small')+'</div>'),panel('Preview platform','<div class="actions"><a class="btn small" href="?host=web#home">Responsive web</a><a class="btn small" href="?host=telegram#home">Telegram Mini App</a></div>'))
+};
+function matchedPairs(){
+ const query=ui.query.trim().toLowerCase();
+ return pairs.filter(p=>(ui.filter==='All'||p.tag===ui.filter)&&(ui.scope!=='Watchlist'||ui.watch.includes(p.id))&&[p.id,p.name,p.desc,p.kind].some(v=>v.toLowerCase().includes(query))).sort((a,b)=>(b.score??-1)-(a.score??-1));
+}
+function matrix(labels,seed){
+ const n=seed.split('').reduce((sum,c)=>sum+c.charCodeAt(0),0);
+ return '<div class="tablewrap"><table class="heat"><thead><tr><th scope="col">—</th>'+labels.map(l=>'<th scope="col">'+l+'</th>').join('')+'</tr></thead><tbody>'+labels.map((label,i)=>'<tr><th scope="row">'+label+'</th>'+labels.map((_,j)=>{
+   const v=i===j?1:((Math.min(i,j)*71+Math.max(i,j)*41+n)%151-75)/100;
+   return '<td class="'+(v>.25?'pos':v<-.25?'neg':'')+'">'+v.toFixed(2)+'</td>';
+ }).join('')+'</tr>').join('')+'</tbody></table></div>';
+}
+function riskForm(){
+ const definitions={
+   'Position size':[['equity','Account equity · USD','10000'],['risk','Risk · %','1'],['stop','Stop distance · pips','20'],['pip','Pip value · USD per lot','10']],
+   'Pip value':[['lot','Position size · lots','0.20'],['contract','Units per lot','100000'],['pip','Pip size','0.0001'],['fx','Quote-to-account conversion','1']],
+   'Risk / reward':[['stop','Stop distance · pips','20'],['target','Target distance · pips','60']],
+   Margin:[['notional','Notional · USD','20000'],['leverage','Leverage denominator','30']],
+   Recovery:[['loss','Drawdown · %','10']]
+ };
+ return form('risk','<div class="fieldgrid">'+definitions[ui.rule].map(([name,label,v])=>field(label,input(name,v,'number','step="any" min="0.00000001" required '+(name==='loss'?'max="99.99"':'')))).join('')+'</div>','Calculate sample');
+}
+const faqs=[
+ ['How does the Radar score work?','The score summarizes a set of recorded session factors, including trend, activity and opening-range conditions. It does not estimate the probability of a profitable trade.'],
+ ['When do credits get used?','Browsing is free. A confirmed scan is the action that uses credits. The demo shows a sample wallet and a 10-credit cost.'],
+ ['Can I use the same account in Telegram and web?','The production design uses Telegram identity for both hosts. This preview opens a local demo workspace.'],
+ ['Why are some symbols unranked?','A scan can lack eligible evidence for an instrument. Unranked, unavailable and stale results each have their own state.'],
+ ['How do I verify a payment?','Open Payment history to see whether the submission is pending, approved or rejected.']
+];
+function renderFaq(){const matches=faqs.filter(f=>f.join(' ').toLowerCase().includes(ui.faq.toLowerCase()));return matches.length?matches.map(([a,b])=>'<details class="faq"><summary>'+e(a)+'</summary><p>'+e(b)+'</p></details>').join(''):blank('No matching articles','Try a different search.','','help');}
+const subtitles={
+ login:'Access your session analysis workspace.',setup:'Choose the sessions and instruments you want to follow.',home:'Your session, watchlist and latest market shortlist.',markets:'Filter the sample snapshot and review the evidence behind each ranked instrument.',sessions:'Session hours, overlaps and opening-range boundaries.',strength:'Compare directional currency readings and inspect coverage.',watchlist:'Manage the instruments you track across sessions.',plan:'Prepare the session with a shortlist, checklist and notes.',tools:'Preview position size, pip value and other risk calculations.',journal:'Record your trades and review execution over time.',trade:'Capture the trade inputs and account for fees.',calendar:'Review demo macro events by currency and impact.',alerts:'Manage sample rules for your market watch.', 'alert-editor':'Choose an instrument, condition and initial state.',correlations:'Compare synchronized sample returns and related exposure.',lab:'Review strategy profiles and research readiness.',credits:'See the balance, grant and cost of a Radar run.',run:'Review the session, scope and demo credit cost.',referrals:'Preview sharing and invitation activity.',membership:'Review membership options and billing.',payments:'Track the status of sample payment submissions.',checkout:'Review a plan and the payment channel available in this host.','payment-submitted':'Track demo submission status and verification.',settings:'Manage workspace, appearance and session preferences.',help:'Find answers about Radar, access and billing.',more:'Open account settings and secondary market tools.',review:'Switch hosts, open a screen or inspect alternate data states.'
+};
+const navGroups=[
+ ['Workspace',[['home','Home'],['markets','Markets'],['watchlist','Watchlist'],['sessions','Session clock']]],
+ ['Daily tools',[['plan','Session plan'],['journal','Journal'],['calendar','Calendar'],['alerts','Alerts']]],
+ ['Account',[['credits','Credits'],['membership','Membership'],['settings','Settings'],['more','More']]]
+];
+const bottomNav=[['home','Home'],['markets','Markets'],['plan','Plan'],['journal','Journal'],['more','More']];
+function selected(id,page,bottom=false) {
+ if(id===page)return true;
+ if(id==='markets'&&['pair','run','strength','correlations'].includes(page))return true;
+ if(id==='journal'&&page==='trade')return true;
+ if(id==='alerts'&&page==='alert-editor')return true;
+ if(id==='membership'&&['payments','checkout','payment-submitted'].includes(page))return true;
+ if(bottom&&id==='more'&&!['home','markets','pair','run','strength','correlations','plan','journal','trade'].includes(page))return true;
+ return false;
+}
+function navItem([id,label],page,bottom=false){const active=selected(id,page,bottom);return '<a class="navitem'+(active?' active':'')+'" '+(active?'aria-current="page" ':'')+'href="#'+id+'">'+ico(routeMap[id][2])+e(label)+'</a>';}
+function render(scroll=false){
+ const [page,arg]=getRoute();
+ const entry=['welcome','login','setup'].includes(page);
+ const expired=ui.state==='Session expired'&&!entry&&!['review','missing'].includes(page);
+ const pair=page==='pair'?(pairs.find(p=>p.id===arg)||pairs[0]):null;
+ const title=pair?pair.name+' · Evidence':routeMap[page][1];
+ const subtitle=pair?pair.desc+' · '+ui.session+' sample session':subtitles[page];
+ const ctas={markets:button('Run Radar','run','primary','radar'),journal:button('Add trade','trade','primary','plus'),alerts:button('Create alert','alert-editor','primary','plus')};
+ const top='<div class="top">'+brand()+'<div class="top-context">'+ico(telegram?'telegram':'radar')+(telegram?'Telegram workspace':'Trading workspace')+'</div><div class="top-tools"><a class="pill neutral" aria-label="Open demo screen index" href="#review">Demo</a>'+(entry?'':'<a class="pill focus" aria-label="Open Radar credits" href="#credits">'+ico('bolt')+ui.balance+' credits</a>')+'<a class="avatar" aria-label="Settings" href="#settings">DT</a></div></div>';
+ const content='<main id="main" class="content">'+(page==='welcome'?'':heading(page,title,subtitle,expired?'':ctas[page]))+(expired?panel('Reconnect',blank('Session expired','Return to the sign-in preview to reconnect.',button('Sign in','login','primary'),'lock')):pages[page](arg))+'</main>';
+ const sidebar='<aside class="side">'+brand()+'<nav aria-label="Workspace navigation">'+navGroups.map(([label,links])=>'<div class="navgroup"><p class="navlabel">'+label+'</p>'+links.map(l=>navItem(l,page)).join('')+'</div>').join('')+'</nav><div class="side-foot">'+navItem(['review','Screen index'],page)+'</div></aside>';
+ const bottom='<nav class="bottom" aria-label="Mobile navigation">'+bottomNav.map(l=>navItem(l,page,true)).join('')+'</nav>';
+ q('root').innerHTML=entry?'<div class="plain">'+top+content+'</div>':'<div class="app">'+sidebar+'<div class="maincol">'+top+content+'</div>'+bottom+'</div>';
+ document.documentElement.dataset.host=telegram?'telegram':'web';
+ document.documentElement.dataset.theme=ui.theme;
+ document.title=title+' · TradingBeast';
+ if(scroll)window.scrollTo(0,0);
+ requestAnimationFrame(drawCharts);
+}
+function drawCharts(){
+ document.querySelectorAll('canvas[data-chart]').forEach(canvasEl=>{
+   const w=canvasEl.clientWidth,h=canvasEl.clientHeight;
+   if(!w||!h)return;
+   const dpr=Math.min(window.devicePixelRatio||1,2);
+   canvasEl.width=w*dpr;canvasEl.height=h*dpr;
+   const ctx=canvasEl.getContext('2d');ctx.scale(dpr,dpr);
+   const dark=ui.theme==='dark';
+   const seed=canvasEl.dataset.seed.split('').reduce((a,c)=>a*31+c.charCodeAt(0),7);
+   const f=(i,k)=>{const n=Math.sin((i+seed%107)*12.9898+k*78.233)*43758.5453;return n-Math.floor(n);};
+   if(canvasEl.dataset.chart==='spark'){
+     ctx.beginPath();
+     for(let i=0;i<20;i++){const x=1+(w-3)*i/19;const y=h*(.73-i*.022+f(i,3)*.23);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+     ctx.strokeStyle=dark?'#85dbae':'#168369';ctx.lineWidth=1.5;ctx.stroke();return;
+   }
+   const l=18,r=w-64,t=22,b=h-27, chartColor=dark?'#2f453c':'#e6eee9';
+   ctx.font='11px system-ui';ctx.strokeStyle=chartColor;ctx.fillStyle=dark?'#b0c6bc':'#526b63';ctx.lineWidth=1;
+   const p=pairs.find(pair=>canvasEl.dataset.seed.startsWith(pair.id));
+   const base=Number((p?.price||'1.08642').replaceAll(',',''))||1;
+   const step=base<2?.001:base<200?.3:4;
+   for(let i=0;i<=5;i++){const y=t+(b-t)*i/5;ctx.beginPath();ctx.moveTo(l,y);ctx.lineTo(r,y);ctx.stroke();ctx.fillText((base+step*(2-i)).toFixed(base<2?4:2),r+7,y+4);}
+   ['09:00','11:00','13:00','15:00','17:00'].forEach((time,i)=>{const x=l+(r-l)*i/4;ctx.beginPath();ctx.moveTo(x,t);ctx.lineTo(x,b);ctx.stroke();ctx.fillText(time,Math.max(l,x-15),b+17);});
+   const count=Math.floor((r-l)/(w<430?8:12));
+   const dx=(r-l)/count;
+   const sy=v=>t+(b-t)*(1-v);
+   for(let i=0;i<count;i++){
+     const open=.3+i/count*.26 + Math.sin(i*.35)*.11+(f(i,2)-.5)*.085;
+     const close=open+(f(i,5)-.46)*.15;
+     const x=l+dx*(i+.5), color=close>=open?'#219b72':'#cf6f78';
+     ctx.fillStyle=color;ctx.strokeStyle=color;ctx.beginPath();ctx.moveTo(x,sy(Math.max(open,close)+f(i,7)*.115));ctx.lineTo(x,sy(Math.min(open,close)-f(i,8)*.11));ctx.stroke();ctx.fillRect(x-dx*.27,Math.min(sy(open),sy(close)),dx*.54,Math.max(2,Math.abs(sy(close)-sy(open))));
+   }
+   ctx.setLineDash([5,4]);ctx.strokeStyle=dark?'#91ba85':'#8cae83';ctx.beginPath();ctx.moveTo(l,sy(.48));ctx.lineTo(r,sy(.48));ctx.stroke();ctx.setLineDash([]);
+ });
+}
+let toastTimer;
+function say(text){q('toast').textContent=text;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{q('toast').textContent='';},2600);}
+function persist(key){cache.set(key,ui[key]);}
+function refreshMarket(){if(q('market-results'))q('market-results').innerHTML=radarContent(matchedPairs());requestAnimationFrame(drawCharts);}
+document.addEventListener('click',event=>{
+ const control=event.target.closest('button[data-set],button[data-action]');
+ if(!control)return;
+ if(control.dataset.set){ui[control.dataset.set]=control.dataset.value;render();return;}
+ const [name,arg]=control.dataset.action.split(':');
+ if(name==='reset-filters'){ui.filter='All';ui.query='';ui.scope='All instruments';render();}
+ if(name==='restore'){ui.state='Sample';render();}
+ if(name==='edit-watch'){ui.watchEditing=!ui.watchEditing;render();}
+ if(name==='watch'){ui.watch=ui.watch.includes(arg)?ui.watch.filter(id=>id!==arg):[...ui.watch,arg];persist('watch');render();say('Demo watchlist saved.');}
+ if(name==='move'){const i=ui.watch.indexOf(arg);if(i>0){[ui.watch[i-1],ui.watch[i]]=[ui.watch[i],ui.watch[i-1]];persist('watch');render();}}
+ if(name==='toggle-alert'){const alert=ui.alerts[Number(arg)];alert.on=!alert.on;persist('alerts');render();say('Demo rule updated.');}
+ if(name==='choose'){ui.paymentPlan=arg;location.hash='checkout';}
+ if(name==='copy'){
+   if(navigator.clipboard){navigator.clipboard.writeText('BEAST-DEMO').then(()=>say('Demo code copied.'),()=>say('Demo code: BEAST-DEMO'));}
+   else say('Demo code: BEAST-DEMO');
+ }
+ if(name==='reset'){
+   ['prefs','watch','balance','plan','alerts','trades','payments','theme'].forEach(key=>{try{localStorage.removeItem('tb-design-'+key);}catch{}});
+   location.replace(location.pathname+'?host='+(telegram?'telegram':'web')+'#review');
+ }
+ if(name==='run'&&!ui.running&&ui.balance>=10){
+   ui.running=true;render();
+   setTimeout(()=>{
+     ui.running=false;
+     if(ui.state==='Error'){render();say('Sample scan failed. Balance retained.');return;}
+     ui.balance-=10;persist('balance');
+     if(ui.state==='Empty')ui.state='Sample';
+     location.hash='markets';say('Sample scan complete. 10 demo credits used.');
+   },550);
+ }
+});
+document.addEventListener('change',event=>{
+ const {name,value}=event.target;
+ if(event.target.closest('form'))return;
+ if(['session','scope','eventCurrency','impact','state'].includes(name)){ui[name]=value;render();}
+});
+document.addEventListener('input',event=>{
+ const {name,value}=event.target;
+ if(name==='query'){ui.query=value;refreshMarket();}
+ if(name==='faq'){ui.faq=value;q('faq-results').innerHTML=renderFaq();}
+});
+document.addEventListener('submit',event=>{
+ const target=event.target;
+ if(!target.dataset.form)return;
+ event.preventDefault();
+ const data=Object.fromEntries(new FormData(target));
+ const [,arg]=getRoute();
+ switch(target.dataset.form){
+ case 'login': location.hash='setup';break;
+ case 'setup':
+   ui.watch=pairs.filter(p=>data['watch-'+p.id]).map(p=>p.id);persist('watch');
+   ui.prefs={zone:data.zone,session:data.session};ui.session=data.session;persist('prefs');location.hash='home';break;
+ case 'plan': ui.plan={...data,saved:true};persist('plan');render();say('Demo plan saved.');break;
+ case 'trade': {
+   if(arg!=='')ui.trades[Number(arg)]=data;else ui.trades.unshift(data);
+   persist('trades');location.hash='journal';say('Demo trade saved.');break;
+ }
+ case 'alert':ui.alerts.push({symbol:data.symbol,rule:data.rule,on:Boolean(data.on)});persist('alerts');location.hash='alerts';say('Demo alert saved.');break;
+ case 'settings':
+   ui.prefs={zone:data.zone,session:data.session};ui.session=data.session;ui.theme=data.theme;persist('prefs');persist('theme');render();say('Preferences saved in this browser.');break;
+ case 'checkout':
+   ui.payments.unshift({plan:ui.paymentPlan,method:data.method,amount:ui.paymentPlan==='Elite'?'৳1,450':'৳750',date:'Demo submission',status:'Pending'});
+   persist('payments');location.hash='payment-submitted';break;
+ case 'risk':{
+   const n=Object.fromEntries(Object.entries(data).map(([key,v])=>[key,Number(v)]));
+   let result,unit;
+   if(ui.rule==='Position size'){result=n.equity*n.risk/100/n.stop/n.pip;unit='lots';}
+   if(ui.rule==='Pip value'){result=n.lot*n.contract*n.pip*n.fx;unit='account currency / pip';}
+   if(ui.rule==='Risk / reward'){result=n.target/n.stop;unit='reward per unit risk';}
+   if(ui.rule==='Margin'){result=n.notional/n.leverage;unit='USD';}
+   if(ui.rule==='Recovery'){result=n.loss/(100-n.loss)*100;unit='% required gain';}
+   q('risk-result').innerHTML=Number.isFinite(result)?metric(ui.rule,result.toFixed(2),unit):banner('Result unavailable for those inputs.','warn');
+   break;
+ }
+ }
+});
+window.addEventListener('hashchange',()=>render(true));
+window.addEventListener('resize',drawCharts);
+render();
+</script>
+</body>
+</html>

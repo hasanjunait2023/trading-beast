@@ -1,0 +1,43 @@
+@import "tailwindcss";
+@import "@shared/theme.css";
+
+/*
+  TradingBeast admin portal styles (Z3).
+  The design system lives in frontend/shared/theme.css (light emerald/mint
+  default; [data-theme="dark"] = Neon Dark Tech). No external URL imports.
+*/
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+}
+
+@keyframes tb-page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.tb-page-enter {
+  animation: tb-page-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
+
+.tnum { font-variant-numeric: tabular-nums; }
+
+.tb-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tb-table th {
+  text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--color-text-muted); border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+.tb-table td {
+  padding: 10px 12px; border-bottom: 1px solid var(--color-border);
+  color: var(--color-text); vertical-align: middle;
+}
+.tb-table tbody tr:hover td { background: var(--color-surface-hover); }

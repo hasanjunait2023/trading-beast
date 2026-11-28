@@ -1,0 +1,97 @@
+@import "tailwindcss";
+@import "@shared/theme.css";
+
+/*
+  TradingBeast landing styles (Z4).
+  Light emerald/mint brand from frontend/shared/theme.css (handoff §2):
+  canvas #F5FAF8, surface #FFFFFF, text #101D2C, primary #00664B,
+  hero gradient #054333 -> #007959. No external font imports — the shared
+  font stacks resolve locally, exactly as in the Mini App and web portal.
+*/
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+::selection {
+  background: var(--color-accent-soft);
+}
+
+/* ---- Scroll reveal (IntersectionObserver adds .is-visible) ---- */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---- Showcase tilt (transform set from JS; disabled for reduced motion) ---- */
+.tilt-wrap {
+  perspective: 1200px;
+}
+.tilt {
+  transform-style: preserve-3d;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+/* ---- Device / browser frames for real product screens ---- */
+.phone-frame {
+  border-radius: 36px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  padding: 10px;
+}
+.phone-frame img {
+  border-radius: 27px;
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.browser-frame {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.browser-frame-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-hover);
+}
+.browser-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .tilt {
+    transform: none !important;
+    transition: none;
+  }
+}

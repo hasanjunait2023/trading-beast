@@ -1,31 +1,41 @@
+import { lazy, Suspense } from 'react';
 import Navigation from './components/Navigation';
 import { Hero } from './components/Hero';
-import PainPoints from './components/PainPoints';
-import Sessions from './components/Sessions';
-import Features from './components/Features';
-import AppShowcase from './components/AppShowcase';
-import Comparison from './components/Comparison';
-import Pricing from './components/Pricing';
-import FAQ from './components/FAQ';
-import Docs from './components/Docs';
-import FinalCTA from './components/FinalCTA';
 import Footer from './components/Footer';
+
+// Below-fold sections are code-split so the initial bundle stays small;
+// each chunk loads as the page renders (Suspense fallback reserves nothing —
+// sections simply appear, matching the reveal-on-scroll design).
+const PainPoints = lazy(() => import('./components/PainPoints'));
+const Docs = lazy(() => import('./components/Docs'));
+const Sessions = lazy(() => import('./components/Sessions'));
+const Features = lazy(() => import('./components/Features'));
+const AppShowcase = lazy(() => import('./components/AppShowcase'));
+const Comparison = lazy(() => import('./components/Comparison'));
+const Pricing = lazy(() => import('./components/Pricing'));
+const FAQ = lazy(() => import('./components/FAQ'));
+const FinalCTA = lazy(() => import('./components/FinalCTA'));
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-[#060918] text-white">
+    <div
+      className="min-h-screen"
+      style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}
+    >
       <Navigation />
       <main>
         <Hero />
-        <PainPoints />
-        <Sessions />
-        <Features />
-        <AppShowcase />
-        <Comparison />
-        <Pricing />
-        <FAQ />
-        <Docs />
-        <FinalCTA />
+        <Suspense fallback={null}>
+          <PainPoints />
+          <Docs />
+          <Sessions />
+          <Features />
+          <AppShowcase />
+          <Comparison />
+          <Pricing />
+          <FAQ />
+          <FinalCTA />
+        </Suspense>
       </main>
       <Footer />
     </div>

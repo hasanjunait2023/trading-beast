@@ -1,274 +1,320 @@
-import { useState, useEffect } from 'react';
-import { adminApi, AdminUser } from '../services/api';
-import { Search, Filter, MoreVertical, Edit, Trash2, CheckCircle, XCircle, Clock, UserPlus, Download } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { adminApi, type AdminUser, type AdminUserDetail } from '../services/api';
+import { PageHeader } from '@shared/components/PageHeader';
+import { Card } from '@shared/components/Card';
+import { Button } from '@shared/components/Button';
+import { Modal } from '@shared/components/Modal';
+import { FormField, Input, Select } from '@shared/components/FormField';
+import { ErrorState } from '@shared/components/ErrorState';
+import { EmptyState } from '@shared/components/EmptyState';
+import { Skeleton } from '@shared/components/Skeleton';
+import { useToast } from '@shared/components/Toast';
+import { TierPill, StatusBadge, PageLoading } from '../components/ui';
+import { downloadCsv, errorMessage, formatDate, formatDateTime } from '../lib/format';
 
-const TIER_OPTIONS = ['ALL', 'FREE', 'PRO', 'ELITE'] as const;
-const STATUS_OPTIONS = ['ALL', 'ACTIVE', 'TRIAL', 'EXPIRED', 'CANCELLED'] as const;
+const LIMIT = 20;
+type Tier = 'FREE' | 'PRO' | 'ELITE';
 
+/**
+ * Users — server-side paginated list (GET /admin/users) with tier filter +
+ * search, a detail view (GET /admin/users/:id, route /users/:id), tier
+ * changes via PATCH /admin/users/:id/tier confirmed in a Modal (the API
+ * takes no reason field, so none is collected), and a CSV export of the
+ * currently fetched page only.
+ */
 export default function Users() {
+  const { id } = useParams();
+  if (id) return <UserDetail id={id} />;
+  return <UserList />;
+}
+
+function UserList() {
+  const navigate = useNavigate();
+  const toast = useToast();
   const [users, setUsers] = useState<AdminUser[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [tierFilter, setTierFilter] = useState<'ALL' | 'FREE' | 'PRO' | 'ELITE'>('ALL');
-  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
-  const [editTier, setEditTier] = useState<'FREE' | 'PRO' | 'ELITE'>('PRO');
-  const [editExpiresAt, setEditExpiresAt] = useState('');
+  const [tierFilter, setTierFilter] = useState<'ALL' | Tier>('ALL');
 
-  useEffect(() => {
-    fetchUsers();
-  }, [page, tierFilter, search]);
+  const [editing, setEditing] = useState<AdminUser | null>(null);
+  const [editTier, setEditTier] = useState<Tier>('PRO');
+  const [editExpiry, setEditExpiry] = useState('');
+  const [editError, setEditError] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const fetchUsers = async () => {
-    setIsLoading(true);
+  const load = useCallback(async () => {
+    setLoading(true);
     try {
-      const res = await adminApi.getUsers({ page, limit: 20, tier: tierFilter !== 'ALL' ? tierFilter : undefined, search: search || undefined });
+      const res = await adminApi.getUsers({
+        page, limit: LIMIT,
+        tier: tierFilter !== 'ALL' ? tierFilter : undefined,
+        search: search || undefined,
+      });
       if (res.data.success) {
         setUsers(res.data.data);
         setTotalPages(res.data.meta.totalPages);
         setTotal(res.data.meta.total);
       }
-    } catch (error) {
-      console.error('Failed to fetch users:', error);
+      setError('');
+    } catch (e) {
+      setError(errorMessage(e, 'Could not load users.'));
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
+  }, [page, tierFilter, search]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const openEdit = (u: AdminUser) => {
+    setEditing(u);
+    setEditTier(u.tier);
+    setEditExpiry(u.activeSubscription?.expiresAt ? new Date(u.activeSubscription.expiresAt).toISOString().slice(0, 10) : '');
+    setEditError('');
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPage(1);
-  };
-
-  const openEditModal = (user: AdminUser) => {
-    setEditingUser(user);
-    setEditTier(user.tier);
-    setEditExpiresAt(user.activeSubscription?.expiresAt ? new Date(user.activeSubscription.expiresAt).toISOString().split('T')[0] : '');
-  };
-
-  const handleSaveTier = async () => {
-    if (!editingUser) return;
+  const saveTier = async () => {
+    if (!editing) return;
+    if (editTier !== 'FREE' && !editExpiry) {
+      setEditError('A paid tier requires a future expiry date.');
+      return;
+    }
+    setSaving(true);
+    setEditError('');
     try {
-      await adminApi.updateUserTier(editingUser.id, editTier, editExpiresAt || undefined);
-      setEditingUser(null);
-      fetchUsers();
-    } catch (error) {
-      console.error('Failed to update tier:', error);
+      const expiresAt = editTier !== 'FREE' && editExpiry ? new Date(`${editExpiry}T23:59:59`).toISOString() : undefined;
+      await adminApi.updateUserTier(editing.id, editTier, expiresAt);
+      toast.success(`Tier updated to ${editTier}.`);
+      setEditing(null);
+      void load();
+    } catch (e) {
+      setEditError(errorMessage(e, 'Could not update the tier.'));
+    } finally {
+      setSaving(false);
     }
   };
 
-  const getTierBadge = (tier: string) => {
-    switch (tier) {
-      case 'FREE': return <span className="badge badge-free">Free</span>;
-      case 'PRO': return <span className="badge badge-pro">Pro</span>;
-      case 'ELITE': return <span className="badge badge-elite">Elite</span>;
-      default: return <span className="badge">{tier}</span>;
-    }
-  };
-
-  const getStatusBadge = (user: AdminUser) => {
-    if (!user.activeSubscription) return <span className="badge badge-free">No Subscription</span>;
-    const { status } = user.activeSubscription;
-    switch (status) {
-      case 'ACTIVE': return <span className="badge badge-approved">Active</span>;
-      case 'TRIAL': return <span className="badge badge-trial">Trial</span>;
-      case 'EXPIRED': return <span className="badge badge-rejected">Expired</span>;
-      case 'CANCELLED': return <span className="badge badge-rejected">Cancelled</span>;
-      default: return <span className="badge">{status}</span>;
-    }
+  const exportCsv = () => {
+    downloadCsv(`users-page-${page}.csv`, users.map((u) => ({
+      id: u.id, telegramId: u.telegramId, username: u.username ?? '', firstName: u.firstName ?? '',
+      tier: u.tier, subscriptionStatus: u.activeSubscription?.status ?? '', subscriptionExpiresAt: u.activeSubscription?.expiresAt ?? '',
+      paymentCount: u.paymentCount, referralCount: u.referralCount, createdAt: u.createdAt, lastActiveAt: u.lastActiveAt ?? '',
+    })));
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-bold">Users</h1>
-          <p className="text-[var(--color-text-muted)]">Manage user accounts and subscriptions</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="btn btn-primary">
-            <UserPlus className="w-4 h-4" />
-            Export CSV
-          </button>
-        </div>
-      </div>
+    <div className="space-y-4">
+      <PageHeader
+        title="Users"
+        subtitle={`${total.toLocaleString()} users · server-side pagination`}
+        actions={<Button variant="secondary" size="sm" onClick={exportCsv} disabled={users.length === 0}>Export this page (CSV)</Button>}
+      />
 
-      {/* Filters */}
-      <div className="card flex flex-col sm:flex-row gap-4">
-        <form onSubmit={handleSearch} className="flex-1">
-          <input
-            type="text"
-            className="input"
-            placeholder="Search by Telegram ID, username, name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </form>
-        <select
-          className="input w-auto"
-          value={tierFilter}
-          onChange={(e) => { setTierFilter(e.target.value as any); setPage(1); }}
+      <Card>
+        <form
+          className="flex flex-col gap-3 sm:flex-row"
+          onSubmit={(e) => { e.preventDefault(); setPage(1); setSearch(searchInput.trim()); }}
         >
-          {TIER_OPTIONS.map(opt => <option key={opt} value={opt}>{opt === 'ALL' ? 'All Tiers' : opt}</option>)}
-        </select>
-      </div>
+          <div className="flex-1">
+            <FormField label="Search">
+              <Input placeholder="Telegram ID, username or name" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
+            </FormField>
+          </div>
+          <div className="sm:w-44">
+            <FormField label="Tier">
+              <Select value={tierFilter} onChange={(e) => { setTierFilter(e.target.value as 'ALL' | Tier); setPage(1); }}>
+                <option value="ALL">All tiers</option>
+                <option value="FREE">Free</option>
+                <option value="PRO">Pro</option>
+                <option value="ELITE">Elite</option>
+              </Select>
+            </FormField>
+          </div>
+          <div className="flex items-end"><Button type="submit" variant="secondary">Search</Button></div>
+        </form>
+      </Card>
 
-      {/* Users Table */}
-      <div className="card overflow-hidden">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-[var(--color-accent)] border-t-transparent" />
-          </div>
+      <Card padded={false} className="overflow-hidden">
+        {loading ? (
+          <div className="space-y-3 p-4" role="status" aria-label="Loading users"><Skeleton height={36} /><Skeleton height={36} /><Skeleton height={36} /></div>
+        ) : error ? (
+          <ErrorState message={error} onRetry={() => void load()} />
         ) : users.length === 0 ? (
-          <div className="text-center py-12 text-[var(--color-text-muted)]">
-            <p>No users found</p>
-          </div>
+          <EmptyState title="No users found" message="Try a different search or tier filter." />
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Tier</th>
-                    <th>Status</th>
-                    <th>Subscription</th>
-                    <th>Referrals</th>
-                    <th>Payments</th>
-                    <th>Joined</th>
-                    <th>Last Active</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
+            <div className="overflow-x-auto" role="region" aria-label="Users table — scroll horizontally on small screens" tabIndex={0}>
+              <table className="tb-table">
+                <caption className="sr-only">Users</caption>
+                <thead><tr><th>User</th><th>Tier</th><th>Subscription</th><th>Payments</th><th>Referrals</th><th>Joined</th><th>Last active</th><th>Actions</th></tr></thead>
                 <tbody>
-                  {users.map((user) => (
-                    <tr key={user.id}>
+                  {users.map((u) => (
+                    <tr key={u.id}>
                       <td>
-                        <div>
-                          <p className="font-medium">{user.firstName || 'Unknown'}</p>
-                          <p className="text-sm text-[var(--color-text-muted)] font-mono">
-                            @{user.username || user.telegramId}
-                          </p>
+                        <p className="font-medium">{u.firstName || 'Unknown'}</p>
+                        <p className="text-xs text-[var(--color-text-muted)]">@{u.username || u.telegramId}</p>
+                      </td>
+                      <td><TierPill tier={u.tier} /></td>
+                      <td className="text-sm">
+                        {u.activeSubscription ? (
+                          <>{<StatusBadge status={u.activeSubscription.status} />} <span className="text-[var(--color-text-muted)]">until {formatDate(u.activeSubscription.expiresAt)}</span></>
+                        ) : <span className="text-[var(--color-text-muted)]">None</span>}
+                      </td>
+                      <td className="tnum">{u.paymentCount}</td>
+                      <td className="tnum">{u.referralCount}</td>
+                      <td className="text-sm">{formatDate(u.createdAt)}</td>
+                      <td className="text-sm">{u.lastActiveAt ? formatDate(u.lastActiveAt) : 'Never'}</td>
+                      <td>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => navigate(`/users/${u.id}`)}>View</Button>
+                          <Button variant="ghost" size="sm" onClick={() => openEdit(u)}>Tier</Button>
                         </div>
-                      </td>
-                      <td>{getTierBadge(user.tier)}</td>
-                      <td>{getStatusBadge(user)}</td>
-                      <td className="text-sm">
-                        {user.activeSubscription ? (
-                          <>
-                            <p>{user.activeSubscription.tier}</p>
-                            <p className="text-[var(--color-text-muted)]">
-                              Expires: {new Date(user.activeSubscription.expiresAt).toLocaleDateString()}
-                            </p>
-                          </>
-                        ) : (
-                          <span className="text-[var(--color-text-muted)]">None</span>
-                        )}
-                      </td>
-                      <td>{user.referralCount}</td>
-                      <td>{user.paymentCount}</td>
-                      <td className="text-sm">{new Date(user.createdAt).toLocaleDateString()}</td>
-                      <td className="text-sm">
-                        {user.lastActiveAt
-                          ? new Date(user.lastActiveAt).toLocaleDateString()
-                          : <span className="text-[var(--color-text-muted)]">Never</span>}
-                      </td>
-                      <td>
-                        <button
-                          onClick={() => openEditModal(user)}
-                          className="btn btn-ghost btn-sm p-1 text-[var(--color-accent)] hover:text-[var(--color-accent-dim)]"
-                          title="Edit tier"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--color-border)]">
-                <span className="text-sm text-[var(--color-text-muted)]">
-                  Page {page} of {totalPages} ({total} total)
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    Next
-                  </button>
-                </div>
+            <div className="flex items-center justify-between border-t border-[var(--color-border)] px-4 py-3">
+              <span className="text-sm text-[var(--color-text-muted)]">Page {page} of {totalPages} · CSV export covers this page only</span>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+                <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
               </div>
-            )}
+            </div>
           </>
         )}
+      </Card>
+
+      <Modal
+        open={Boolean(editing)}
+        onClose={() => setEditing(null)}
+        title="Change user tier"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button loading={saving} onClick={() => void saveTier()}>Confirm change</Button>
+          </>
+        }
+      >
+        {editing && (
+          <div className="space-y-4">
+            <p>
+              {editing.firstName || 'Unknown'} (@{editing.username || editing.telegramId}) is currently{' '}
+              <TierPill tier={editing.tier} />. Changing the tier cancels any active subscription and,
+              for a paid tier, creates a new one starting now.
+            </p>
+            <FormField label="New tier">
+              <Select value={editTier} onChange={(e) => setEditTier(e.target.value as Tier)}>
+                <option value="FREE">Free</option>
+                <option value="PRO">Pro</option>
+                <option value="ELITE">Elite</option>
+              </Select>
+            </FormField>
+            {editTier !== 'FREE' && (
+              <FormField label="Expiry date" error={editError || undefined} hint="Required for paid tiers — the API rejects a paid tier without a future expiry.">
+                <Input type="date" value={editExpiry} onChange={(e) => setEditExpiry(e.target.value)} />
+              </FormField>
+            )}
+            {editTier === 'FREE' && editError && <p role="alert" className="text-sm text-[var(--color-danger)]">{editError}</p>}
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+}
+
+function UserDetail({ id }: { id: string }) {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<AdminUserDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await adminApi.getUser(id);
+      if (res.data.success) setUser(res.data.data);
+      setError('');
+    } catch (e) {
+      setError(errorMessage(e, 'Could not load this user.'));
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  if (loading) return <PageLoading />;
+  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
+  if (!user) return null;
+
+  return (
+    <div className="space-y-4">
+      <PageHeader
+        title={user.firstName || 'User'}
+        subtitle={`@${user.username || user.telegramId} · Telegram ID ${user.telegramId}`}
+        actions={<Button variant="secondary" size="sm" onClick={() => navigate('/users')}>Back to users</Button>}
+      />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card><p className="text-sm text-[var(--color-text-muted)]">Stored tier</p><p className="mt-2"><TierPill tier={user.tier} /></p></Card>
+        <Card><p className="text-sm text-[var(--color-text-muted)]">Referral code</p><p className="mt-1 font-mono text-sm font-semibold">{user.referralCode}</p></Card>
+        <Card><p className="text-sm text-[var(--color-text-muted)]">Joined</p><p className="mt-1 font-semibold">{formatDateTime(user.createdAt)}</p></Card>
+        <Card><p className="text-sm text-[var(--color-text-muted)]">Last active</p><p className="mt-1 font-semibold">{user.lastActiveAt ? formatDateTime(user.lastActiveAt) : 'Never'}</p></Card>
       </div>
 
-      {/* Edit Tier Modal */}
-      {editingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={() => setEditingUser(null)}>
-          <div className="card-elevated w-full max-w-md animate-slide-up" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-display text-xl font-bold">Edit User Tier</h2>
-              <button onClick={() => setEditingUser(null)} className="btn btn-ghost p-1">
-                <XCircle className="w-5 h-5" />
-              </button>
-            </div>
+      <Card padded={false} className="overflow-hidden">
+        <h2 className="p-4 pb-2 font-semibold">Subscriptions ({user.subscriptions?.length ?? 0})</h2>
+        {(user.subscriptions ?? []).length === 0 ? (
+          <EmptyState title="No subscriptions" message="This user has never had a subscription record." />
+        ) : (
+          <div className="overflow-x-auto" role="region" aria-label="User subscriptions table — scroll horizontally on small screens" tabIndex={0}>
+            <table className="tb-table">
+              <caption className="sr-only">Subscriptions for the selected user</caption>
+            <thead><tr><th>Tier</th><th>Status</th><th>Starts</th><th>Expires</th></tr></thead>
+            <tbody>{user.subscriptions!.map((s) => (
+              <tr key={s.id}><td><TierPill tier={s.tier} /></td><td><StatusBadge status={s.status} /></td><td>{formatDate(s.startsAt)}</td><td>{formatDate(s.expiresAt)}</td></tr>
+            ))}</tbody>
+          </table></div>
+        )}
+      </Card>
 
-            <div className="space-y-4">
-              <div className="p-3 bg-[var(--color-bg)] rounded-lg">
-                <p className="font-medium">{editingUser.firstName || 'Unknown'}</p>
-                <p className="text-sm text-[var(--color-text-muted)]">@{editingUser.username || editingUser.telegramId}</p>
-                <p className="text-sm text-[var(--color-text-muted)]">Current: {getTierBadge(editingUser.tier)}</p>
-              </div>
+      <Card padded={false} className="overflow-hidden">
+        <h2 className="p-4 pb-2 font-semibold">Payments ({user.payments?.length ?? 0})</h2>
+        {(user.payments ?? []).length === 0 ? (
+          <EmptyState title="No payments" message="This user has not submitted a payment." />
+        ) : (
+          <div className="overflow-x-auto" role="region" aria-label="User payments table — scroll horizontally on small screens" tabIndex={0}>
+            <table className="tb-table">
+              <caption className="sr-only">Payments for the selected user</caption>
+            <thead><tr><th>Amount</th><th>Method</th><th>Status</th><th>Submitted</th></tr></thead>
+            <tbody>{user.payments!.map((p) => (
+              <tr key={p.id}><td className="tnum">{(p.amount / 100).toFixed(2)} {p.currency}</td><td>{p.method}</td><td><StatusBadge status={p.status} /></td><td>{formatDate(p.createdAt)}</td></tr>
+            ))}</tbody>
+          </table></div>
+        )}
+      </Card>
 
-              <div>
-                <label className="label">New Tier</label>
-                <select
-                  className="input"
-                  value={editTier}
-                  onChange={(e) => setEditTier(e.target.value as any)}
-                >
-                  <option value="FREE">Free</option>
-                  <option value="PRO">Pro</option>
-                  <option value="ELITE">Elite</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="label">Expires At (Optional)</label>
-                <input
-                  type="date"
-                  className="input"
-                  value={editExpiresAt}
-                  onChange={(e) => setEditExpiresAt(e.target.value)}
-                />
-                <p className="text-xs text-[var(--color-text-muted)] mt-1">Leave empty for no expiration (manual management)</p>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setEditingUser(null)} className="btn btn-secondary flex-1">Cancel</button>
-                <button onClick={handleSaveTier} className="btn btn-primary flex-1">Save Changes</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <Card padded={false} className="overflow-hidden">
+        <h2 className="p-4 pb-2 font-semibold">Referrals made ({user.referrals?.length ?? 0})</h2>
+        {(user.referrals ?? []).length === 0 ? (
+          <EmptyState title="No referrals" message="This user has not referred anyone yet." />
+        ) : (
+          <div className="overflow-x-auto" role="region" aria-label="User referrals table — scroll horizontally on small screens" tabIndex={0}>
+            <table className="tb-table">
+              <caption className="sr-only">Referrals for the selected user</caption>
+            <thead><tr><th>Referred user</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody>{user.referrals!.map((r) => (
+              <tr key={r.id}><td>{r.referred?.firstName || 'Unknown'} <span className="text-[var(--color-text-muted)]">@{r.referred?.username || r.referred?.telegramId}</span></td><td><StatusBadge status={r.status} /></td><td>{formatDate(r.createdAt)}</td></tr>
+            ))}</tbody>
+          </table></div>
+        )}
+      </Card>
     </div>
   );
 }

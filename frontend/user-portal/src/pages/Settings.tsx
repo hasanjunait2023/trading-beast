@@ -1,288 +1,258 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card } from '@shared/components/Card';
+import { Button } from '@shared/components/Button';
+import { PageHeader } from '@shared/components/PageHeader';
+import { Select, FormField } from '@shared/components/FormField';
+import { Skeleton } from '@shared/components/Skeleton';
+import { useTheme } from '@shared/theme';
 import { useAuth } from '../hooks/useAuth';
-import { User, Bell, Globe, Shield, Trash2, Save, Loader2 } from 'lucide-react';
+import { userApi, type User } from '../services/api';
+import { usePrefsStore, effectiveZone, KNOWN_SESSIONS, type KnownSession } from '../store/prefs';
+import { isTelegram } from '../telegram';
 
-const LANGUAGES = [
-  { code: 'en', name: 'English', nativeName: 'English' },
-  { code: 'bn', name: 'Bengali', nativeName: 'বাংলা' }
-];
-
+/**
+ * Settings / Profile (study 15). The profile is read-only — the API exposes
+ * no profile mutations. Theme uses the shared theme preference. Timezone and
+ * preferred sessions are SERVER account preferences (GET/PUT
+ * /user/preferences, same as Setup): the device-local store seeds the form
+ * and is the labelled fallback only while loading or if the server cannot
+ * be reached. Sign out calls POST /auth/logout, sign out everywhere POST
+ * /auth/logout-all; both clear all account-scoped state. Aliased at /settings.
+ */
 export default function Settings() {
-  const { user, logout } = useAuth();
-  const [profile, setProfile] = useState({
-    firstName: user?.firstName || '',
-    username: user?.username || '',
-    languageCode: user?.languageCode || 'en'
-  });
-  const [notifications, setNotifications] = useState({
-    sessionAlerts: true,
-    focusUpdates: true,
-    referralUpdates: true,
-    paymentUpdates: true,
-    marketingEmails: false
-  });
-  const [isSaving, setIsSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deletePassword, setDeletePassword] = useState('');
+  const { user: cachedUser, logout, logoutAll } = useAuth();
+  const { theme, setTheme } = useTheme();
+  const navigate = useNavigate();
+  const [me, setMe] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const savedTz = usePrefsStore((s) => s.timezone);
+  const setTimezone = usePrefsStore((s) => s.setTimezone);
+  const savedSessions = usePrefsStore((s) => s.preferredSessions);
+  const setPreferredSessions = usePrefsStore((s) => s.setPreferredSessions);
+  const hydrateFromServer = usePrefsStore((s) => s.hydrateFromServer);
+  const deviceZone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
+  /** '' = in sync with the server; otherwise an honest sync note. */
+  const [prefsNote, setPrefsNote] = useState('Loading your account preferences…');
 
   useEffect(() => {
-    if (user) {
-      setProfile({
-        firstName: user.firstName || '',
-        username: user.username || '',
-        languageCode: user.languageCode || 'en'
+    let alive = true;
+    userApi
+      .me()
+      .then((res) => {
+        if (alive && res.data.data) setMe(res.data.data);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (alive) setLoading(false);
       });
-    }
-  }, [user]);
+    userApi
+      .getPreferences()
+      .then((res) => {
+        if (alive && res.data.data) {
+          hydrateFromServer(res.data.data);
+          setPrefsNote('');
+        }
+      })
+      .catch(() => {
+        if (alive) {
+          setPrefsNote('Could not reach the server — showing this device’s saved preferences. Changes will be kept on this device only until the server is reachable.');
+        }
+      });
+    return () => {
+      alive = false;
+    };
+  }, [hydrateFromServer]);
 
-  const handleSaveProfile = async () => {
-    setIsSaving(true);
-    try {
-      // In a real app, call API to update profile
-      // For now, just simulate
-      await new Promise(r => setTimeout(r, 500));
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch (error) {
-      console.error('Failed to save profile:', error);
-    } finally {
-      setIsSaving(false);
-    }
+  /** Persist a preference change: local mirror immediately, then the server. */
+  const savePreferences = (patch: { timezone?: string | null; preferredSessions?: KnownSession[] }) => {
+    if (patch.timezone !== undefined) setTimezone(patch.timezone);
+    if (patch.preferredSessions !== undefined) setPreferredSessions(patch.preferredSessions);
+    userApi
+      .updatePreferences(patch)
+      .then((res) => {
+        if (res.data.data) hydrateFromServer(res.data.data);
+        setPrefsNote('');
+      })
+      .catch(() => {
+        setPrefsNote('Could not sync to your account — the change is saved on this device only for now.');
+      });
   };
 
-  const handleDeleteAccount = async () => {
-    // In a real app, call API to delete account
-    // For now, just logout
+  const user = me ?? cachedUser;
+  const zones = useMemo(() => {
+    const set = new Set<string>([deviceZone, effectiveZone(savedTz), 'Asia/Dhaka', 'UTC', 'Europe/London', 'America/New_York']);
+    try {
+      const supported = (Intl as unknown as { supportedValuesOf?: (k: string) => string[] }).supportedValuesOf?.('timeZone');
+      supported?.forEach((z) => set.add(z));
+    } catch {
+      /* older engines: short list above */
+    }
+    return [...set].sort();
+  }, [deviceZone, savedTz]);
+
+  const signOut = () => {
     logout();
+    navigate('/login', { replace: true });
+  };
+  const signOutEverywhere = () => {
+    logoutAll();
+    navigate('/login', { replace: true });
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h1 className="font-display text-2xl font-bold">Settings</h1>
-        <p className="text-[var(--color-text-muted)]">Manage your account preferences</p>
-      </div>
+    <div className="mx-auto max-w-2xl space-y-4">
+      <PageHeader title="Settings" subtitle="Profile, preferences and session controls." />
 
-      {/* Profile Section */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="font-medium flex items-center gap-2">
-            <User className="w-5 h-5" />
-            Profile
-          </h2>
-          {saved && (
-            <span className="text-sm text-[var(--color-success)] flex items-center gap-1">
-              <Save className="w-4 h-4" />
-              Saved
-            </span>
-          )}
-        </div>
-
-        <div className="grid grid-1 md:grid-2 gap-4">
-          <div>
-            <label className="label">First Name</label>
-            <input
-              type="text"
-              className="input"
-              value={profile.firstName}
-              onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
-            />
+      <Card>
+        <h2 className="font-bold">Profile</h2>
+        {loading && !user ? (
+          <div className="mt-3">
+            <Skeleton height={72} />
           </div>
-          <div>
-            <label className="label">Username</label>
-            <input
-              type="text"
-              className="input"
-              value={profile.username}
-              onChange={(e) => setProfile({ ...profile, username: e.target.value })}
-              placeholder="@username"
-            />
-          </div>
-          <div>
-            <label className="label">Language</label>
-            <select
-              className="input"
-              value={profile.languageCode}
-              onChange={(e) => setProfile({ ...profile, languageCode: e.target.value })}
-            >
-              {LANGUAGES.map((lang) => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.nativeName} ({lang.name})
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="label">Telegram ID</label>
-            <input
-              type="text"
-              className="input"
-              value={user?.telegramId || ''}
-              readOnly
-            />
-            <p className="text-xs text-[var(--color-text-muted)] mt-1">Cannot be changed</p>
-          </div>
-        </div>
-
-        <div className="flex justify-end mt-6">
-          <button
-            onClick={handleSaveProfile}
-            disabled={isSaving}
-            className="btn btn-primary"
-          >
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
-          </button>
-        </div>
-      </div>
-
-      {/* Notifications Section */}
-      <div className="card">
-        <h2 className="font-medium mb-4 flex items-center gap-2">
-          <Bell className="w-5 h-5" />
-          Notifications
-        </h2>
-        <p className="text-sm text-[var(--color-text-muted)] mb-4">
-          Configure which notifications you receive via Telegram and email
-        </p>
-
-        <div className="space-y-3">
-          {[
-            { key: 'sessionAlerts', label: 'Session Start Alerts', desc: 'Get notified when Asian/London/NY sessions begin' },
-            { key: 'focusUpdates', label: 'Focus List Updates', desc: 'New focus pairs posted at session open' },
-            { key: 'referralUpdates', label: 'Referral Activity', desc: 'When someone uses your referral code' },
-            { key: 'paymentUpdates', label: 'Payment Status', desc: 'Payment approved/rejected notifications' },
-            { key: 'marketingEmails', label: 'Marketing Emails', desc: 'Product updates, tips, and occasional offers' }
-          ].map(({ key, label, desc }) => (
-            <div key={key} className="flex items-center justify-between p-3 bg-[var(--color-bg)] rounded-lg">
-              <div className="flex-1">
-                <p className="font-medium">{label}</p>
-                <p className="text-sm text-[var(--color-text-muted)]">{desc}</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={notifications[key as keyof typeof notifications]}
-                  onChange={(e) => setNotifications({ ...notifications, [key]: e.target.checked })}
-                />
-                <div className="w-11 h-6 bg-[var(--color-border)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--color-accent)]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-accent)]"></div>
-              </label>
+        ) : user ? (
+          <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-[var(--color-text-muted)]">Name</dt>
+              <dd className="mt-0.5 font-semibold">{user.firstName || '—'}</dd>
             </div>
+            <div>
+              <dt className="text-[var(--color-text-muted)]">Telegram username</dt>
+              <dd className="mt-0.5 font-semibold">
+                {user.username ? `@${user.username}` : '—'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--color-text-muted)]">Plan</dt>
+              <dd className="mt-0.5 font-semibold">{user.tier}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--color-text-muted)]">Referral code</dt>
+              <dd className="tnum mt-0.5 font-semibold">{user.referralCode}</dd>
+            </div>
+          </dl>
+        ) : (
+          <p className="mt-2 text-sm text-[var(--color-text-muted)]">Profile unavailable right now.</p>
+        )}
+        <p className="mt-3 text-xs text-[var(--color-text-muted)]">
+          Profile details come from your Telegram account and are read-only here.
+        </p>
+      </Card>
+
+      <Card>
+        <h2 className="font-bold">Appearance</h2>
+        <div className="mt-3 flex gap-2" role="group" aria-label="Theme">
+          {(
+            [
+              ['light', 'Light'],
+              ['dark', 'Dark'],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={theme === id}
+              onClick={() => setTheme(id)}
+              className={`min-h-[44px] flex-1 rounded-[var(--radius-md)] border px-3 text-sm font-semibold ${
+                theme === id
+                  ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-text)]'
+                  : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]'
+              }`}
+            >
+              {label}
+            </button>
           ))}
         </div>
-      </div>
+      </Card>
 
-      {/* Security Section */}
-      <div className="card">
-        <h2 className="font-medium mb-4 flex items-center gap-2">
-          <Shield className="w-5 h-5" />
-          Security
-        </h2>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-[var(--color-bg)] rounded-lg">
-            <div>
-              <p className="font-medium">Two-Factor Authentication</p>
-              <p className="text-sm text-[var(--color-text-muted)]">Add an extra layer of security to your account</p>
-            </div>
-            <button className="btn btn-secondary btn-sm">Enable 2FA</button>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-[var(--color-bg)] rounded-lg">
-            <div>
-              <p className="font-medium">Active Sessions</p>
-              <p className="text-sm text-[var(--color-text-muted)]">View and manage logged-in devices</p>
-            </div>
-            <button className="btn btn-secondary btn-sm">View Sessions</button>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-[var(--color-bg)] rounded-lg">
-            <div>
-              <p className="font-medium">API Access</p>
-              <p className="text-sm text-[var(--color-text-muted)]">Generate API keys for programmatic access</p>
-            </div>
-            <button className="btn btn-secondary btn-sm" disabled>Elite Only</button>
-          </div>
-        </div>
-      </div>
-
-      {/* Danger Zone */}
-      <div className="card border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5">
-        <h2 className="font-medium mb-4 flex items-center gap-2 text-[var(--color-danger)]">
-          <Trash2 className="w-5 h-5" />
-          Danger Zone
-        </h2>
-        <p className="text-sm text-[var(--color-text-muted)] mb-4">
-          These actions are irreversible. Please proceed with caution.
+      <Card>
+        <h2 className="font-bold">Timezone &amp; sessions</h2>
+        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+          Display timezone and preferred sessions are saved to your account (the same
+          preferences as in Setup) and follow you across devices.
         </p>
-
-        {!showDeleteConfirm ? (
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="btn btn-danger"
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete Account
-          </button>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-sm text-[var(--color-text-muted)]">
-              Type your Telegram ID to confirm account deletion:
-            </p>
-            <input
-              type="text"
-              className="input"
-              placeholder={user?.telegramId}
-              value={deletePassword}
-              onChange={(e) => setDeletePassword(e.target.value)}
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={handleDeleteAccount}
-                disabled={deletePassword !== user?.telegramId}
-                className="btn btn-danger flex-1"
-              >
-                Delete Permanently
-              </button>
-              <button
-                onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); }}
-                className="btn btn-secondary flex-1"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+        {prefsNote && (
+          <p className="mt-2 text-sm text-[var(--color-text-muted)]" role="status">
+            {prefsNote}
+          </p>
         )}
-      </div>
-
-      {/* App Info */}
-      <div className="card">
-        <h2 className="font-medium mb-4 flex items-center gap-2">
-          <Globe className="w-5 h-5" />
-          About
-        </h2>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-[var(--color-text-muted)]">Version</span>
-            <span>1.0.0</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-[var(--color-text-muted)]">Environment</span>
-            <span>{import.meta.env?.MODE || 'development'}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-[var(--color-text-muted)]">Data Source</span>
-            <span>Yahoo Finance + Finnhub</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-[var(--color-text-muted)]">Chart Engine</span>
-            <span>QuickChart (self-hosted)</span>
-          </div>
+        <div className="mt-3 max-w-sm">
+          <FormField label="Display timezone">
+            <Select
+              value={effectiveZone(savedTz)}
+              onChange={(e) => savePreferences({ timezone: e.target.value })}
+              aria-label="Display timezone"
+            >
+              {zones.map((z) => (
+                <option key={z} value={z}>
+                  {z}
+                </option>
+              ))}
+            </Select>
+          </FormField>
         </div>
-        <p className="mt-4 text-xs text-[var(--color-text-muted)]">
-          ⚠️ Session Focus Radar is a market analysis tool. Not investment advice.
-          Trading involves risk. Past performance does not guarantee future results.
+        <p className="mt-4 text-sm font-semibold">Preferred sessions</p>
+        <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Preferred sessions">
+          {KNOWN_SESSIONS.map((s) => {
+            const active = savedSessions.includes(s);
+            return (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={active}
+                onClick={() =>
+                  savePreferences({
+                    preferredSessions: active
+                      ? savedSessions.filter((x) => x !== s)
+                      : [...savedSessions, s],
+                  })
+                }
+                className={`min-h-[44px] rounded-full border px-4 text-sm font-semibold ${
+                  active
+                    ? 'border-transparent bg-[var(--color-accent)] text-[var(--color-accent-text)]'
+                    : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]'
+                }`}
+              >
+                {active ? '✓ ' : ''}
+                {s}
+              </button>
+            );
+          })}
+        </div>
+        <Button variant="secondary" className="mt-3" onClick={() => navigate('/app/setup')}>
+          Revisit setup
+        </Button>
+      </Card>
+
+      <Card>
+        <h2 className="font-bold">Telegram connection</h2>
+        <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+          {isTelegram()
+            ? 'You opened the portal inside Telegram and are connected with your verified Telegram account.'
+            : 'Your account is linked to Telegram — the same account signs in here with a one-time code from the bot. No separate linking step is needed.'}
         </p>
-      </div>
+        {user && (
+          <p className="tnum mt-2 text-sm">
+            Telegram ID: <span className="font-semibold">{user.telegramId}</span>
+          </p>
+        )}
+      </Card>
+
+      <Card>
+        <h2 className="font-bold">Session</h2>
+        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+          Signing out clears this device's session and all account data stored in this browser,
+          including saved Radar results.
+        </p>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <Button variant="secondary" className="flex-1" onClick={signOut}>
+            Sign out
+          </Button>
+          <Button variant="danger" className="flex-1" onClick={signOutEverywhere}>
+            Sign out everywhere
+          </Button>
+        </div>
+      </Card>
     </div>
   );
 }

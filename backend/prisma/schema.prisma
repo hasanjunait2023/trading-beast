@@ -27,6 +27,10 @@ model User {
   creditWallet    CreditWallet?
   creditEntries   CreditEntry[]
   radarRuns       RadarRun[]
+  journalTrades   JournalTrade[]
+  alertRules      AlertRule[]
+  preference      UserPreference?
+  sessionPlans    SessionPlan[]
   subscriptions   Subscription[]
   payments        Payment[]
   referrals       Referral[] @relation("Referrer")
@@ -183,6 +187,7 @@ model RadarRun {
   requestKey String
   fingerprint String
   status RadarRunStatus @default(RUNNING)
+  pinnedInPlans SessionPlan[] @relation("PinnedRun")
   result Json?
   startedAt DateTime @default(now())
   expiresAt DateTime
@@ -190,6 +195,7 @@ model RadarRun {
   @@unique([userId, requestKey])
   @@index([status, expiresAt])
   @@index([userId, startedAt])
+  @@index([userId, status, completedAt])
 }
 enum RadarRunStatus {
   RUNNING
@@ -220,4 +226,71 @@ model TelegramDelivery {
   failedAt DateTime?
   createdAt DateTime @default(now())
   @@index([sentAt,failedAt,nextAttemptAt])
+}
+
+model UserPreference {
+  userId String @id
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timezone String?
+  preferredSessions String[] @default([])
+  quietHoursEnabled Boolean @default(false)
+  quietStart String? // "HH:MM" 24h, in the user's preference timezone
+  quietEnd String? // "HH:MM" 24h, in the user's preference timezone
+  updatedAt DateTime @updatedAt
+}
+
+model AlertRule {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type String // 'SESSION_START' only (app-validated — the only evaluatable type)
+  session String // one of SESSION_NAMES (app-validated)
+  enabled Boolean @default(true)
+  lastTriggeredAt DateTime?
+  lastSessionStartTs BigInt? // dedupe marker: last session-start boundary (epoch sec) already delivered
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([userId, type, session])
+  @@index([userId])
+}
+
+model JournalTrade {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  symbol String
+  side String // 'LONG' | 'SHORT' (app-validated)
+  openedAt DateTime
+  closedAt DateTime?
+  quantity Decimal @db.Decimal(20, 8)
+  entryPrice Decimal @db.Decimal(20, 8)
+  exitPrice Decimal? @db.Decimal(20, 8)
+  stopPrice Decimal? @db.Decimal(20, 8)
+  fees Decimal @default(0) @db.Decimal(20, 8)
+  currency String @default("USD")
+  initialRiskAmount Decimal? @db.Decimal(20, 8)
+  notes String?
+  tags String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId, openedAt])
+}
+
+model SessionPlan {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session String
+  planDate DateTime @db.Date
+  status String @default("DRAFT")
+  pinnedRunId String?
+  pinnedRun RadarRun? @relation("PinnedRun", fields: [pinnedRunId], references: [id], onDelete: SetNull)
+  checklist Json @default("[]")
+  invalidation String?
+  riskNotes String?
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([userId, session, planDate])
+  @@index([userId, planDate])
 }

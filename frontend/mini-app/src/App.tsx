@@ -1,41 +1,37 @@
-import { useState, FormEvent } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import {
-  Radar as RadarIcon,
-  List,
-  Coins,
-  Users,
-  User as UserIcon,
-  Target,
-  AlertCircle,
-  Send,
-} from 'lucide-react';
+import { Suspense, lazy, useState, type FormEvent } from 'react';
+import { BottomNav } from '@shared/components/BottomNav';
+import { Button } from '@shared/components/Button';
+import { Card } from '@shared/components/Card';
+import { Input, FormField } from '@shared/components/FormField';
+import { Skeleton } from '@shared/components/Skeleton';
 import { useAuth } from './hooks/useAuth';
 import { haptics } from './telegram';
-import Radar from './pages/Radar';
-import Watchlist from './pages/Watchlist';
-import Credits from './pages/Credits';
-import Referral from './pages/Referral';
-import Profile from './pages/Profile';
 
-type Tab = 'radar' | 'watchlist' | 'credits' | 'referral' | 'profile';
+// Per-tab code splitting keeps the initial (entry) chunk within the
+// ≤200 KB budget (handoff §6): only the shell + auth + Radar load eagerly.
+const Radar = lazy(() => import('./pages/Radar'));
+const Watchlist = lazy(() => import('./pages/Watchlist'));
+const Credits = lazy(() => import('./pages/Credits'));
+const Referral = lazy(() => import('./pages/Referral'));
+const Profile = lazy(() => import('./pages/Profile'));
 
-const TABS: { id: Tab; label: string; Icon: typeof RadarIcon }[] = [
-  { id: 'radar', label: 'Radar', Icon: RadarIcon },
-  { id: 'watchlist', label: 'Watchlist', Icon: List },
-  { id: 'credits', label: 'Credits', Icon: Coins },
-  { id: 'referral', label: 'Referral', Icon: Users },
-  { id: 'profile', label: 'Profile', Icon: UserIcon },
+export type Tab = 'radar' | 'watchlist' | 'credits' | 'referral' | 'profile';
+
+const TABS: { id: Tab; label: string; icon: string }[] = [
+  { id: 'radar', label: 'Radar', icon: '◎' },
+  { id: 'watchlist', label: 'Watchlist', icon: '☰' },
+  { id: 'credits', label: 'Credits', icon: '◉' },
+  { id: 'referral', label: 'Referral', icon: '⧉' },
+  { id: 'profile', label: 'Profile', icon: '◐' },
 ];
 
 function LoadingScreen() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center">
-      <div
-        className="animate-spin rounded-full h-9 w-9 border-2 border-t-transparent mb-4"
-        style={{ borderColor: 'var(--color-accent)', borderTopColor: 'transparent' }}
-      />
-      <p style={{ color: 'var(--color-text-muted)' }}>Connecting to TradingBeast…</p>
+    <div className="space-y-3 px-4 pt-6" role="status" aria-label="Connecting to TradingBeast">
+      <Skeleton height={28} width="60%" />
+      <Skeleton height={120} />
+      <Skeleton height={72} />
+      <Skeleton height={72} />
     </div>
   );
 }
@@ -43,8 +39,9 @@ function LoadingScreen() {
 /**
  * Shown when the app is NOT opened from Telegram (no initData) and there is
  * no session: explain how to open it from the bot, and offer the same
- * one-time /login code flow the web portal uses (for browser testing).
- * No fake login is ever performed.
+ * one-time /login code flow the web portal uses. No fake login is ever
+ * performed. (Behavior preserved from the pre-Z1 app; restyled on Z0
+ * primitives.)
  */
 function FallbackScreen() {
   const { loginWithCode, authError, inTelegram, retryTelegramLogin } = useAuth();
@@ -59,98 +56,62 @@ function FallbackScreen() {
     try {
       await loginWithCode(code);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Login failed — check the code and try again.'
-      );
+      setError(err instanceof Error ? err.message : 'Login failed — check the code and try again.');
     } finally {
       setSubmitting(false);
     }
   };
 
+  const shownError = error || authError;
+
   return (
-    <div className="px-4 animate-fade-in">
-      <div className="text-center pt-8 pb-6">
-        <div
-          className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-          style={{ background: 'linear-gradient(135deg,#4f6dff,#7c5cff)' }}
-        >
-          <Target className="w-8 h-8 text-white" />
-        </div>
-        <h1 className="text-2xl">TradingBeast</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
-          Session Focus Radar — open this app from the Telegram bot for
-          instant, secure sign-in.
+    <div className="space-y-4 px-4 pt-6">
+      <div className="text-center">
+        <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-[var(--radius-lg)] text-3xl text-white" style={{ background: 'var(--grad-hero)' }} aria-hidden="true">◎</div>
+        <h1 className="text-2xl font-bold">TradingBeast</h1>
+        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+          Session Focus Radar — open this app from the Telegram bot for instant, secure sign-in.
         </p>
       </div>
 
-      <div className="card space-y-3 mb-4">
-        <h2 className="flex items-center gap-2 text-base">
-          <Send className="w-5 h-5" style={{ color: 'var(--color-link)' }} />
-          Open from the bot (recommended)
-        </h2>
-        <ol className="text-sm space-y-1.5" style={{ color: 'var(--color-text-muted)' }}>
-          <li>1. Open the TradingBeast bot in Telegram.</li>
-          <li>2. Send /app — or tap the “Open App” menu button in the chat.</li>
-          <li>3. The Mini App opens here, already signed in. No password needed.</li>
+      <Card className="space-y-3">
+        <h2 className="text-base font-bold">Open from the bot (recommended)</h2>
+        <ol className="list-decimal space-y-1.5 pl-5 text-sm text-[var(--color-text-muted)]">
+          <li>Open the TradingBeast bot in Telegram.</li>
+          <li>Send /app — or tap the “Open App” menu button in the chat.</li>
+          <li>The Mini App opens here, already signed in. No password needed.</li>
         </ol>
         {inTelegram && authError && (
           <>
-            <div
-              className="flex items-start gap-2 p-3 rounded-lg text-sm"
-              style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--color-danger)' }}
-            >
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{authError}</span>
-            </div>
-            <button className="btn-primary" onClick={() => void retryTelegramLogin()}>
-              Retry Telegram sign-in
-            </button>
+            <p role="alert" className="rounded-[var(--radius-md)] bg-[var(--color-danger-bg)] p-3 text-sm text-[var(--color-danger)]">{authError}</p>
+            <Button className="w-full" onClick={() => void retryTelegramLogin()}>Retry Telegram sign-in</Button>
           </>
         )}
-      </div>
+      </Card>
 
-      <div className="card space-y-3">
-        <h2 className="text-base">Browser testing — /login code</h2>
-        <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-          Send <code className="font-mono">/login</code> to the bot in a private
-          chat and paste the one-time code here.
+      <Card className="space-y-3">
+        <h2 className="text-base font-bold">Browser testing — /login code</h2>
+        <p className="text-sm text-[var(--color-text-muted)]">
+          Send <code className="font-mono">/login</code> to the bot in a private chat and paste the one-time code here.
         </p>
-        {(error || (!inTelegram && authError)) && (
-          <div
-            className="flex items-start gap-2 p-3 rounded-lg text-sm"
-            role="alert"
-            style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--color-danger)' }}
-          >
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{error || authError}</span>
-          </div>
+        {shownError && !inTelegram && (
+          <p role="alert" className="rounded-[var(--radius-md)] bg-[var(--color-danger-bg)] p-3 text-sm text-[var(--color-danger)]">{shownError}</p>
+        )}
+        {shownError && inTelegram && error && (
+          <p role="alert" className="rounded-[var(--radius-md)] bg-[var(--color-danger-bg)] p-3 text-sm text-[var(--color-danger)]">{error}</p>
         )}
         <form onSubmit={(e) => void submit(e)} className="space-y-3">
-          <input
-            className="input font-mono"
-            type="password"
-            autoComplete="one-time-code"
-            placeholder="One-time login code"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-          />
-          <button
-            className="btn-primary"
-            type="submit"
-            disabled={submitting || code.trim().length !== 64}
-          >
-            {submitting ? 'Connecting…' : 'Connect with code'}
-          </button>
-          {code.trim().length > 0 && code.trim().length !== 64 && (
-            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-              The code is 64 characters — paste the full code from the bot.
-            </p>
-          )}
+          <FormField label="One-time login code" hint={code.trim().length > 0 && code.trim().length !== 64 ? 'The code is 64 characters — paste the full code from the bot.' : undefined}>
+            <Input type="password" autoComplete="one-time-code" placeholder="One-time login code" value={code} onChange={(e) => setCode(e.target.value)} className="font-mono" />
+          </FormField>
+          <Button type="submit" className="w-full" loading={submitting} disabled={code.trim().length !== 64}>
+            Connect with code
+          </Button>
         </form>
-      </div>
+      </Card>
 
-      <p className="text-center text-[11px] mt-4" style={{ color: 'var(--color-text-muted)' }}>
-        ⚠️ Analysis tool only. Not investment advice. Trading involves risk.
+      <p className="text-center text-[11px] text-[var(--color-text-muted)]">
+        Analysis tool only. Not investment advice. Trading involves risk.
       </p>
     </div>
   );
@@ -161,91 +122,37 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('radar');
 
   if (isLoading) {
-    return (
-      <div className="app-shell">
-        <LoadingScreen />
-      </div>
-    );
+    return <div className="app-shell"><LoadingScreen /></div>;
+  }
+  if (!user) {
+    return <div className="app-shell"><FallbackScreen /></div>;
   }
 
-  if (!user) {
-    return (
-      <div className="app-shell">
-        <FallbackScreen />
-      </div>
-    );
-  }
+  const goToTab = (next: Tab) => {
+    setTab(next);
+    haptics.selection();
+  };
 
   return (
     <div className="app-shell">
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.main
-          key={tab}
-          initial={{ opacity: 0, x: 14 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -14 }}
-          transition={{ duration: 0.18, ease: 'easeOut' }}
-        >
-          {tab === 'radar' && <Radar />}
+      <main key={tab} className="tb-page-enter">
+        <Suspense fallback={<LoadingScreen />}>
+          {tab === 'radar' && <Radar goToTab={goToTab} />}
           {tab === 'watchlist' && <Watchlist />}
-          {tab === 'credits' && <Credits />}
+          {tab === 'credits' && <Credits goToTab={goToTab} />}
           {tab === 'referral' && <Referral />}
           {tab === 'profile' && <Profile />}
-        </motion.main>
-      </AnimatePresence>
-
-      <nav
-        aria-label="Mini App tabs"
-        className="fixed bottom-0 left-0 right-0 z-50"
-        style={{
-          background: 'var(--color-surface)',
-          borderTop: '1px solid var(--color-border)',
-          paddingBottom: 'var(--tg-safe-bottom)',
-        }}
-      >
-        <div className="max-w-[480px] mx-auto grid grid-cols-5">
-          {TABS.map(({ id, label, Icon }) => {
-            const active = tab === id;
-            return (
-              <motion.button
-                key={id}
-                onClick={() => {
-                  setTab(id);
-                  haptics.selection();
-                }}
-                aria-current={active ? 'page' : undefined}
-                whileTap={{ scale: 0.9 }}
-                className="flex flex-col items-center gap-0.5 py-2.5 border-none bg-transparent"
-                style={{
-                  color: active ? 'var(--color-link)' : 'var(--color-text-muted)',
-                }}
-              >
-                <span className="relative flex items-center justify-center">
-                  {active && (
-                    <motion.span
-                      layoutId="tab-active-pill"
-                      className="absolute rounded-full"
-                      style={{
-                        inset: -6,
-                        background: 'rgba(107, 134, 255, 0.14)',
-                      }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                    />
-                  )}
-                  <motion.span
-                    className="relative flex"
-                    animate={{ scale: active ? 1.12 : 1 }}
-                    transition={{ type: 'spring', stiffness: 420, damping: 22 }}
-                  >
-                    <Icon className="w-5 h-5" />
-                  </motion.span>
-                </span>
-                <span className="text-[10px] font-medium">{label}</span>
-              </motion.button>
-            );
-          })}
-        </div>
-      </nav>
+        </Suspense>
+      </main>
+      <BottomNav
+        items={TABS.map((t) => ({
+          id: t.id,
+          label: t.label,
+          active: tab === t.id,
+          icon: <span aria-hidden="true" className="text-lg leading-none">{t.icon}</span>,
+          onSelect: (id: string) => goToTab(id as Tab),
+        }))}
+      />
     </div>
   );
 }
