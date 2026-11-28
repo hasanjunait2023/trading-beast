@@ -27,7 +27,7 @@
 - **Wordmark note**: the lockups set "TradingBeast" as styled text in the
   product font stack (see §5). Before the lockups are used outside the
   product (print, partner material), the wordmark must be converted to
-  outlined paths from the final font files — TBD-BY-SYSTEM-STREAM.
+  outlined paths from the final font files (Inter — see §5).
 
 ## 2. Clear space
 
@@ -56,8 +56,10 @@ Logo colours (final — these belong to the mark itself):
 | Focus Bright | #00A870 | 0 · 168 · 112 | The focus dot in the colour version only |
 | Ink | #101D2C | 16 · 29 · 44 | Wordmark in lockups on light backgrounds |
 
-Full product palette (canvas, surfaces, hero gradient, semantic colours)
-and CMYK / Pantone conversions: **TBD-BY-SYSTEM-STREAM**.
+Full product palette (canvas, surfaces, hero gradient, semantic colours):
+see `docs/brand/COLOR-SYSTEM.md` — token scales anchored on Beast Emerald
+#00664B, all body-text pairings verified WCAG AA. CMYK / Pantone
+conversions are produced when print material is commissioned.
 
 **Approved logo/background pairs**: colour mark on white or the product's
 mint canvas · emerald mono on white/mint · white (reversed) on Beast
@@ -66,12 +68,14 @@ use the white or black version on a calm area, or the app-icon tile.
 
 ## 5. Typography
 
-- Product type system (families, weights, scale): **TBD-BY-SYSTEM-STREAM**.
+- Product type system: **Inter** (single family) — UI 400/500/600,
+  display 700/800 at −0.015em tracking, tabular figures for scores and
+  prices; full scale in `docs/brand/TYPE-AND-SCALE.md`.
 - The lockups and the in-product wordmark assume that system; do not set
   the wordmark in any other typeface, and never retype it in a document
   font as a substitute logo — use the SVG files.
-- Licences: confirm the final families allow logo use before external
-  distribution of the lockups — TBD-BY-SYSTEM-STREAM.
+- Licences: Inter is SIL Open Font License 1.1 — logo use and external
+  distribution of the lockups are permitted.
 
 ## 6. Don'ts
 

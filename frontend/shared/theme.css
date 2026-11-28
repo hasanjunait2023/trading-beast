@@ -276,7 +276,7 @@
   --color-session-closed: #9aa8c7;
 
   /* ---- Gradients ---- */
-  --grad-hero: linear-gradient(135deg, #4f6dff 0%, #7c5cff 100%);
+  --grad-hero: linear-gradient(135deg, #04382b 0%, #00664b 100%);
   --grad-accent: linear-gradient(135deg, #4f6dff 0%, #6b86ff 100%);
 
   /* ---- Reference-match layer (dark variant maps onto Neon Dark Tech) ---- */
