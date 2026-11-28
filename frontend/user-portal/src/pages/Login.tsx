@@ -3,7 +3,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Brand } from '@shared/components/Brand';
 import { Button } from '@shared/components/Button';
 import { Input, FormField } from '@shared/components/FormField';
+import { Tabs } from '@shared/components/Tabs';
 import { ExternalIcon, LockIcon, SendIcon } from '@shared/components/icons';
+import { ApiError } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { useBotUsername, botUrl } from '../hooks/useBotConfig';
 import { getInitData, getInitialReferralCode, isTelegram } from '../telegram';
@@ -61,8 +63,10 @@ function LoginWaves() {
   );
 }
 
+type LoginMode = 'telegram' | 'password';
+
 export default function Login() {
-  const { user, login, isLoading: authLoading } = useAuth();
+  const { user, login, loginWithPassword, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const botUsername = useBotUsername();
@@ -77,6 +81,12 @@ export default function Login() {
   const [showReferral, setShowReferral] = useState(() => Boolean(getInitialReferralCode()));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  // Browser-only: Telegram code (primary) or email + password (secondary).
+  const [mode, setMode] = useState<LoginMode>('telegram');
+  const [pwEmail, setPwEmail] = useState('');
+  const [pwPassword, setPwPassword] = useState('');
+  const [pwError, setPwError] = useState('');
+  const [pwLoading, setPwLoading] = useState(false);
 
   const doLogin = useCallback(async () => {
     setError('');
@@ -121,6 +131,30 @@ export default function Login() {
     await doLogin();
   };
 
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwError('');
+    setPwLoading(true);
+    try {
+      await loginWithPassword(pwEmail.trim(), pwPassword);
+      navigate(safeReturnTo(location.state), { replace: true });
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        setPwError(
+          'Password sign-in is not available yet — use the Telegram code tab above instead.',
+        );
+      } else if (err instanceof ApiError && (err.status === 401 || err.status === 400)) {
+        setPwError(
+          'That email and password don’t match an account. Check both and try again — or sign in with a Telegram code.',
+        );
+      } else {
+        setPwError('Could not sign in. Check your connection and try again.');
+      }
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
   const bot = botUrl(botUsername);
 
   return (
@@ -140,7 +174,22 @@ export default function Login() {
           Sign in to TradingBeast
         </h1>
 
-        <form onSubmit={handleSubmit} className="mt-9 space-y-5">
+        {!inTelegram && (
+          <div className="mt-7">
+            <Tabs
+              ariaLabel="Sign-in method"
+              activeId={mode}
+              onChange={(id) => setMode(id as LoginMode)}
+              tabs={[
+                { id: 'telegram', label: 'Telegram code' },
+                { id: 'password', label: 'Email & password' },
+              ]}
+            />
+          </div>
+        )}
+
+        {(inTelegram || mode === 'telegram') && (
+        <form onSubmit={handleSubmit} className="mt-7 space-y-5">
           {error && (
             <div role="alert" className="rounded-[var(--radius-lg)] bg-[var(--color-danger-bg)] p-3.5 text-sm">
               <p className="font-semibold text-[var(--color-danger)]">Could not sign in</p>
@@ -252,6 +301,59 @@ export default function Login() {
             {inTelegram ? 'Connect with Telegram' : 'Sign in'}
           </Button>
         </form>
+        )}
+
+        {!inTelegram && mode === 'password' && (
+          <form onSubmit={handlePasswordSubmit} className="mt-7 space-y-5">
+            {pwError && (
+              <div role="alert" className="rounded-[var(--radius-lg)] bg-[var(--color-danger-bg)] p-3.5 text-sm">
+                <p className="font-semibold text-[var(--color-danger)]">Could not sign in</p>
+                <p className="mt-1">{pwError}</p>
+              </div>
+            )}
+            <p className="text-[15px] leading-relaxed text-[var(--color-text-muted)]">
+              Use the email and password you set when you finished setting up
+              your account. New here? Sign in with a Telegram code first —
+              setup takes a minute.
+            </p>
+            <FormField label="Email address">
+              <Input
+                type="email"
+                autoComplete="email"
+                placeholder="you@gmail.com"
+                value={pwEmail}
+                onChange={(e) => setPwEmail(e.target.value)}
+                className="min-h-[56px] rounded-[var(--radius-input)] text-base"
+              />
+            </FormField>
+            <FormField label="Password">
+              <span className="relative block">
+                <Input
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="Your password"
+                  value={pwPassword}
+                  onChange={(e) => setPwPassword(e.target.value)}
+                  className="min-h-[56px] rounded-[var(--radius-input)] pr-12 text-base"
+                />
+                <LockIcon
+                  size={21}
+                  className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-[var(--color-text-faint)]"
+                />
+              </span>
+            </FormField>
+            <Button
+              type="submit"
+              size="lg"
+              className="min-h-[58px] w-full rounded-full text-lg"
+              style={{ background: 'var(--gradient-primary-action)' }}
+              loading={pwLoading}
+              disabled={pwLoading || !pwEmail.trim() || !pwPassword}
+            >
+              Sign in
+            </Button>
+          </form>
+        )}
 
         {!inTelegram && bot && (
           <p className="mt-6 text-center">

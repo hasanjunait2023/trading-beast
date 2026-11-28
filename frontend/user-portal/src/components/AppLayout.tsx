@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Sidebar, type NavItem } from '@shared/components/Sidebar';
 import { BottomNav } from '@shared/components/BottomNav';
 import { Brand } from '@shared/components/Brand';
@@ -24,6 +24,12 @@ import { useTheme } from '@shared/theme';
 import { useAuth } from '../hooks/useAuth';
 import { useSessions } from '../hooks/useSessions';
 import { userApi } from '../services/api';
+import { useProfileStore } from '../store/profile';
+import {
+  readOnboardingSkipped,
+  shouldGateToOnboarding,
+  shouldShowProfileBanner,
+} from '../utils/profileGate';
 import { isTelegram } from '../telegram';
 
 /**
@@ -94,6 +100,19 @@ export default function AppLayout() {
   const [balance, setBalance] = useState<number | null>(null);
   const wide = isWideRoute(location.pathname);
 
+  // Onboarding profile (Conversion chapter): fetched once per account.
+  // The store belongs to the signed-in user only — a stale snapshot from a
+  // previous account is ignored via the userId check.
+  const profile = useProfileStore((s) => s.profile);
+  const profileUserId = useProfileStore((s) => s.userId);
+  const profileStatus = useProfileStore((s) => s.status);
+  const ensureProfile = useProfileStore((s) => s.ensure);
+  useEffect(() => {
+    if (user) void ensureProfile(user.id);
+  }, [user, ensureProfile]);
+  const ownProfile = user && profileUserId === user.id ? profile : null;
+  const ownStatus = user && profileUserId === user.id ? profileStatus : 'idle';
+
   const loadBalance = useCallback(async () => {
     try {
       const res = await userApi.credits();
@@ -130,6 +149,26 @@ export default function AppLayout() {
   const activeSession = overview?.active[0];
   const activeWindow = overview?.sessions.find((s) => s.session === activeSession);
 
+  // Onboarding gate: a KNOWN-incomplete profile is routed to the wizard
+  // once per session (skippable there); an unavailable endpoint never gates.
+  if (
+    shouldGateToOnboarding({
+      status: ownStatus,
+      profile: ownProfile,
+      skippedThisSession: readOnboardingSkipped(),
+      pathname: location.pathname,
+    })
+  ) {
+    return (
+      <Navigate to="/app/welcome" replace state={{ from: location.pathname }} />
+    );
+  }
+  const showProfileBanner = shouldShowProfileBanner({
+    status: ownStatus,
+    profile: ownProfile,
+    pathname: location.pathname,
+  });
+
   return (
     <div className="flex min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
       {!inTelegramHost && (
@@ -153,6 +192,24 @@ export default function AppLayout() {
         </div>
       )}
       <div className="flex min-w-0 flex-1 flex-col">
+        {showProfileBanner && (
+          <div
+            role="status"
+            className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-[var(--color-mint-wash)] px-4 py-2 text-center text-[13px]"
+          >
+            <span>
+              <strong>Finish setting up your account</strong> — add your email
+              and a password so you can sign in anywhere, not just Telegram.
+            </span>
+            <button
+              type="button"
+              onClick={() => navigate('/app/welcome')}
+              className="font-bold text-[var(--color-accent)] underline underline-offset-4"
+            >
+              Complete setup
+            </button>
+          </div>
+        )}
         <header className="sticky top-0 z-30 flex min-h-[56px] items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <span className="lg:hidden">

@@ -19,6 +19,11 @@ import { useMarketsUi, type StatusFilter } from '../store/marketsUi';
 import { usePrefsStore, effectiveZone } from '../store/prefs';
 import { RunRadar } from '../components/RunRadar';
 import { fxFullName } from '../utils/instruments';
+import {
+  markProUpsellDismissed,
+  readProUpsellDismissed,
+  shouldShowProUpsell,
+} from '../utils/profileGate';
 
 const SESSIONS = ['Asian', 'London', 'New York'] as const;
 const FILTERS: { id: StatusFilter; label: string }[] = [
@@ -69,6 +74,10 @@ export default function Markets() {
   const [catalog, setCatalog] = useState<Instrument[]>([]);
   const [runOpen, setRunOpen] = useState(false);
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
+  // Conversion touchpoint: a subtle Pro upsell in the rail right after a
+  // successful run — free users only, dismissible, once per session.
+  const [runJustCompleted, setRunJustCompleted] = useState(false);
+  const [upsellDismissed, setUpsellDismissed] = useState(() => readProUpsellDismissed());
 
   const session = ui.session ?? overview?.selected ?? 'London';
   const stored: RadarResultView | undefined = results[radarKey(userId, session, ui.scope)];
@@ -539,6 +548,47 @@ export default function Markets() {
             </Link>
           </section>
 
+          {user &&
+            shouldShowProUpsell({
+              tier: user.tier,
+              isProActive: user.isProActive,
+              runJustCompleted,
+              dismissedThisSession: upsellDismissed,
+            }) && (
+              <section
+                aria-label="About the Pro plan"
+                className="relative rounded-[16px] p-6 text-white shadow-[var(--shadow-hero)]"
+                style={{ background: 'var(--gradient-session-hero)' }}
+              >
+                <button
+                  type="button"
+                  aria-label="Dismiss Pro plan card"
+                  onClick={() => {
+                    markProUpsellDismissed();
+                    setUpsellDismissed(true);
+                  }}
+                  className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white"
+                >
+                  ✕
+                </button>
+                <h2 className="pr-8 text-2xl font-extrabold tracking-tight">
+                  Nice scan. Pro keeps them coming.
+                </h2>
+                <p className="mt-3 text-[15px] leading-relaxed text-white/85">
+                  Pro is planned with +300 credits a month, advanced alerts and
+                  the trading journal — so a run is never blocked by a low
+                  balance.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate('/app/membership', { state: { section: 'plans' } })}
+                  className="mt-4 inline-flex min-h-[46px] items-center rounded-full bg-white px-5 font-bold text-[var(--color-accent)]"
+                >
+                  See the Pro plan
+                </button>
+              </section>
+            )}
+
           {scanStatus && (
             <section className="rounded-[16px] border border-[var(--color-border-soft)] bg-[var(--color-mint-panel)] p-6">
               <h2 className="text-2xl font-extrabold tracking-tight">Scan status</h2>
@@ -560,6 +610,7 @@ export default function Markets() {
         session={session}
         scope={ui.scope}
         watchlist={watchlist}
+        onSuccess={() => setRunJustCompleted(true)}
         onClose={() => {
           setRunOpen(false);
           void loadCredits();

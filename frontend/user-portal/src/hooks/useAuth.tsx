@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { User, authApi, userApi, UNAUTHORIZED_EVENT } from '../services/api';
 import { useRadarStore } from '../store/radarStore';
+import { useProfileStore } from '../store/profile';
 import { getReferralCodeFromStartParam, isTelegram } from '../telegram';
 
 interface AuthContextType {
@@ -18,6 +19,8 @@ interface AuthContextType {
   inTelegram: boolean;
   /** Sign in with Telegram initData, a one-time code, or both (portal flow). */
   login: (data: { initData?: string; code?: string; referralCode?: string }) => Promise<void>;
+  /** Sign in with the account email + password set during onboarding. */
+  loginWithPassword: (email: string, password: string) => Promise<void>;
   refreshUser: () => Promise<void>;
   setWatchlistLocal: (watchlist: string[]) => void;
   /** POST /auth/logout (best effort) + clear all account-scoped state. */
@@ -42,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearSession = useCallback(() => {
     // Clear ALL account-scoped state on logout / identity change / 401.
     useRadarStore.getState().clearAll();
+    useProfileStore.getState().reset();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);
@@ -81,6 +85,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
   }, [clearSession]);
 
+  /** Shared session adoption for every sign-in route (code, Telegram,
+   *  password): identity changes drop the previous account's Radar cache. */
+  const applySession = useCallback((nextToken: string, nextUser: User) => {
+    try {
+      const prev = localStorage.getItem('user');
+      const prevId = prev ? (JSON.parse(prev) as User).id : null;
+      if (prevId && prevId !== nextUser.id) {
+        useRadarStore.getState().clearAll();
+        useProfileStore.getState().reset();
+      }
+    } catch {
+      /* cached user unreadable — nothing to reconcile */
+    }
+    persist(nextToken, nextUser);
+    setToken(nextToken);
+    setUser(nextUser);
+  }, []);
+
   const login = useCallback(
     async (data: { initData?: string; code?: string; referralCode?: string }) => {
       const res = data.code
@@ -92,21 +114,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!res.data.success || !res.data.data) {
         throw new Error(res.data.error || 'Login failed');
       }
-      // Identity change: drop any Radar results stored for a previous account.
-      try {
-        const prev = localStorage.getItem('user');
-        const prevId = prev ? (JSON.parse(prev) as User).id : null;
-        if (prevId && prevId !== res.data.data.user.id) {
-          useRadarStore.getState().clearAll();
-        }
-      } catch {
-        /* cached user unreadable — nothing to reconcile */
-      }
-      persist(res.data.data.token, res.data.data.user);
-      setToken(res.data.data.token);
-      setUser(res.data.data.user);
+      applySession(res.data.data.token, res.data.data.user);
     },
-    [],
+    [applySession],
+  );
+
+  const loginWithPassword = useCallback(
+    async (email: string, password: string) => {
+      const res = await authApi.passwordLogin(email, password);
+      if (!res.data.success || !res.data.data) {
+        throw new Error(res.data.error || 'Login failed');
+      }
+      applySession(res.data.data.token, res.data.data.user);
+    },
+    [applySession],
   );
 
   const refreshUser = useCallback(async () => {
@@ -148,6 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         inTelegram,
         login,
+        loginWithPassword,
         refreshUser,
         setWatchlistLocal,
         logout,

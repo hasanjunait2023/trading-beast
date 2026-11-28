@@ -125,6 +125,18 @@ export interface CreditsData {
   radarCost: number;
 }
 
+/**
+ * Onboarding profile (Onboarding + Conversion chapter). Served by
+ * GET /user/profile; the endpoint is deployed alongside this UI, so every
+ * caller must degrade gracefully on 404 (see store/profile.ts).
+ */
+export interface UserProfile {
+  email: string | null;
+  phone: string | null;
+  profileCompleted: boolean;
+  hasPassword: boolean;
+}
+
 export interface ReferralEntry {
   id: string;
   status: string;
@@ -307,6 +319,12 @@ export const authApi = {
     request<{ token: string; user: User }>('POST', '/auth/telegram', data),
   codeLogin: (code: string) =>
     request<{ token: string; user: User }>('POST', '/auth/code', { code }),
+  /** Email + password sign-in; same JWT session shape as code login. */
+  passwordLogin: (email: string, password: string) =>
+    request<{ token: string; user: User }>('POST', '/auth/password-login', {
+      email,
+      password,
+    }),
   refresh: () => request<{ token: string }>('POST', '/auth/refresh'),
   logout: () => request('POST', '/auth/logout'),
   logoutAll: () => request('POST', '/auth/logout-all'),
@@ -314,6 +332,11 @@ export const authApi = {
 
 export const userApi = {
   me: () => request<User>('GET', '/user/me'),
+  // Onboarding profile. 404 = endpoint not deployed yet — callers treat
+  // that as "no gate" rather than an error worth surfacing.
+  getProfile: () => request<UserProfile>('GET', '/user/profile'),
+  completeProfile: (data: { email: string; phone: string; password?: string }) =>
+    request<UserProfile>('POST', '/user/profile/complete', data),
   credits: () => request<CreditsData>('GET', '/user/credits'),
   updateWatchlist: (watchlist: string[]) =>
     request<{ watchlist: string[] }>('PATCH', '/user/watchlist', { watchlist }),

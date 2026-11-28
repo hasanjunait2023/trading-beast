@@ -21,18 +21,23 @@ import { hydrateLatestRadar } from '../services/radarHydration';
 import { useRadarStore } from '../store/radarStore';
 import { usePrefsStore, effectiveZone } from '../store/prefs';
 import { evidenceFor, narrativeEvidence } from '../components/evidence';
+import { TradingViewChart } from '../components/TradingViewChart';
 import { fxFullName } from '../utils/instruments';
+import { tradingViewSymbol, TV_INTERVALS } from '../utils/tradingView';
 
 /**
  * Pair Detail (studies 05 + 29). Gradient pair hero with the scan price,
- * Price Analysis card with the timeframe selector over an honest chart
- * state, and the desktop evidence rail: Analysis provenance, the score
- * ring card, factual Score Evidence, ADR Usage and Save to Plan. Evidence
- * comes from the SELECTED stored result only — the fields the payload
- * actually carries, nothing invented: no candle series, no % change, no
- * breakdown points and no TradingView link exist in any validated
- * contract, so none are rendered. Direct entry / refresh without a stored
- * result shows the recovery state — never fabricated data.
+ * Price Analysis card with the timeframe selector over the TradingView
+ * free chart widget (Conversion chapter — symbols mapped in
+ * utils/tradingView.ts; if the widget cannot load, or the instrument has
+ * no validated mapping, the honest unavailable state returns), and the
+ * desktop evidence rail: Analysis provenance, the score ring card, factual
+ * Score Evidence, ADR Usage and Save to Plan. Evidence comes from the
+ * SELECTED stored result only — the fields the payload actually carries,
+ * nothing invented: no candle series of our own, no % change and no
+ * breakdown points exist in any validated contract, so none are rendered.
+ * Direct entry / refresh without a stored result shows the recovery
+ * state — never fabricated data.
  */
 
 type Timeframe = '15m' | '1H' | '4H';
@@ -90,6 +95,7 @@ export default function PairDetail() {
   const [toggling, setToggling] = useState(false);
   const inFlightRef = useRef(false);
   const [timeframe, setTimeframe] = useState<Timeframe>('15m');
+  const [tvFailed, setTvFailed] = useState(false);
   const [orBands, setOrBands] = useState(true);
   const [fullName, setFullName] = useState<string | undefined>(undefined);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -119,6 +125,11 @@ export default function PairDetail() {
     return () => {
       alive = false;
     };
+  }, [symbol]);
+
+  // A different pair gets a fresh chance to load its chart.
+  useEffect(() => {
+    setTvFailed(false);
   }, [symbol]);
 
   const toggleWatchlist = useCallback(async () => {
@@ -160,6 +171,7 @@ export default function PairDetail() {
   }
 
   const { pair, result } = hit;
+  const tvSymbol = tradingViewSymbol(pair.pair);
   const candleTs = pair.ts15 ?? pair.ts1 ?? pair.ts4;
   const inWatchlist = user?.watchlist.includes(pair.pair) ?? false;
   const numeric = evidenceFor(pair);
@@ -229,11 +241,11 @@ export default function PairDetail() {
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-4">
-          {/* Price Analysis (study 29). The timeframe control selects what
-              the chart area refers to — candle series are not served by any
-              API yet, so the chart keeps its honest unavailable state for
-              every timeframe. The OR Bands switch shows/hides the scan's
-              real opening-range levels above the chart area. */}
+          {/* Price Analysis (study 29). The timeframe control drives the
+              TradingView widget interval; the OR Bands switch shows/hides
+              the scan's real opening-range levels above the chart area. If
+              the widget script fails to load, the honest unavailable card
+              takes its place. */}
           <section
             aria-label="Price analysis"
             className="rounded-[var(--radius-lg)] border border-[var(--color-border-soft)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-row)]"
@@ -298,12 +310,31 @@ export default function PairDetail() {
               </div>
             )}
 
-            <ChartPanel
-              state="unavailable"
-              title={`Chart · ${timeframe}`}
-              unavailableReason={`Candle data (${timeframe}) isn't available in the web portal yet. The scan evidence is the data this result is based on.`}
-              className="mt-3 border-0 p-0 shadow-none"
-            />
+            {tvSymbol && !tvFailed ? (
+              <div className="mt-3">
+                <TradingViewChart
+                  symbol={tvSymbol}
+                  interval={TV_INTERVALS[timeframe]}
+                  timezone={zone}
+                  onFail={() => setTvFailed(true)}
+                />
+                <p className="mt-2 text-[12px] text-[var(--color-text-muted)]">
+                  Live chart by TradingView. The scan evidence on this page is
+                  what this result is based on.
+                </p>
+              </div>
+            ) : (
+              <ChartPanel
+                state="unavailable"
+                title={`Chart · ${timeframe}`}
+                unavailableReason={
+                  tvSymbol
+                    ? `The TradingView chart couldn't load (${timeframe}). Check your connection and reload — the scan evidence is the data this result is based on.`
+                    : `No chart is available for ${pair.pair} in the web portal yet. The scan evidence is the data this result is based on.`
+                }
+                className="mt-3 border-0 p-0 shadow-none"
+              />
+            )}
           </section>
 
           {numeric.length > 0 && (
