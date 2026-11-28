@@ -24,18 +24,22 @@
    display type stops dominating the layout, while body sizes are
    untouched (base stays 16px, sm 14px — the density comes from the
    display end, never from shrinking reading text). Utilities like
-   text-4xl resolve from these tokens in every app. */
+   text-4xl resolve from these tokens in every app.
+   Density round 2 (owner: still too big): another step down across the
+   display end — xl 19->18, 2xl 22->20, 3xl 26->23, 4xl 30->26,
+   5xl 40->34 — keeping the step rhythm intact. See
+   docs/brand/TYPE-AND-SCALE.md §5. */
 @theme {
-  --text-xl: 1.1875rem;
-  --text-xl--line-height: 1.625rem;
-  --text-2xl: 1.375rem;
-  --text-2xl--line-height: 1.75rem;
-  --text-3xl: 1.625rem;
-  --text-3xl--line-height: 2rem;
-  --text-4xl: 1.875rem;
-  --text-4xl--line-height: 2.25rem;
-  --text-5xl: 2.5rem;
-  --text-5xl--line-height: 2.75rem;
+  --text-xl: 1.125rem;
+  --text-xl--line-height: 1.5rem;
+  --text-2xl: 1.25rem;
+  --text-2xl--line-height: 1.625rem;
+  --text-3xl: 1.4375rem;
+  --text-3xl--line-height: 1.75rem;
+  --text-4xl: 1.625rem;
+  --text-4xl--line-height: 2rem;
+  --text-5xl: 2.125rem;
+  --text-5xl--line-height: 2.5rem;
 }
 
 :root {
@@ -169,10 +173,12 @@
   --shadow-card-soft: 0 6px 18px rgba(16, 55, 40, 0.06);
   --shadow-row: 0 4px 14px rgba(16, 55, 40, 0.05);
   /* Brand-system zoom-out: radii tightened one step (28/20/18/16 ->
-     24/18/16/14) — same design language, less visual bulk. */
+     24/18/16/14) — same design language, less visual bulk.
+     Density round 2: card/row radii down another 2px (18->16, 16->14);
+     the hero radius stays 24px — it is the signature silhouette. */
   --radius-hero: 24px;
-  --radius-card-xl: 18px;
-  --radius-row: 16px;
+  --radius-card-xl: 16px;
+  --radius-row: 14px;
   --radius-input: 14px;
 
   /* ---- Typography (self-hosted via fonts.css: Inter) ---- */
@@ -191,7 +197,8 @@
   /* ---- Radius ---- */
   --radius-sm: 8px;
   --radius-md: 12px;
-  --radius-lg: 14px;
+  /* Density round 2: --radius-lg follows the card step (14 -> 12). */
+  --radius-lg: 12px;
   --radius-xl: 20px;
   --radius-full: 9999px;
 
@@ -306,10 +313,10 @@
   --shadow-hero: 0 14px 28px rgba(0, 0, 0, 0.5);
   --shadow-card-soft: 0 6px 18px rgba(0, 0, 0, 0.35);
   --shadow-row: 0 4px 14px rgba(0, 0, 0, 0.3);
-  /* Same zoom-out steps as the light theme. */
+  /* Same zoom-out steps as the light theme (round 2 included). */
   --radius-hero: 24px;
-  --radius-card-xl: 18px;
-  --radius-row: 16px;
+  --radius-card-xl: 16px;
+  --radius-row: 14px;
   --radius-input: 14px;
 
   /* ---- Elevation ---- */
