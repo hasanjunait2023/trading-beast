@@ -195,6 +195,7 @@ model RadarRun {
   @@unique([userId, requestKey])
   @@index([status, expiresAt])
   @@index([userId, startedAt])
+  @@index([userId, status, completedAt])
 }
 enum RadarRunStatus {
   RUNNING
